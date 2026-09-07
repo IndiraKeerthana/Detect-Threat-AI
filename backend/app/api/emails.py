@@ -6,6 +6,7 @@ from app.services.email_parser import parse_email
 from app.services.relay_analyzer import analyze_received_headers
 from app.services.security_analysis import analyze_security
 from app.services.threat_intelligence import analyze_threat_intelligence
+from app.services.investigation import analyze_investigation
 
 router = APIRouter()
 
@@ -56,12 +57,25 @@ async def analyze_email(file: UploadFile = File(...)) -> EmailAnalysisResponse:
         )
     relay_analysis = analyze_received_headers(parsed_email.received)
     security_analysis = analyze_security(parsed_email)
+    threat_intelligence = analyze_threat_intelligence(
+        parsed_email, relay_analysis, security_analysis
+    )
+    investigation = analyze_investigation(
+        parsed_email, security_analysis, threat_intelligence
+    )
     return parsed_email.model_copy(
         update={
             "relay_analysis": relay_analysis,
             "security_analysis": security_analysis,
-            "threat_intelligence": analyze_threat_intelligence(
-                parsed_email, relay_analysis, security_analysis
-            ),
+            "threat_intelligence": threat_intelligence,
+            "correlations": investigation.correlations,
+            "evidence_graph": investigation.evidence_graph,
+            "risk_assessment": investigation.risk_assessment,
+            "confidence": investigation.risk_assessment.confidence,
+            "attribution": investigation.attribution,
+            "attribution_limitations": investigation.attribution.limitations,
+            "recommended_actions": investigation.recommended_actions,
+            "investigation_summary": investigation.investigation_summary,
+            "investigation": investigation,
         }
     )

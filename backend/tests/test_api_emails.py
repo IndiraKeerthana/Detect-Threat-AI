@@ -54,3 +54,7 @@ class EmailRouteTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(response.threat_intelligence.relationships)
         self.assertIsNotNone(response.threat_intelligence.provider_status)
         self.assertEqual(response.threat_intelligence.provider_status[0].status, "error")
+        self.assertIsNotNone(response.investigation)
+        self.assertIsNotNone(response.risk_assessment)
+        self.assertIsNotNone(response.evidence_graph)
+        self.assertTrue(response.recommended_actions)
