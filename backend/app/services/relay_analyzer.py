@@ -45,6 +45,8 @@ def _classification(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> s
         return "loopback"
     if address.is_link_local:
         return "link_local"
+    if address.is_reserved:
+        return "reserved"
     if address.is_private:
         return "private"
     if address.is_multicast:
@@ -140,7 +142,7 @@ def analyze_received_headers(received_headers: list[str]) -> RelayAnalysis:
             confidence="none",
             reason=(
                 "No public source candidate remained after excluding private, "
-                "loopback, link-local, and documentation/test ranges."
+                "loopback, link-local, reserved, and documentation/test ranges."
             ),
         )
 

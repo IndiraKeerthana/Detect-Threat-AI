@@ -1,0 +1,12 @@
+.env
+# Local configuration and secrets
+backend/.env
+*.local
+
+# Python generated files
+**/__pycache__/
+**/*.py[cod]
+backend/.pytest_cache/
+
+# Local virtual environments
+backend/venv/

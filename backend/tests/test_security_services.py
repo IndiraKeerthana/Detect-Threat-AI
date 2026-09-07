@@ -109,3 +109,18 @@ class SecurityServicesTest(unittest.TestCase):
             {item.code for item in analysis.indicators}
             >= {"spf_fail", "dkim_fail", "dmarc_fail", "url_ip_literal", "reply_to_mismatch"}
         )
+
+    def test_url_sender_mismatch_and_account_suspension_are_explainable(self) -> None:
+        fixture = Path(__file__).parent / "fixtures" / "sample.eml"
+        email = parse_email(fixture.read_bytes()).model_copy(
+            update={
+                "from_": "Sender <sender@example.com>",
+                "subject": "Your account will be suspended",
+                "body_text": "Your account will be deactivated unless you verify it at https://login-example.net/",
+            }
+        )
+
+        codes = {item.code for item in analyze_security(email).indicators}
+        self.assertIn("url_sender_domain_mismatch", codes)
+        self.assertIn("account_suspension_or_deactivation", codes)
+        self.assertNotIn("score", str(analyze_security(email).model_dump()))

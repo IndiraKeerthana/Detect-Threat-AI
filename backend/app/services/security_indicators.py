@@ -1,4 +1,5 @@
 import ipaddress
+import re
 from email.utils import getaddresses
 
 from app.schemas.email import EmailAnalysisResponse
@@ -106,7 +107,6 @@ def build_security_indicators(
                     f"From: {', '.join(sorted(sender_domains))}",
                     f"Reply-To: {', '.join(sorted(reply_domains))}",
                 ],
-                score=15,
             )
         )
     if auth.dkim and auth.dkim.domain and sender_domains:
@@ -127,6 +127,23 @@ def build_security_indicators(
                 )
             )
     for item in url_analysis.urls:
+        if sender_domains and all(
+            not _same_or_subdomain(item.domain, sender_domain)
+            for sender_domain in sender_domains
+        ):
+            indicators.append(
+                SecurityIndicator(
+                    code="url_sender_domain_mismatch",
+                    category="identity",
+                    severity="medium",
+                    title="URL hostname differs from sender domain",
+                    explanation=(
+                        "The message links to a hostname that is not the sender's "
+                        "domain or a subdomain of it."
+                    ),
+                    evidence=[f"URL host: {item.domain}", f"Sender: {', '.join(sorted(sender_domains))}"],
+                )
+            )
         if item.scheme != "https":
             indicators.append(
                 SecurityIndicator(
@@ -180,4 +197,34 @@ def build_security_indicators(
                     evidence=[attachment.filename or attachment.content_type],
                 )
             )
+    combined_text = " ".join(
+        value for value in (email.subject, email.body_text, email.body_html) if value
+    )
+    suspension_match = re.search(
+        r"\b(?:account|profile|access)\b.{0,40}\b(?:suspend(?:ed|ing|ion)?|deactivat(?:ed|ion|e)?|"
+        r"disabled|closed|terminat(?:ed|ion))\b|\b(?:suspend(?:ed|ing|ion)?|deactivat(?:ed|ion|e)?|"
+        r"disabled|closed|terminat(?:ed|ion))\b.{0,40}\b(?:account|profile|access)\b",
+        re.sub(r"<[^>]+>", " ", combined_text),
+        re.IGNORECASE | re.DOTALL,
+    )
+    if suspension_match:
+        indicators.append(
+            SecurityIndicator(
+                code="account_suspension_or_deactivation",
+                category="content",
+                severity="high",
+                title="Account suspension or deactivation threat",
+                explanation=(
+                    "The message threatens account suspension, deactivation, or closure, "
+                    "a common pressure tactic in credential phishing."
+                ),
+                evidence=[suspension_match.group(0).strip()],
+            )
+        )
     return indicators
+
+
+def _same_or_subdomain(left: str, right: str) -> bool:
+    left = left.lower().rstrip(".")
+    right = right.lower().rstrip(".")
+    return left == right or left.endswith(f".{right}")

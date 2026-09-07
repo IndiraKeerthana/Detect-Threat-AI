@@ -37,6 +37,14 @@ class RelayAnalyzerTest(unittest.TestCase):
         self.assertFalse(result.relay_hops[0].extracted_ips[0].is_public_source_candidate)
         self.assertEqual(result.probable_source_infrastructure.address, "1.1.1.1")
 
+    def test_reserved_ip_is_explicitly_classified_and_excluded(self) -> None:
+        result = analyze_received_headers(["from relay.example [240.0.0.1] by mx.example"])
+
+        extracted = result.extracted_ips[0]
+        self.assertEqual(extracted.classification, "reserved")
+        self.assertFalse(extracted.is_public_source_candidate)
+        self.assertIsNone(result.probable_source_infrastructure.address)
+
     def test_malformed_header_is_preserved_without_false_source(self) -> None:
         result = analyze_received_headers(["Received: ???", "from localhost by [127.0.0.1]"])
 
