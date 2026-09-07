@@ -83,6 +83,9 @@ def parse_email(raw_email: bytes) -> EmailAnalysisResponse:
         mime_version=_header(message, "MIME-Version"),
         content_type=_header(message, "Content-Type"),
         received=[str(value) for value in message.get_all("Received", [])],
+        authentication_results=[
+            str(value) for value in message.get_all("Authentication-Results", [])
+        ],
         body_text=body_text,
         body_html=body_html,
         attachments=attachments,

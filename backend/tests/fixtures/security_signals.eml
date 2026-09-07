@@ -1,0 +1,13 @@
+From: Finance Director <director@example.com>
+To: Accounts <accounts@example.net>
+Reply-To: urgent@lookalike.example
+Subject: Urgent wire transfer and verification
+Date: Mon, 07 Sep 2026 11:00:00 +0000
+Message-ID: <security-123@example.com>
+Authentication-Results: mx.example; spf=fail smtp.mailfrom=lookalike.example; dkim=fail header.d=lookalike.example header.s=mail; dmarc=fail header.from=example.com
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+
+Urgent: please complete this immediately and keep this confidential.
+Verify your account and send the verification code. Please make a wire transfer
+to the new bank details. Sign in at http://198.51.100.10/verify.
