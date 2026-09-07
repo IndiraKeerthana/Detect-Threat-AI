@@ -1,0 +1,32 @@
+From: Alice Example <alice@example.com>
+To: Bob Example <bob@example.com>
+Cc: Carol Example <carol@example.com>
+Bcc: Secret Example <secret@example.com>
+Subject: Controlled parser fixture
+Date: Mon, 07 Sep 2026 10:00:00 +0000
+Message-ID: <fixture-123@example.com>
+Reply-To: replies@example.com
+Return-Path: <bounce@example.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="fixture-boundary"
+Received: from first.example (first.example [192.0.2.1]) by mx.example
+Received: from second.example (second.example [192.0.2.2]) by first.example
+
+--fixture-boundary
+Content-Type: multipart/alternative; boundary="alternative-boundary"
+
+--alternative-boundary
+Content-Type: text/plain; charset="utf-8"
+
+Plain fixture body.
+--alternative-boundary
+Content-Type: text/html; charset="utf-8"
+
+<p>HTML fixture body.</p>
+--alternative-boundary--
+--fixture-boundary
+Content-Type: text/plain
+Content-Disposition: attachment; filename="notes.txt"
+
+attachment content
+--fixture-boundary--
