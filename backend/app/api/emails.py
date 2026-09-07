@@ -7,6 +7,7 @@ from app.services.relay_analyzer import analyze_received_headers
 from app.services.security_analysis import analyze_security
 from app.services.threat_intelligence import analyze_threat_intelligence
 from app.services.investigation import analyze_investigation
+from app.services.ai_agent.agent import run_ai_investigation
 
 router = APIRouter()
 
@@ -63,6 +64,17 @@ async def analyze_email(file: UploadFile = File(...)) -> EmailAnalysisResponse:
     investigation = analyze_investigation(
         parsed_email, security_analysis, threat_intelligence
     )
+    try:
+        ai_investigation = run_ai_investigation(
+            parsed_email,
+            security_analysis,
+            threat_intelligence,
+            investigation,
+            settings=settings,
+        )
+    except Exception:
+        # Step 7 is additive and must never make the established analysis fail.
+        ai_investigation = None
     return parsed_email.model_copy(
         update={
             "relay_analysis": relay_analysis,
@@ -77,5 +89,6 @@ async def analyze_email(file: UploadFile = File(...)) -> EmailAnalysisResponse:
             "recommended_actions": investigation.recommended_actions,
             "investigation_summary": investigation.investigation_summary,
             "investigation": investigation,
+            "ai_investigation": ai_investigation,
         }
     )

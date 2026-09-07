@@ -12,6 +12,7 @@ from app.schemas.investigation import (
 )
 from app.schemas.security import SecurityAnalysis
 from app.schemas.threat_intelligence import ThreatIntelligence
+from app.services.ai_agent.schemas import AIInvestigationResult
 
 
 class AttachmentMetadata(BaseModel):
@@ -86,6 +87,7 @@ class EmailAnalysisResponse(BaseModel):
     recommended_actions: list[RecommendedAction] = Field(default_factory=list)
     investigation_summary: InvestigationSummary | None = None
     investigation: InvestigationAnalysis | None = None
+    ai_investigation: "AIInvestigationResult | None" = None
     # Retained on the internal model for security_analysis; it is not a new
     # top-level response field so existing API consumers keep the same shape.
     authentication_results: list[str] = Field(default_factory=list, exclude=True)

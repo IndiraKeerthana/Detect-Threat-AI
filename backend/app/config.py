@@ -22,6 +22,18 @@ class Settings(BaseSettings):
     max_email_size_mb: float = Field(
         default=10.0, validation_alias="MAX_EMAIL_SIZE_MB", gt=0, le=1024
     )
+    # Step 7 is deliberately disabled unless an operator opts in.  The
+    # provider key is never included in structured investigation context.
+    ai_agent_enabled: bool = Field(default=False, validation_alias="AI_AGENT_ENABLED")
+    ai_provider: str = Field(default="openai", validation_alias="AI_PROVIDER")
+    ai_model: str = Field(default="gpt-4o-mini", validation_alias="AI_MODEL")
+    ai_api_key: str | None = Field(default=None, validation_alias="AI_API_KEY")
+    ai_agent_max_iterations: int = Field(
+        default=5, validation_alias="AI_AGENT_MAX_ITERATIONS", ge=1, le=20
+    )
+    ai_agent_timeout_seconds: float = Field(
+        default=30.0, validation_alias="AI_AGENT_TIMEOUT_SECONDS", gt=0, le=300
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",
