@@ -38,6 +38,9 @@ class AIToolCall(BaseModel):
     name: str
     arguments: dict[str, Any] = Field(default_factory=dict)
     result_summary: str = ""
+    target: str | None = None
+    iteration: int | None = None
+    status: str = "success"
 
 
 class AIInvestigationResult(BaseModel):

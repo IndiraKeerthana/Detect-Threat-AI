@@ -113,7 +113,7 @@ class ThreatIntelligenceOrchestrator:
             status = "error"
             message = "Provider unavailable"
         else:
-            status = "available"
+            status = "degraded" if failures else "available"
             message = "Some lookups failed" if failures else None
         return ProviderRun(str(getattr(provider, "name", provider.__class__.__name__)), status, observations, relationships, message)
 

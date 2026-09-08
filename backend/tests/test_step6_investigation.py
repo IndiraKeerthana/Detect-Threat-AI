@@ -140,6 +140,58 @@ class Step6InvestigationTest(unittest.TestCase):
         self.assertEqual(result.risk_assessment.confidence.level, "low")
         self.assertTrue(result.risk_assessment.confidence.limitations)
 
+    def test_degraded_provider_limits_confidence_without_forcing_low(self) -> None:
+        intelligence = ThreatIntelligence(
+            provider_status=[
+                ProviderStatus(
+                    provider="partial",
+                    status="degraded",
+                    checked=2,
+                    message="Some lookups failed",
+                )
+            ]
+        )
+        result = _investigate(
+            _email(subject="Verify your account", body="Open http://login.example.net/"),
+            intelligence,
+        )
+        self.assertEqual(result.risk_assessment.confidence.level, "medium")
+        self.assertTrue(result.risk_assessment.confidence.limitations)
+
+    def test_successful_independent_providers_can_still_reach_high_confidence(self) -> None:
+        intelligence = ThreatIntelligence(
+            entities=[ThreatEntity(type="domain", value="login-example.net", sources=["body_text"])],
+            observations=[
+                ThreatObservation(
+                    provider="one",
+                    entity_type="domain",
+                    entity="login-example.net",
+                    kind="reputation",
+                    data={"last_analysis_stats": {"malicious": 8}},
+                    evidence=["login-example.net"],
+                    confidence="high",
+                ),
+                ThreatObservation(
+                    provider="two",
+                    entity_type="domain",
+                    entity="login-example.net",
+                    kind="registration",
+                    data={"registrar": "Example Registrar"},
+                    evidence=["login-example.net"],
+                    confidence="high",
+                ),
+            ],
+            provider_status=[
+                ProviderStatus(provider="one", status="available", checked=1),
+                ProviderStatus(provider="two", status="available", checked=1),
+            ],
+        )
+        result = _investigate(
+            _email(subject="Verify your account", body="Open http://login-example.net/"),
+            intelligence,
+        )
+        self.assertEqual(result.risk_assessment.confidence.level, "high")
+
     def test_provider_infrastructure_corroboration_can_raise_confidence(self) -> None:
         intelligence = ThreatIntelligence(
             entities=[ThreatEntity(type="domain", value="login-example.net", sources=["body_text"])],

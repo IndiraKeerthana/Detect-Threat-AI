@@ -13,6 +13,7 @@ from app.services.intelligence.providers import (
     RDAPProvider,
     VirusTotalProvider,
 )
+from app.schemas.threat_intelligence import ThreatObservation
 
 
 def _email() -> EmailAnalysisResponse:
@@ -68,6 +69,31 @@ class ThreatIntelligenceProvidersTest(unittest.TestCase):
         with patch("urllib.request.urlopen", return_value=_response({"data": {}})):
             malformed = VirusTotalProvider("secret").collect([("ip", "8.8.8.8")])
         self.assertEqual(malformed.status, "error")
+
+    def test_partial_provider_failure_is_degraded(self) -> None:
+        class PartialProvider:
+            name = "partial"
+
+            def __init__(self) -> None:
+                self.calls = 0
+
+            def lookup(self, entity_type: str, entity: str) -> ThreatObservation:
+                self.calls += 1
+                if self.calls == 2:
+                    raise OSError("lookup failed")
+                return ThreatObservation(
+                    provider="partial",
+                    entity_type="domain",
+                    entity=entity,
+                    kind="reputation",
+                )
+
+        provider = PartialProvider()
+        result = ThreatIntelligenceOrchestrator(providers=[provider])._collect(
+            provider, [("domain", "example.com"), ("domain", "other.example")]
+        )
+        self.assertEqual(result.status, "degraded")
+        self.assertEqual(result.message, "Some lookups failed")
 
     def test_ip_geolocation_public_success_normalizes_and_relates(self) -> None:
         payload = {

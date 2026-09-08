@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,15 +25,23 @@ class Settings(BaseSettings):
     # Step 7 is deliberately disabled unless an operator opts in.  The
     # provider key is never included in structured investigation context.
     ai_agent_enabled: bool = Field(default=False, validation_alias="AI_AGENT_ENABLED")
-    ai_provider: str = Field(default="openai", validation_alias="AI_PROVIDER")
-    ai_model: str = Field(default="gpt-4o-mini", validation_alias="AI_MODEL")
+    ai_provider: str = Field(default="groq", validation_alias="AI_PROVIDER")
+    ai_model: str = Field(default="llama-3.3-70b-versatile", validation_alias="AI_MODEL")
+    groq_api_key: str | None = Field(default=None, validation_alias="GROQ_API_KEY")
     ai_api_key: str | None = Field(default=None, validation_alias="AI_API_KEY")
     ai_agent_max_iterations: int = Field(
-        default=5, validation_alias="AI_AGENT_MAX_ITERATIONS", ge=1, le=20
+        default=4,
+        validation_alias=AliasChoices("MAX_AGENT_ITERATIONS", "AI_AGENT_MAX_ITERATIONS"),
+        ge=1,
+        le=20,
     )
     ai_agent_timeout_seconds: float = Field(
-        default=30.0, validation_alias="AI_AGENT_TIMEOUT_SECONDS", gt=0, le=300
+        default=60.0, validation_alias="AI_AGENT_TIMEOUT_SECONDS", gt=0, le=300
     )
+
+    @property
+    def effective_ai_api_key(self) -> str | None:
+        return self.groq_api_key or self.ai_api_key
 
     model_config = SettingsConfigDict(
         env_file=".env",

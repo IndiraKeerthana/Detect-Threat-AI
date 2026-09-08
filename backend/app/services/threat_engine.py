@@ -173,9 +173,12 @@ def _confidence(
 ) -> ConfidenceAssessment:
     limitations: list[str] = []
     errors = [item for item in intelligence.provider_status if item.status == "error"]
+    degraded = [item for item in intelligence.provider_status if item.status == "degraded"]
     skipped = [item for item in intelligence.provider_status if item.status == "skipped"]
     if errors:
         limitations.append("One or more threat-intelligence providers failed; coverage is incomplete.")
+    if degraded:
+        limitations.append("One or more threat-intelligence providers returned partial results; confidence is limited.")
     if skipped:
         limitations.append("Some threat-intelligence providers were not configured.")
     evidence_count = sum(bool(item.evidence) for item in factors)
@@ -242,9 +245,11 @@ def _confidence(
     )
     if errors or (factors and evidence_count < len(factors)):
         level = "low"
+    elif degraded:
+        level = "medium"
     elif uncertain_observations:
         level = "medium"
-    elif independently_corroborated and not skipped:
+    elif independently_corroborated and not errors and not degraded and not skipped:
         level = "high"
     elif meaningful_observations or local_evidence or graph.correlations:
         level = "medium"

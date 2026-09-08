@@ -21,6 +21,38 @@ from app.services.ai_agent.tools import ToolRegistry, ToolValidationError, make_
 
 logger = logging.getLogger(__name__)
 _SECRET_KEYS = {"secret", "token", "password", "authorization", "api_key", "apikey", "raw", "body", "attachment"}
+CONSERVATIVE_ATTRIBUTION = (
+    "The evidence supports identification of suspicious infrastructure, but does not establish "
+    "the attacker's identity, sophistication, affiliation, or intent beyond the observed indicators."
+)
+FOUNDATION_SYSTEM_PROMPT = """You are a bounded email-forensics assistant.
+Use only the supplied structured evidence. Do not invent facts, entities, URLs,
+actors, or provider observations. Do not claim human attribution; use
+infrastructure_only. Return exactly one JSON object matching this schema:
+{
+  "summary": "concise summary string",
+  "risk_level": "low or medium or high or critical",
+  "classification": "benign or suspicious or phishing or malware or spoofing or bec or spam",
+  "confidence": "low or medium or high",
+  "reasoning": "evidence-backed rationale string",
+  "key_findings": [
+    {"title": "string", "severity": "info or low or medium or high or critical", "explanation": "string", "evidence": ["string"]}
+  ],
+  "recommended_actions": ["string"],
+  "attribution": {
+    "status": "infrastructure_only",
+    "assessment": "string",
+    "confidence": "low or medium or high or unknown",
+    "supporting_evidence": ["string"],
+    "limitations": ["string"]
+  },
+  "evidence": ["string"],
+  "tool_calls": [],
+  "iterations": 1,
+  "source": "ai_agent"
+}
+Keep the response concise and evidence-backed. Set source to ai_agent and
+iterations to 1. Do not include chain-of-thought."""
 
 
 def _safe_value(value: Any, depth: int = 0) -> Any:
@@ -243,6 +275,109 @@ def deterministic_fallback(
     return _fallback(investigation, iterations=iterations)
 
 
+def build_foundation_context(
+    email: EmailAnalysisResponse,
+    security_analysis: SecurityAnalysis,
+    threat_intelligence: ThreatIntelligence,
+    investigation: InvestigationAnalysis,
+) -> dict[str, Any]:
+    """Build the small, one-request context used to prove real AI integration."""
+    auth = security_analysis.authentication_results
+    source_ip = (
+        email.relay_analysis.probable_source_infrastructure.address
+        if email.relay_analysis
+        else None
+    )
+    observations = sorted(
+        threat_intelligence.observations,
+        key=lambda item: (item.status != "success", item.confidence != "high"),
+    )[:5]
+    return {
+        "risk_level": investigation.risk_assessment.level,
+        "classification": investigation.risk_assessment.classification,
+        "confidence": investigation.risk_assessment.confidence.level,
+        "risk_factors": [
+            {
+                "code": item.code,
+                "severity": item.severity,
+                "evidence": item.evidence[:2],
+            }
+            for item in investigation.risk_assessment.factors[:5]
+        ],
+        "authentication": {
+            "spf": auth.spf.result if auth.spf else None,
+            "dkim": auth.dkim.result if auth.dkim else None,
+            "dmarc": auth.dmarc.result if auth.dmarc else None,
+        },
+        "from_domain": auth.from_domain,
+        "reply_to_domain": auth.reply_to_domain,
+        "return_path_domain": auth.return_path_domain,
+        "probable_source_ip": source_ip,
+        "urls": [item.normalized_url for item in security_analysis.url_analysis.urls[:3]],
+        "threat_intelligence": [
+            {
+                "provider": item.provider,
+                "entity": item.entity,
+                "kind": item.kind,
+                "status": item.status,
+                "evidence": item.evidence[:2],
+            }
+            for item in observations
+        ],
+        "correlations": [
+            {
+                "code": item.code,
+                "relationship": item.relationship,
+                "entities": item.entities[:4],
+                "evidence": item.evidence[:2],
+            }
+            for item in investigation.correlations[:5]
+        ],
+    }
+
+
+def run_foundation_ai_investigation(
+    email: EmailAnalysisResponse,
+    security_analysis: SecurityAnalysis,
+    threat_intelligence: ThreatIntelligence,
+    investigation: InvestigationAnalysis,
+    *,
+    settings: Settings | Any | None = None,
+) -> AIInvestigationResult:
+    """Run exactly one bounded provider request, with deterministic fallback."""
+    settings = settings or get_settings()
+    deterministic = _fallback(investigation)
+    if not bool(getattr(settings, "ai_agent_enabled", False)):
+        return deterministic
+    try:
+        selected = create_provider(
+            str(getattr(settings, "ai_provider", "openai")),
+            api_key=getattr(settings, "ai_api_key", None),
+            model=str(getattr(settings, "ai_model", "gpt-4o-mini")),
+            timeout_seconds=float(getattr(settings, "ai_agent_timeout_seconds", 30.0)),
+        )
+        if not hasattr(selected, "decide_once"):
+            raise ProviderError("provider does not support foundation mode")
+        decision = selected.decide_once(
+            build_foundation_context(email, security_analysis, threat_intelligence, investigation),
+            system_prompt=FOUNDATION_SYSTEM_PROMPT,
+            max_tokens=2500,
+        )
+        if decision.kind != "final" or decision.result is None:
+            raise ProviderError("provider did not return a final investigation")
+        result = AIInvestigationResult.model_validate(decision.result)
+        result.iterations = 1
+        result.source = "ai_agent"
+        AIInvestigationAgent._validate_result(result, build_investigation_context(
+            email, security_analysis, threat_intelligence, investigation
+        ))
+        result.tool_calls = []
+        return result
+    except Exception as exc:
+        logger.warning("AI foundation unavailable (%s)", type(exc).__name__)
+        return deterministic
+
+
 def _coerce_decision(value: Any) -> ProviderDecision:
     if isinstance(value, ProviderDecision):
         return value
@@ -285,7 +420,45 @@ class AIInvestigationAgent:
                 )
                 logger.debug("AI investigation iteration %d decision=%s", iteration, decision.kind)
                 if decision.kind == "final" and decision.result is not None:
-                    result = AIInvestigationResult.model_validate(decision.result)
+                    if not calls and iteration == 1 and self.max_iterations > 1:
+                        history.append({
+                            "type": "tool_result",
+                            "tool": "investigation_policy",
+                            "result": {
+                                "status": "investigation_required",
+                                "message": (
+                                    "Investigation policy requirement: You must execute at least one forensic tool "
+                                    "(such as inspect_url, inspect_ip, inspect_domain, or inspect_reputation) "
+                                    "to investigate suspicious observables before providing the final report."
+                                ),
+                            },
+                        })
+                        continue
+                    final_data = dict(decision.result)
+                    final_data["source"] = "ai_agent"
+                    final_data["iterations"] = iteration
+                    final_data["tool_calls"] = calls
+                    evidence_raw = final_data.get("evidence")
+                    if isinstance(evidence_raw, dict):
+                        final_data["evidence"] = [
+                            f"{k}: {v}" if not isinstance(v, (dict, list)) else f"{k}: {json.dumps(v)}"
+                            for k, v in evidence_raw.items()
+                        ]
+                    attr_raw = final_data.get("attribution")
+                    if isinstance(attr_raw, str):
+                        final_data["attribution"] = {
+                            "status": "infrastructure_only",
+                            "assessment": attr_raw,
+                            "confidence": "low",
+                            "supporting_evidence": [],
+                            "limitations": ["Infrastructure evidence does not identify or attribute a human actor."],
+                        }
+                    elif isinstance(attr_raw, dict):
+                        attr_raw.setdefault("limitations", ["Infrastructure evidence does not identify or attribute a human actor."])
+                        attr_raw.setdefault("supporting_evidence", [])
+                        attr_raw.setdefault("confidence", "low")
+                        attr_raw.setdefault("status", "infrastructure_only")
+                    result = AIInvestigationResult.model_validate(final_data)
                     result.iterations = iteration
                     result.source = "ai_agent"
                     self._validate_result(result, context)
@@ -297,11 +470,43 @@ class AIInvestigationAgent:
                 if key in seen:
                     raise ProviderError("repeated tool call")
                 seen.add(key)
-                output = registry.execute(decision.tool, decision.arguments)
-                summary = f"{decision.tool} returned {len(output)} field(s)."
-                calls.append(AIToolCall(name=decision.tool, arguments=decision.arguments, result_summary=summary))
-                history.append({"type": "tool_result", "tool": decision.tool, "result": _safe_value(output)})
-            except (ProviderError, ToolValidationError, ValueError, TypeError):
+                target = str(
+                    decision.arguments.get("entity")
+                    or decision.arguments.get("ip")
+                    or decision.arguments.get("domain")
+                    or decision.arguments.get("url")
+                    or decision.arguments.get("code")
+                    or ""
+                )
+                try:
+                    output = registry.execute(decision.tool, decision.arguments)
+                    summary = f"{decision.tool} returned {len(output)} field(s)."
+                    calls.append(
+                        AIToolCall(
+                            name=decision.tool,
+                            arguments=decision.arguments,
+                            result_summary=summary,
+                            target=target,
+                            iteration=iteration,
+                            status="success",
+                        )
+                    )
+                    history.append({"type": "tool_result", "tool": decision.tool, "result": _safe_value(output)})
+                except ToolValidationError as err:
+                    summary = f"{decision.tool} validation failed: {err}"
+                    calls.append(
+                        AIToolCall(
+                            name=decision.tool,
+                            arguments=decision.arguments,
+                            result_summary=summary,
+                            target=target,
+                            iteration=iteration,
+                            status="error",
+                        )
+                    )
+                    history.append({"type": "tool_result", "tool": decision.tool, "error": str(err)})
+            except (ProviderError, ValueError, TypeError) as exc:
+                logger.warning("AI investigation iteration %d failed (%s)", iteration, type(exc).__name__)
                 return _fallback(deterministic, iterations=iteration, tool_calls=calls)
         return _fallback(deterministic, iterations=self.max_iterations, tool_calls=calls)
 
@@ -309,16 +514,35 @@ class AIInvestigationAgent:
     def _validate_result(result: AIInvestigationResult, context: dict[str, Any]) -> None:
         # Provider output cannot broaden attribution beyond infrastructure leads.
         if result.attribution.status != "not_attributed":
-            unsafe_terms = ("threat actor", "attacker", "criminal group", "attributed to")
-            if any(term in result.attribution.assessment.lower() for term in unsafe_terms):
-                result.attribution.assessment = (
-                    "Infrastructure indicators are investigative leads; no actor attribution is supported."
-                )
+            assessment_lower = result.attribution.assessment.lower()
+            unsupported_terms = (
+                "threat actor",
+                "attacker",
+                "criminal group",
+                "attributed to",
+                "apt",
+                "sophisticat",
+                "skill",
+                "novice",
+                "nation-state",
+                "nation state",
+                "state-sponsored",
+                "gang",
+                "syndicate",
+                "affiliation",
+                "motive",
+                "phishing kit",
+                "perpetrator",
+            )
+            has_unsupported_claim = any(term in assessment_lower for term in unsupported_terms)
+            if result.attribution.status == "infrastructure_only" or has_unsupported_claim:
+                result.attribution.assessment = CONSERVATIVE_ATTRIBUTION
                 result.attribution.status = "infrastructure_only"
                 result.attribution.confidence = "low"
-            result.attribution.limitations.append(
-                "Infrastructure evidence does not identify or attribute a human actor."
-            )
+            if not any("identity" in item.lower() or "actor" in item.lower() for item in result.attribution.limitations):
+                result.attribution.limitations.append(
+                    "Infrastructure evidence does not identify or attribute a human actor."
+                )
         known = {
             str(item.get("value", "")).lower()
             for item in context.get("entities", [])
@@ -348,15 +572,20 @@ def run_ai_investigation(
         return deterministic
     try:
         context = build_investigation_context(email, security_analysis, threat_intelligence, investigation)
+        api_key = (
+            getattr(settings, "effective_ai_api_key", None)
+            or getattr(settings, "groq_api_key", None)
+            or getattr(settings, "ai_api_key", None)
+        )
         selected = provider or create_provider(
-            str(getattr(settings, "ai_provider", "openai")),
-            api_key=getattr(settings, "ai_api_key", None),
-            model=str(getattr(settings, "ai_model", "gpt-4o-mini")),
-            timeout_seconds=float(getattr(settings, "ai_agent_timeout_seconds", 30.0)),
+            str(getattr(settings, "ai_provider", "groq")),
+            api_key=api_key,
+            model=str(getattr(settings, "ai_model", "llama-3.3-70b-versatile")),
+            timeout_seconds=float(getattr(settings, "ai_agent_timeout_seconds", 60.0)),
         )
         return AIInvestigationAgent(
             selected,
-            max_iterations=int(getattr(settings, "ai_agent_max_iterations", 5)),
+            max_iterations=int(getattr(settings, "ai_agent_max_iterations", 4)),
         ).investigate(context, investigation)
     except Exception as exc:
         # Never expose provider URLs, response bodies, keys, or exception text.

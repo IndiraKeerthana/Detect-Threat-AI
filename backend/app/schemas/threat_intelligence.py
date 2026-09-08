@@ -13,7 +13,7 @@ RelationshipEntityType = Literal[
     "city",
     "asn",
 ]
-ProviderState = Literal["available", "skipped", "error"]
+ProviderState = Literal["available", "degraded", "skipped", "error"]
 
 
 class ThreatEntity(BaseModel):

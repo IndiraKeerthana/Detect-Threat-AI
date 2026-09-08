@@ -243,7 +243,7 @@ def _collect_http_provider(provider: Any, entities: list[tuple[EntityType, str]]
         )
     return ProviderRun(
         provider.name,
-        "available",
+        "degraded" if failures else "available",
         observations,
         message="Some lookups failed" if failures else None,
         checked=len(eligible),
