@@ -1,6 +1,7 @@
 import React from 'react';
-import { ShieldCheck, Check, X, Minus } from 'lucide-react';
+import { Check, X, Minus, AlertTriangle, ShieldCheck } from 'lucide-react';
 import type { AuthenticationResultsAnalysis, AuthStatus } from '../../types/investigation';
+import { SectionHeader } from '../investigation/SectionHeader';
 
 interface AuthenticationSectionProps {
   auth?: AuthenticationResultsAnalysis | null;
@@ -9,8 +10,8 @@ interface AuthenticationSectionProps {
 export const AuthenticationSection: React.FC<AuthenticationSectionProps> = ({ auth }) => {
   if (!auth) {
     return (
-      <div className="surface-card p-5 border border-[#1e2430] text-center text-xs text-[#64748b] font-mono">
-        NO RFC 8601 AUTHENTICATION DATA
+      <div className="surface-card p-6 border border-[#1e2430] text-center text-xs text-[#64748b] font-mono">
+        NO RFC 8601 AUTHENTICATION DATA PRESENT
       </div>
     );
   }
@@ -38,10 +39,16 @@ export const AuthenticationSection: React.FC<AuthenticationSectionProps> = ({ au
           className: 'bg-[#261b0c] text-[#fcd34d] border-[#5c3c12]',
           text: s.toUpperCase(),
         };
-      default:
+      case 'none':
         return {
           icon: Minus,
           className: 'bg-[#171b23] text-[#94a3b8] border-[#2a3242]',
+          text: 'NONE',
+        };
+      default:
+        return {
+          icon: Minus,
+          className: 'bg-[#171b23] text-[#64748b] border-[#1e2430]',
           text: s.toUpperCase(),
         };
     }
@@ -51,80 +58,166 @@ export const AuthenticationSection: React.FC<AuthenticationSectionProps> = ({ au
   const dkimBadge = getStatusBadge(auth.dkim?.result);
   const dmarcBadge = getStatusBadge(auth.dmarc?.result);
 
-  return (
-    <div className="surface-card p-5 border border-[#1e2430] space-y-4">
-      {/* Title */}
-      <div className="flex items-center justify-between pb-3 border-b border-[#1e2430]">
-        <div className="flex items-center space-x-2">
-          <ShieldCheck className="w-4 h-4 text-[#10b981]" />
-          <h3 className="text-sm font-semibold text-[#f1f5f9] tracking-tight">
-            Email Authentication Results (RFC 8601)
-          </h3>
-        </div>
-        <span className="text-xs font-mono text-[#64748b]">
-          AUTHSERV ID: <span className="text-[#f1f5f9]">{auth.authserv_ids[0] || 'Unknown'}</span>
-        </span>
-      </div>
+  const SpfIcon = spfBadge.icon;
+  const DkimIcon = dkimBadge.icon;
+  const DmarcIcon = dmarcBadge.icon;
 
-      {/* 3-Column Protocol Matrix */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+  const hasReplyToMismatch =
+    auth.reply_to_domain &&
+    auth.from_domain &&
+    auth.reply_to_domain.toLowerCase() !== auth.from_domain.toLowerCase();
+
+  const hasReturnPathMismatch =
+    auth.return_path_domain &&
+    auth.from_domain &&
+    auth.return_path_domain.toLowerCase() !== auth.from_domain.toLowerCase();
+
+  return (
+    <div className="surface-card p-6 border border-[#1e2430] space-y-4">
+      {/* Section Header */}
+      <SectionHeader
+        index="03B"
+        tag="AUTHENTICATION MATRIX"
+        title="RFC 8601 Verification & Domain Alignment"
+        subtitle="Cryptographic verification of sender SPF policy, DKIM digital signatures, and DMARC enforcement"
+        action={
+          <div className="flex items-center space-x-2 text-[10px] font-mono text-[#64748b]">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#10b981]" />
+            <span>AUTHSERV: <strong className="text-[#f1f5f9]">{auth.authserv_ids[0] || 'None'}</strong></span>
+          </div>
+        }
+      />
+
+      {/* 3-Protocol Matrix Rows */}
+      <div className="space-y-2.5">
         {/* SPF */}
-        <div className="bg-[#12151b] border border-[#1e2430] p-3.5 rounded space-y-2">
+        <div className="bg-[#0f1217] border border-[#1e2430] p-3.5 rounded-md space-y-2 text-xs font-mono">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-semibold text-[#f1f5f9]">SPF (RFC 7208)</span>
-            <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border flex items-center gap-1 ${spfBadge.className}`}>
-              <spfBadge.icon className="w-3 h-3" />
+            <div className="flex items-center space-x-2">
+              <span className="font-semibold text-[#f1f5f9]">SPF</span>
+              <span className="text-[10px] text-[#64748b]">RFC 7208</span>
+            </div>
+
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 ${spfBadge.className}`}>
+              <SpfIcon className="w-3 h-3" />
               {spfBadge.text}
             </span>
           </div>
-          <div className="text-[11px] font-mono text-[#94a3b8] truncate">
-            Domain: <span className="text-[#f1f5f9]">{auth.spf?.domain || auth.from_domain || 'None'}</span>
-          </div>
-          <div className="text-[10px] font-mono text-[#64748b] truncate">
-            {auth.spf?.raw || 'No SPF record evaluated'}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1 border-t border-[#1e2430]">
+            <div>
+              <span className="text-[#64748b]">Evaluating Domain: </span>
+              <span className="text-[#f1f5f9]">{auth.spf?.domain || auth.from_domain || 'None'}</span>
+            </div>
+            <div>
+              <span className="text-[#64748b]">Evaluated Raw: </span>
+              <span className="text-[#fca5a5]">{auth.spf?.raw || 'None'}</span>
+            </div>
           </div>
         </div>
 
         {/* DKIM */}
-        <div className="bg-[#12151b] border border-[#1e2430] p-3.5 rounded space-y-2">
+        <div className="bg-[#0f1217] border border-[#1e2430] p-3.5 rounded-md space-y-2 text-xs font-mono">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-semibold text-[#f1f5f9]">DKIM (RFC 6376)</span>
-            <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border flex items-center gap-1 ${dkimBadge.className}`}>
-              <dkimBadge.icon className="w-3 h-3" />
+            <div className="flex items-center space-x-2">
+              <span className="font-semibold text-[#f1f5f9]">DKIM</span>
+              <span className="text-[10px] text-[#64748b]">RFC 6376</span>
+            </div>
+
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 ${dkimBadge.className}`}>
+              <DkimIcon className="w-3 h-3" />
               {dkimBadge.text}
             </span>
           </div>
-          <div className="text-[11px] font-mono text-[#94a3b8] truncate">
-            Domain: <span className="text-[#f1f5f9]">{auth.dkim?.domain || 'None'}</span>
-          </div>
-          <div className="text-[10px] font-mono text-[#64748b] truncate">
-            {auth.dkim?.raw || 'No DKIM signature present'}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1 border-t border-[#1e2430]">
+            <div>
+              <span className="text-[#64748b]">Signing Domain: </span>
+              <span className="text-[#94a3b8]">{auth.dkim?.domain || 'None (No signature present)'}</span>
+            </div>
+            <div>
+              <span className="text-[#64748b]">Signature Status: </span>
+              <span className="text-[#94a3b8]">{auth.dkim?.raw || 'None'}</span>
+            </div>
           </div>
         </div>
 
         {/* DMARC */}
-        <div className="bg-[#12151b] border border-[#1e2430] p-3.5 rounded space-y-2">
+        <div className="bg-[#0f1217] border border-[#1e2430] p-3.5 rounded-md space-y-2 text-xs font-mono">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-semibold text-[#f1f5f9]">DMARC (RFC 7489)</span>
-            <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border flex items-center gap-1 ${dmarcBadge.className}`}>
-              <dmarcBadge.icon className="w-3 h-3" />
+            <div className="flex items-center space-x-2">
+              <span className="font-semibold text-[#f1f5f9]">DMARC</span>
+              <span className="text-[10px] text-[#64748b]">RFC 7489</span>
+            </div>
+
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 ${dmarcBadge.className}`}>
+              <DmarcIcon className="w-3 h-3" />
               {dmarcBadge.text}
             </span>
           </div>
-          <div className="text-[11px] font-mono text-[#94a3b8] truncate">
-            Domain: <span className="text-[#f1f5f9]">{auth.dmarc?.domain || auth.from_domain || 'None'}</span>
-          </div>
-          <div className="text-[10px] font-mono text-[#64748b] truncate">
-            {auth.dmarc?.raw || 'No DMARC record evaluated'}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1 border-t border-[#1e2430]">
+            <div>
+              <span className="text-[#64748b]">Policy Target: </span>
+              <span className="text-[#f1f5f9]">{auth.dmarc?.domain || auth.from_domain || 'None'}</span>
+            </div>
+            <div>
+              <span className="text-[#64748b]">Policy Action: </span>
+              <span className="text-[#fca5a5] font-semibold">{auth.dmarc?.raw || 'None'}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Alignment Notes */}
+      {/* Header Domain Alignment Diagnostics */}
+      <div className="bg-[#12151b] border border-[#1e2430] p-3.5 rounded-md space-y-2 text-xs font-mono">
+        <div className="text-[10px] uppercase text-[#64748b] tracking-wider">
+          DOMAIN ALIGNMENT & IDENTITY VERIFICATION
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between py-1 border-b border-[#1e2430]">
+            <span className="text-[#94a3b8]">RFC 5322 From Domain:</span>
+            <span className="text-[#f1f5f9] font-medium">{auth.from_domain || 'None'}</span>
+          </div>
+
+          <div className="flex items-center justify-between py-1 border-b border-[#1e2430]">
+            <span className="text-[#94a3b8]">Reply-To Header Domain:</span>
+            <div className="flex items-center gap-2">
+              <span className={hasReplyToMismatch ? 'text-[#fca5a5]' : 'text-[#f1f5f9]'}>
+                {auth.reply_to_domain || 'None'}
+              </span>
+              {hasReplyToMismatch && (
+                <span className="px-1.5 py-0.2 rounded bg-[#261114] text-[#fca5a5] border border-[#5c1d24] text-[9px] font-bold flex items-center gap-1">
+                  <AlertTriangle className="w-2.5 h-2.5" />
+                  MISMATCH
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between py-1">
+            <span className="text-[#94a3b8]">Return-Path Domain:</span>
+            <div className="flex items-center gap-2">
+              <span className={hasReturnPathMismatch ? 'text-[#fcd34d]' : 'text-[#f1f5f9]'}>
+                {auth.return_path_domain || 'None'}
+              </span>
+              {hasReturnPathMismatch && (
+                <span className="px-1.5 py-0.2 rounded bg-[#261b0c] text-[#fcd34d] border border-[#5c3c12] text-[9px] font-bold flex items-center gap-1">
+                  <AlertTriangle className="w-2.5 h-2.5" />
+                  MISMATCH
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Alignment Diagnostic Notes */}
       {auth.alignment_notes && auth.alignment_notes.length > 0 && (
-        <div className="p-3 bg-[#0f1217] border border-[#1e2430] rounded space-y-1">
+        <div className="p-3 bg-[#0a0c10] border border-[#1e2430] rounded space-y-1">
           <div className="text-[10px] font-mono uppercase text-[#64748b]">
-            Alignment & Verification Diagnostic Notes
+            ALIGNMENT & VERIFICATION DIAGNOSTIC NOTES
           </div>
           <ul className="text-xs text-[#94a3b8] space-y-1 list-disc list-inside">
             {auth.alignment_notes.map((note, idx) => (

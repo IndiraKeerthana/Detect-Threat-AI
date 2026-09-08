@@ -20,6 +20,8 @@ from urllib.request import Request, urlopen
 
 from app.services.ai_agent.prompts import SYSTEM_PROMPT, make_user_prompt
 
+from email.utils import parsedate_to_datetime
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,14 +33,65 @@ class ProviderTimeout(ProviderError):
     """The provider exceeded the configured timeout."""
 
 
-MODEL_FALLBACKS: dict[str, str] = {
-    "llama-3.3-70b-versatile": "groq/compound-mini",
-    "llama-3.1-70b-versatile": "groq/compound-mini",
-    "llama3-70b-8192": "groq/compound-mini",
-    "gemini-3.5-flash": "gemini-3.5-flash-lite",
-    "gemini-3.8-flash": "gemini-3.5-flash-lite",
-    "gemini-3-flash-preview": "gemini-3.5-flash-lite",
+TRANSIENT_HTTP_CODES = {408, 429, 500, 502, 503, 504}
+AUTH_HTTP_CODES = {401, 403}
+MAX_RETRIES_PER_MODEL = 3
+DEFAULT_MAX_RETRY_DELAY = 10.0
+DEFAULT_BASE_BACKOFF = 0.5
+
+MODEL_FALLBACKS: dict[str, list[str]] = {
+    "openai/gpt-oss-120b": ["openai/gpt-oss-20b", "qwen/qwen3.8-27b"],
+    "openai/gpt-oss-20b": ["qwen/qwen3.8-27b"],
+    "llama-3.3-70b-versatile": ["llama-3.1-8b-instant", "groq/compound-mini"],
+    "llama-3.1-70b-versatile": ["llama-3.1-8b-instant", "groq/compound-mini"],
+    "llama3-70b-8192": ["llama-3.1-8b-instant", "groq/compound-mini"],
+    "gemini-3.5-flash": ["gemini-3.5-flash-lite"],
+    "gemini-3.8-flash": ["gemini-3.5-flash-lite"],
+    "gemini-3-flash-preview": ["gemini-3.5-flash-lite"],
 }
+
+
+def _get_fallback_models(model: str) -> list[str]:
+    entry = MODEL_FALLBACKS.get(model, [])
+    if isinstance(entry, str):
+        return [entry]
+    return list(entry)
+
+
+def _safe_retry_delay(
+    headers: Any,
+    body: str,
+    attempt: int,
+    *,
+    max_delay: float = DEFAULT_MAX_RETRY_DELAY,
+    base_backoff: float = DEFAULT_BASE_BACKOFF,
+) -> float:
+    """Safely parse Retry-After header or message body delay, strictly bounded by max_delay."""
+    retry_val: str | None = None
+    if headers:
+        retry_val = headers.get("Retry-After")
+    if not retry_val and body and "try again in " in body:
+        match = re.search(r"try again in ([0-9]+(?:\.[0-9]+)?)s", body)
+        if match:
+            retry_val = match.group(1)
+
+    if retry_val is not None:
+        try:
+            delay = float(retry_val)
+            if 0.0 <= delay and delay == delay and delay != float("inf"):
+                return min(delay, max_delay)
+        except (ValueError, TypeError):
+            try:
+                dt = parsedate_to_datetime(retry_val)
+                delay = dt.timestamp() - time.time()
+                if 0.0 <= delay:
+                    return min(delay, max_delay)
+            except Exception:
+                pass
+
+    # Exponential backoff: base_backoff * (2 ** attempt)
+    backoff = base_backoff * (2 ** attempt)
+    return min(backoff, max_delay)
 
 
 def _supports_reasoning_effort(model: str) -> bool:
@@ -93,6 +146,8 @@ class ProviderDecision:
 
 
 class LLMProvider(Protocol):
+    model: str
+
     def decide(
         self,
         context: dict[str, Any],
@@ -118,13 +173,21 @@ class OpenAICompatibleProvider:
         model: str,
         timeout_seconds: float = 60.0,
         *,
+        name: str = "groq",
         endpoint: str | None = None,
+        max_retries_per_model: int = MAX_RETRIES_PER_MODEL,
+        max_retry_delay: float = DEFAULT_MAX_RETRY_DELAY,
+        base_backoff: float = DEFAULT_BASE_BACKOFF,
     ) -> None:
         if not api_key:
             raise ProviderError("provider key is missing")
         self.api_key = api_key
+        self.name = name
         self.model = model
         self.timeout_seconds = timeout_seconds
+        self.max_retries_per_model = max(1, min(max_retries_per_model, 5))
+        self.max_retry_delay = max(0.1, min(max_retry_delay, 60.0))
+        self.base_backoff = max(0.01, min(base_backoff, 5.0))
         if endpoint:
             self.endpoint = endpoint
 
@@ -136,12 +199,194 @@ class OpenAICompatibleProvider:
             "User-Agent": "DetectThreatAI/1.0",
         }
 
+    def _execute_request(self, payload: dict[str, Any]) -> bytes:
+        """Execute request with bounded retries, safe Retry-After backoff, and graceful model fallback."""
+        models_to_try = [self.model]
+        for fallback in _get_fallback_models(self.model):
+            if fallback not in models_to_try:
+                models_to_try.append(fallback)
+
+        last_error: Exception | None = None
+
+        for model_idx, model_name in enumerate(models_to_try):
+            self.model = model_name
+            payload["model"] = model_name
+
+            # Configure model-specific reasoning parameters
+            if "gpt-oss" in model_name.lower() or "qwen" in model_name.lower():
+                payload["reasoning_effort"] = "low"
+                payload["reasoning_format"] = "parsed"
+            elif self.endpoint == self.gemini_endpoint or "gemini" in model_name.lower():
+                if _supports_reasoning_effort(model_name):
+                    payload["reasoning_effort"] = "none"
+                else:
+                    payload.pop("reasoning_effort", None)
+                payload.pop("reasoning_format", None)
+            else:
+                payload.pop("reasoning_effort", None)
+                payload.pop("reasoning_format", None)
+
+            # Ensure max completion tokens is bounded
+            if "max_completion_tokens" not in payload and "max_tokens" not in payload:
+                payload["max_completion_tokens"] = 2500
+
+            request = Request(
+                self.endpoint,
+                data=json.dumps(payload, separators=(",", ":")).encode("utf-8"),
+                headers=self._headers(),
+                method="POST",
+            )
+            location = urlsplit(self.endpoint)
+            logger.info(
+                "AI provider request provider=%s model=%s endpoint=%s key_configured=%s (candidate %d/%d)",
+                "groq" if "groq.com" in self.endpoint else ("gemini" if "googleapis.com" in self.endpoint else "openai"),
+                self.model,
+                location.netloc + location.path,
+                bool(self.api_key),
+                model_idx + 1,
+                len(models_to_try),
+            )
+
+            for attempt in range(self.max_retries_per_model):
+                try:
+                    with urlopen(request, timeout=self.timeout_seconds) as response:
+                        raw = response.read(2_000_000)
+                        logger.info("AI provider response status=%s model=%s attempt=%s", response.status, self.model, attempt + 1)
+                        return raw
+                except TimeoutError as exc:
+                    logger.warning("AI provider timeout on model=%s attempt=%d", self.model, attempt + 1)
+                    last_error = exc
+                    if attempt < self.max_retries_per_model - 1:
+                        sleep_time = _safe_retry_delay(None, "", attempt, max_delay=self.max_retry_delay, base_backoff=self.base_backoff)
+                        time.sleep(sleep_time)
+                        continue
+                    break
+                except HTTPError as exc:
+                    err_body = exc.read().decode("utf-8", errors="replace") if hasattr(exc, "read") else ""
+                    last_error = exc
+
+                    # Authentication / authorization errors: fail immediately without useless retries
+                    if exc.code in AUTH_HTTP_CODES:
+                        logger.warning(
+                            "AI provider authentication error status=%d model=%s attempt=%d body=%s",
+                            exc.code,
+                            self.model,
+                            attempt + 1,
+                            err_body[:300],
+                        )
+                        raise ProviderError(f"permanent provider error status={exc.code}") from exc
+
+                    # HTTP 400: schema/model compatibility or prompt issue.
+                    # Fail clearly on current model and try configured fallback model if available!
+                    if exc.code == 400:
+                        logger.warning(
+                            "AI provider HTTP 400 error status=400 model=%s attempt=%d body=%s; evaluating fallback candidates",
+                            self.model,
+                            attempt + 1,
+                            err_body[:300],
+                        )
+                        break
+
+                    # HTTP 404: model not found -> move to next fallback candidate
+                    if exc.code == 404:
+                        logger.warning(
+                            "AI provider model not found status=404 model=%s; evaluating fallback candidates",
+                            self.model,
+                        )
+                        break
+
+                    # Transient HTTP errors: 408, 429, 500, 502, 503, 504
+                    if exc.code in TRANSIENT_HTTP_CODES:
+                        logger.warning(
+                            "AI provider transient HTTP error status=%d model=%s attempt=%d/%d body=%s",
+                            exc.code,
+                            self.model,
+                            attempt + 1,
+                            self.max_retries_per_model,
+                            err_body[:300],
+                        )
+                        if attempt < self.max_retries_per_model - 1:
+                            sleep_time = _safe_retry_delay(exc.headers, err_body, attempt, max_delay=self.max_retry_delay, base_backoff=self.base_backoff)
+                            time.sleep(sleep_time)
+                            continue
+                        logger.warning("Exhausted retries for model=%s on transient HTTP %d", self.model, exc.code)
+                        break
+
+                    # Other unhandled HTTP errors
+                    logger.warning("AI provider unhandled HTTP error status=%d model=%s", exc.code, self.model)
+                    raise ProviderError(f"unhandled provider error status={exc.code}") from exc
+
+                except (URLError, OSError) as exc:
+                    logger.warning("AI provider network error on model=%s attempt=%d: %s", self.model, attempt + 1, exc)
+                    last_error = exc
+                    if attempt < self.max_retries_per_model - 1:
+                        sleep_time = _safe_retry_delay(None, "", attempt, max_delay=self.max_retry_delay, base_backoff=self.base_backoff)
+                        time.sleep(sleep_time)
+                        continue
+                    break
+
+        if isinstance(last_error, TimeoutError):
+            raise ProviderTimeout("provider timed out") from last_error
+        raise ProviderError("provider unavailable") from last_error
+
+    def chat_step(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        *,
+        temperature: float = 0,
+        max_tokens: int = 2500,
+    ) -> dict[str, Any]:
+        """Execute one bounded chat step with native OpenAI-compatible function calling."""
+        payload: dict[str, Any] = {
+            "model": self.model,
+            "temperature": temperature,
+            "max_completion_tokens": max_tokens,
+            "messages": messages,
+        }
+        if tools:
+            payload["tools"] = tools
+            payload["tool_choice"] = "auto"
+        raw = self._execute_request(payload)
+        envelope = json.loads(raw.decode("utf-8"))
+        msg = envelope["choices"][0]["message"]
+        return msg
+
+    def synthesize_final(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        system_prompt: str | None = None,
+        max_tokens: int = 2500,
+    ) -> dict[str, Any]:
+        """Request the final structured JSON investigation report without tools."""
+        synthesis_messages = list(messages)
+        if system_prompt:
+            synthesis_messages = [
+                {"role": "system", "content": system_prompt},
+                *[m for m in messages if m.get("role") != "system"],
+            ]
+        synthesis_messages.append({
+            "role": "user",
+            "content": "Tool investigation complete. Synthesize your final investigation report as a valid JSON object matching the required schema now.",
+        })
+        payload: dict[str, Any] = {
+            "model": self.model,
+            "temperature": 0,
+            "max_completion_tokens": max_tokens,
+            "response_format": {"type": "json_object"},
+            "messages": synthesis_messages,
+        }
+        raw = self._execute_request(payload)
+        return self._extract_decision_from_raw(raw)
+
     def decide(
         self,
         context: dict[str, Any],
         history: list[dict[str, Any]],
         available_tools: list[str],
     ) -> ProviderDecision:
+        """Backward-compatible single-decision interface for legacy mocks."""
         payload: dict[str, Any] = {
             "model": self.model,
             "temperature": 0,
@@ -152,80 +397,7 @@ class OpenAICompatibleProvider:
                 {"role": "user", "content": make_user_prompt(context, history, available_tools)},
             ],
         }
-        if (self.endpoint == self.gemini_endpoint or "gemini" in self.model.lower()) and _supports_reasoning_effort(self.model):
-            payload["reasoning_effort"] = "none"
-
-        request = Request(
-            self.endpoint,
-            data=json.dumps(payload, separators=(",", ":")).encode("utf-8"),
-            headers=self._headers(),
-            method="POST",
-        )
-        location = urlsplit(self.endpoint)
-        logger.info(
-            "AI provider request provider=%s model=%s endpoint=%s key_configured=%s",
-            "groq" if "groq.com" in self.endpoint else ("gemini" if "googleapis.com" in self.endpoint else "openai"),
-            self.model,
-            location.netloc + location.path,
-            bool(self.api_key),
-        )
-        raw: bytes | None = None
-        for attempt in range(3):
-            try:
-                with urlopen(request, timeout=self.timeout_seconds) as response:
-                    raw = response.read(2_000_000)
-                    logger.info("AI provider response status=%s attempt=%s", response.status, attempt + 1)
-                    break
-            except TimeoutError as exc:
-                logger.warning("AI provider response category=timeout")
-                raise ProviderTimeout("provider timed out") from exc
-            except HTTPError as exc:
-                if (exc.code in {404, 429}) and self.model in MODEL_FALLBACKS:
-                    fallback_model = MODEL_FALLBACKS[self.model]
-                    logger.info("AI provider model switch %s -> %s (status=%d)", self.model, fallback_model, exc.code)
-                    self.model = fallback_model
-                    payload["model"] = fallback_model
-                    if not _supports_reasoning_effort(fallback_model):
-                        payload.pop("reasoning_effort", None)
-                    request = Request(
-                        self.endpoint,
-                        data=json.dumps(payload, separators=(",", ":")).encode("utf-8"),
-                        headers=self._headers(),
-                        method="POST",
-                    )
-                    continue
-
-                retryable = exc.code in {408, 429, 500, 502, 503, 504}
-                err_body = exc.read().decode("utf-8", errors="replace") if hasattr(exc, "read") else ""
-                logger.warning(
-                    "AI provider response status=%s category=http retryable=%s attempt=%s body=%s",
-                    exc.code,
-                    retryable,
-                    attempt + 1,
-                    err_body[:300],
-                )
-                if retryable and attempt < 2:
-                    retry_after = exc.headers.get("Retry-After") if exc.headers else None
-                    if not retry_after and "try again in " in err_body:
-                        match = re.search(r"try again in ([0-9]+(?:\.[0-9]+)?)s", err_body)
-                        if match:
-                            retry_after = match.group(1)
-                    sleep_time = 0.5 * (2 ** attempt)
-                    if retry_after:
-                        try:
-                            sleep_time = max(0.5, min(float(retry_after), 10.0))
-                        except (ValueError, TypeError):
-                            pass
-                    time.sleep(sleep_time)
-                    continue
-                raise ProviderError("provider unavailable") from exc
-            except (URLError, OSError) as exc:
-                logger.warning("AI provider response category=network")
-                raise ProviderError("provider unavailable") from exc
-
-        if raw is None:
-            raise ProviderError("provider unavailable")
-
+        raw = self._execute_request(payload)
         decision = self._extract_decision_from_raw(raw)
         return self._parse_decision(decision)
 
@@ -276,80 +448,7 @@ class OpenAICompatibleProvider:
                 {"role": "user", "content": json.dumps(context, separators=(",", ":"), sort_keys=True)},
             ],
         }
-        if (self.endpoint == self.gemini_endpoint or "gemini" in self.model.lower()) and _supports_reasoning_effort(self.model):
-            payload["reasoning_effort"] = "none"
-
-        request = Request(
-            self.endpoint,
-            data=json.dumps(payload, separators=(",", ":")).encode("utf-8"),
-            headers=self._headers(),
-            method="POST",
-        )
-        location = urlsplit(self.endpoint)
-        logger.info(
-            "AI foundation request provider=%s model=%s endpoint=%s key_configured=%s",
-            "groq" if "groq.com" in self.endpoint else "openai-compatible",
-            self.model,
-            location.netloc + location.path,
-            bool(self.api_key),
-        )
-        raw: bytes | None = None
-        for attempt in range(3):
-            try:
-                with urlopen(request, timeout=self.timeout_seconds) as response:
-                    raw = response.read(2_000_000)
-                    logger.info("AI foundation response status=%s attempt=%s", response.status, attempt + 1)
-                    break
-            except TimeoutError as exc:
-                logger.warning("AI foundation response category=timeout")
-                raise ProviderTimeout("provider timed out") from exc
-            except HTTPError as exc:
-                if (exc.code in {404, 429}) and self.model in MODEL_FALLBACKS:
-                    fallback_model = MODEL_FALLBACKS[self.model]
-                    logger.info("AI foundation model switch %s -> %s (status=%d)", self.model, fallback_model, exc.code)
-                    self.model = fallback_model
-                    payload["model"] = fallback_model
-                    if not _supports_reasoning_effort(fallback_model):
-                        payload.pop("reasoning_effort", None)
-                    request = Request(
-                        self.endpoint,
-                        data=json.dumps(payload, separators=(",", ":")).encode("utf-8"),
-                        headers=self._headers(),
-                        method="POST",
-                    )
-                    continue
-
-                retryable = exc.code in {408, 429, 500, 502, 503, 504}
-                err_body = exc.read().decode("utf-8", errors="replace") if hasattr(exc, "read") else ""
-                logger.warning(
-                    "AI foundation response status=%s category=http retryable=%s attempt=%s body=%s",
-                    exc.code,
-                    retryable,
-                    attempt + 1,
-                    err_body[:300],
-                )
-                if retryable and attempt < 2:
-                    retry_after = exc.headers.get("Retry-After") if exc.headers else None
-                    if not retry_after and "try again in " in err_body:
-                        match = re.search(r"try again in ([0-9]+(?:\.[0-9]+)?)s", err_body)
-                        if match:
-                            retry_after = match.group(1)
-                    sleep_time = 0.5 * (2 ** attempt)
-                    if retry_after:
-                        try:
-                            sleep_time = max(0.5, min(float(retry_after), 10.0))
-                        except (ValueError, TypeError):
-                            pass
-                    time.sleep(sleep_time)
-                    continue
-                raise ProviderError("provider unavailable") from exc
-            except (URLError, OSError) as exc:
-                logger.warning("AI foundation response category=network")
-                raise ProviderError("provider unavailable") from exc
-
-        if raw is None:
-            raise ProviderError("provider unavailable")
-
+        raw = self._execute_request(payload)
         decision = self._extract_decision_from_raw(raw)
         return self._parse_decision(decision)
 
@@ -387,6 +486,9 @@ def create_provider(
     api_key: str | None,
     model: str,
     timeout_seconds: float,
+    max_retries_per_model: int = MAX_RETRIES_PER_MODEL,
+    max_retry_delay: float = DEFAULT_MAX_RETRY_DELAY,
+    base_backoff: float = DEFAULT_BASE_BACKOFF,
 ) -> LLMProvider:
     """Create a configured provider or fail closed for unknown providers."""
     normalized_name = provider_name.lower()
@@ -404,5 +506,14 @@ def create_provider(
             "gemini": OpenAICompatibleProvider.gemini_endpoint,
             "openai": OpenAICompatibleProvider.openai_endpoint,
         }.get(normalized_name, OpenAICompatibleProvider.groq_endpoint)
-        return OpenAICompatibleProvider(api_key, model, timeout_seconds, endpoint=endpoint)
+        return OpenAICompatibleProvider(
+            api_key,
+            model,
+            timeout_seconds,
+            name=normalized_name,
+            endpoint=endpoint,
+            max_retries_per_model=max_retries_per_model,
+            max_retry_delay=max_retry_delay,
+            base_backoff=base_backoff,
+        )
     raise ProviderError("provider unavailable")

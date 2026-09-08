@@ -5,7 +5,24 @@
 
 import type { EmailAnalysisResponse } from '../types/investigation';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE_URL =
+  typeof import.meta !== 'undefined' && import.meta.env && typeof import.meta.env.VITE_API_URL === 'string'
+    ? import.meta.env.VITE_API_URL
+    : '';
+
+/**
+ * Standard client timeout for email forensic analysis in milliseconds.
+ * Set to 90 seconds to accommodate multi-provider intelligence lookups (DNS/RDAP/AbuseIPDB/VT)
+ * and autonomous multi-turn AI tool iterations with bounded rate-limit backoff.
+ */
+export const ANALYSIS_TIMEOUT_MS = 90_000;
+
+export interface AnalyzeEmailOptions {
+  /** Optional custom timeout in milliseconds (defaults to ANALYSIS_TIMEOUT_MS = 90_000). */
+  timeoutMs?: number;
+  /** Optional external AbortSignal for user or component unmount cancellation. */
+  signal?: AbortSignal;
+}
 
 export class ApiError extends Error {
   status: number;
@@ -21,12 +38,47 @@ export class ApiError extends Error {
 
 /**
  * Upload an .eml file to the backend deterministic and AI forensic engine.
+ * Implements AbortController-based bounded request timeout and clean cancellation handling.
+ *
  * @param file .eml email file
+ * @param options Optional timeout override and external AbortSignal
  * @returns Full structured EmailAnalysisResponse
  */
-export async function analyzeEmail(file: File): Promise<EmailAnalysisResponse> {
+export async function analyzeEmail(
+  file: File,
+  options?: AnalyzeEmailOptions
+): Promise<EmailAnalysisResponse> {
   if (!file.name.toLowerCase().endsWith('.eml')) {
     throw new ApiError('Only .eml files are accepted for forensic analysis.', 400);
+  }
+
+  const timeoutMs = options?.timeoutMs ?? ANALYSIS_TIMEOUT_MS;
+  const externalSignal = options?.signal;
+
+  // Immediate abort check if parent signal is already aborted
+  if (externalSignal?.aborted) {
+    throw new ApiError('Investigation request was cancelled.', 0, 'ABORTED');
+  }
+
+  const controller = new AbortController();
+  let timedOut = false;
+
+  // Propagate external cancellation to internal controller
+  let onExternalAbort: (() => void) | undefined;
+  if (externalSignal) {
+    onExternalAbort = () => {
+      controller.abort();
+    };
+    externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+  }
+
+  // Setup bounded timeout timer
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  if (timeoutMs > 0 && timeoutMs < Infinity) {
+    timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
   }
 
   const formData = new FormData();
@@ -38,15 +90,21 @@ export async function analyzeEmail(file: File): Promise<EmailAnalysisResponse> {
     const response = await fetch(endpoint, {
       method: 'POST',
       body: formData,
+      signal: controller.signal,
     });
 
     if (!response.ok) {
       let detail = '';
       try {
-        const errorJson = await response.json();
-        detail = errorJson.detail || JSON.stringify(errorJson);
+        const rawText = await response.text();
+        try {
+          const errorJson = JSON.parse(rawText);
+          detail = errorJson.detail || JSON.stringify(errorJson);
+        } catch {
+          detail = rawText;
+        }
       } catch {
-        detail = await response.text();
+        detail = '';
       }
 
       if (response.status === 413) {
@@ -65,8 +123,40 @@ export async function analyzeEmail(file: File): Promise<EmailAnalysisResponse> {
     if (err instanceof ApiError) {
       throw err;
     }
+
+    const isAbort =
+      timedOut ||
+      (err instanceof DOMException && err.name === 'AbortError') ||
+      (err instanceof Error && err.name === 'AbortError');
+
+    if (isAbort) {
+      if (timedOut) {
+        throw new ApiError(
+          'Investigation request timed out. The backend may still be processing external intelligence. Please retry.',
+          408,
+          'TIMEOUT'
+        );
+      }
+      if (externalSignal?.aborted) {
+        throw new ApiError('Investigation request was cancelled.', 0, 'ABORTED');
+      }
+      throw new ApiError(
+        'Investigation request timed out. The backend may still be processing external intelligence. Please retry.',
+        408,
+        'TIMEOUT'
+      );
+    }
+
     const message = err instanceof Error ? err.message : 'Network error connecting to forensic server.';
     throw new ApiError(message, 0);
+  } finally {
+    // Guaranteed cleanup of timer and external listener
+    if (timer !== undefined) {
+      clearTimeout(timer);
+    }
+    if (externalSignal && onExternalAbort) {
+      externalSignal.removeEventListener('abort', onExternalAbort);
+    }
   }
 }
 

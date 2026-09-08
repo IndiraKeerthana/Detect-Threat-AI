@@ -15,17 +15,19 @@ interface SidebarProps {
   currentTab: NavTab;
   onSelectTab: (tab: NavTab) => void;
   apiOnline?: boolean;
+  casesCount?: number;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
   onSelectTab,
   apiOnline = true,
+  casesCount = 5,
 }) => {
   const navItems = [
     { id: 'home' as NavTab, label: 'Overview', icon: ShieldAlert, badge: 'Upload' },
     { id: 'investigation' as NavTab, label: 'Investigations', icon: Search, badge: 'Live' },
-    { id: 'cases' as NavTab, label: 'Cases', icon: FolderLock, badge: '5' },
+    { id: 'cases' as NavTab, label: 'Cases', icon: FolderLock, badge: String(casesCount) },
     { id: 'report' as NavTab, label: 'Reports', icon: FileSpreadsheet, badge: null },
   ];
 
@@ -148,7 +150,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               AI Agent
             </span>
             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#1e1533] border border-[#432474] text-[#c4b5fd]">
-              GROQ 70B
+              AI AGENT
             </span>
           </div>
         </div>

@@ -60,6 +60,8 @@ class AIInvestigationResult(BaseModel):
     tool_calls: list[AIToolCall] = Field(default_factory=list)
     iterations: int = Field(default=0, ge=0, le=20)
     source: Literal["ai_agent", "deterministic_fallback"]
+    provider: str | None = None
+    model: str | None = None
 
     def safe_attribution(self) -> AttributionAssessment:
         """Convert to the existing attribution contract without overclaiming."""

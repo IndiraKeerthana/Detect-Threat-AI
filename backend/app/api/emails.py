@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
 from app.config import get_settings
@@ -65,7 +67,8 @@ async def analyze_email(file: UploadFile = File(...)) -> EmailAnalysisResponse:
         parsed_email, security_analysis, threat_intelligence
     )
     try:
-        ai_investigation = run_ai_investigation(
+        ai_investigation = await asyncio.to_thread(
+            run_ai_investigation,
             parsed_email,
             security_analysis,
             threat_intelligence,

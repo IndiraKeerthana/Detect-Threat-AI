@@ -116,6 +116,696 @@ class AIAgentTest(unittest.TestCase):
         self.assertEqual(result.attribution.assessment, CONSERVATIVE_ATTRIBUTION)
         self.assertEqual(result.attribution.status, "infrastructure_only")
 
+    @patch("app.services.ai_agent.provider.time.sleep")
+    @patch("app.services.ai_agent.provider.urlopen")
+    def test_groq_case_1_429_with_retry_after(self, mock_urlopen, mock_sleep):
+        """GROQ CASE 1: Provider returns 429 with Retry-After. Bounded retry respects Retry-After."""
+        resp_success = MagicMock()
+        resp_success.status = 200
+        data_bytes = json.dumps({
+            "choices": [{
+                "message": {
+                    "content": json.dumps({"kind": "tool", "tool": "inspect_url", "arguments": {"url": "http://198.51.100.10/verify"}})
+                }
+            }]
+        }).encode("utf-8")
+        resp_success.__enter__.return_value.read.return_value = data_bytes
+        resp_success.__enter__.return_value.status = 200
+
+        mock_urlopen.side_effect = [
+            HTTPError(
+                "https://api.groq.com/openai/v1/chat/completions",
+                429,
+                "Too Many Requests",
+                {"Retry-After": "1.5"},
+                fp=None,
+            ),
+            resp_success,
+        ]
+
+        provider = create_provider(
+            "groq",
+            api_key="gsk_test",
+            model="llama-3.3-70b-versatile",
+            timeout_seconds=10.0,
+        )
+        decision = provider.decide({}, [], ["inspect_url"])
+        self.assertEqual(decision.kind, "tool_call")
+        self.assertEqual(decision.tool, "inspect_url")
+        self.assertEqual(mock_urlopen.call_count, 2)
+        mock_sleep.assert_called_once_with(1.5)
+
+    @patch("app.services.ai_agent.provider.time.sleep")
+    @patch("app.services.ai_agent.provider.urlopen")
+    def test_groq_case_2_429_without_retry_after_backoff(self, mock_urlopen, mock_sleep):
+        """GROQ CASE 2: Provider returns 429 without Retry-After. Exponential backoff occurs."""
+        resp_success = MagicMock()
+        resp_success.status = 200
+        data_bytes = json.dumps({
+            "choices": [{
+                "message": {
+                    "content": json.dumps({"kind": "tool", "tool": "inspect_ip", "arguments": {"ip": "198.51.100.10"}})
+                }
+            }]
+        }).encode("utf-8")
+        resp_success.__enter__.return_value.read.return_value = data_bytes
+        resp_success.__enter__.return_value.status = 200
+
+        mock_urlopen.side_effect = [
+            HTTPError(
+                "https://api.groq.com/openai/v1/chat/completions",
+                429,
+                "Too Many Requests",
+                {},
+                fp=None,
+            ),
+            resp_success,
+        ]
+
+        provider = create_provider(
+            "groq",
+            api_key="gsk_test",
+            model="llama-3.3-70b-versatile",
+            timeout_seconds=10.0,
+            base_backoff=0.5,
+        )
+        decision = provider.decide({}, [], ["inspect_ip"])
+        self.assertEqual(decision.kind, "tool_call")
+        self.assertEqual(decision.tool, "inspect_ip")
+        self.assertEqual(mock_urlopen.call_count, 2)
+        mock_sleep.assert_called_once_with(0.5)
+
+    @patch("app.services.ai_agent.provider.time.sleep")
+    @patch("app.services.ai_agent.provider.urlopen")
+    def test_groq_case_3_transient_503_retry_succeeds(self, mock_urlopen, mock_sleep):
+        """GROQ CASE 3: Provider returns transient 503, retry succeeds, final result is AI-backed."""
+        email, security, intelligence, investigation = _parts()
+        final_payload = {
+            "summary": "AI investigation succeeded after 503 retry",
+            "risk_level": investigation.risk_assessment.level,
+            "classification": investigation.risk_assessment.classification,
+            "confidence": investigation.risk_assessment.confidence.level,
+            "reasoning": "503 resolved on retry.",
+            "key_findings": [],
+            "recommended_actions": [],
+            "attribution": {
+                "status": "infrastructure_only",
+                "assessment": CONSERVATIVE_ATTRIBUTION,
+                "confidence": "low",
+                "supporting_evidence": [],
+                "limitations": [],
+            },
+            "evidence": [],
+            "tool_calls": [],
+            "iterations": 1,
+            "source": "ai_agent",
+        }
+        resp_success = MagicMock()
+        resp_success.status = 200
+        data_bytes = json.dumps({
+            "choices": [{
+                "message": {
+                    "content": json.dumps({"kind": "final", "result": final_payload})
+                }
+            }]
+        }).encode("utf-8")
+        resp_success.__enter__.return_value.read.return_value = data_bytes
+        resp_success.__enter__.return_value.status = 200
+
+        mock_urlopen.side_effect = [
+            HTTPError(
+                "https://api.groq.com/openai/v1/chat/completions",
+                503,
+                "Service Unavailable",
+                {},
+                fp=None,
+            ),
+            resp_success,
+        ]
+
+        provider = create_provider(
+            "groq",
+            api_key="gsk_test",
+            model="llama-3.3-70b-versatile",
+            timeout_seconds=10.0,
+        )
+        result = run_ai_investigation(
+            email,
+            security,
+            intelligence,
+            investigation,
+            settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=1),
+            provider=provider,
+        )
+        self.assertEqual(result.source, "ai_agent")
+        self.assertEqual(result.iterations, 1)
+        self.assertEqual(mock_urlopen.call_count, 2)
+        mock_sleep.assert_called_once()
+
+    @patch("app.services.ai_agent.provider.time.sleep")
+    @patch("app.services.ai_agent.provider.urlopen")
+    def test_groq_case_4_permanent_authentication_failure_no_retries(self, mock_urlopen, mock_sleep):
+        """GROQ CASE 4: Provider returns permanent 401. No pointless repeated retries, safe deterministic fallback."""
+        email, security, intelligence, investigation = _parts()
+        mock_urlopen.side_effect = HTTPError(
+            "https://api.groq.com/openai/v1/chat/completions",
+            401,
+            "Unauthorized: Invalid API Key",
+            {},
+            fp=None,
+        )
+        provider = create_provider(
+            "groq",
+            api_key="gsk_invalid_key",
+            model="llama-3.3-70b-versatile",
+            timeout_seconds=10.0,
+        )
+        result = run_ai_investigation(
+            email,
+            security,
+            intelligence,
+            investigation,
+            settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=4),
+            provider=provider,
+        )
+        # Should fail immediately on attempt 1 without retrying or sleeping
+        self.assertEqual(mock_urlopen.call_count, 1)
+        mock_sleep.assert_not_called()
+        self.assertEqual(result.source, "deterministic_fallback")
+        self.assertEqual(result.iterations, 0)
+        self.assertEqual(result.tool_calls, [])
+
+    def test_groq_case_5_successful_autonomous_tool_call(self):
+        """GROQ CASE 5: Successful autonomous tool call loop with real tool execution."""
+        email, security, intelligence, investigation = _parts()
+        final_payload = {
+            "summary": "Autonomous investigation completed via inspect_domain",
+            "risk_level": investigation.risk_assessment.level,
+            "classification": investigation.risk_assessment.classification,
+            "confidence": investigation.risk_assessment.confidence.level,
+            "reasoning": "Domain was verified through registered tool.",
+            "key_findings": [],
+            "recommended_actions": [],
+            "attribution": {
+                "status": "infrastructure_only",
+                "assessment": CONSERVATIVE_ATTRIBUTION,
+                "confidence": "low",
+                "supporting_evidence": [],
+                "limitations": [],
+            },
+            "evidence": ["example.com"],
+            "tool_calls": [],
+            "iterations": 2,
+            "source": "ai_agent",
+        }
+
+        class AutonomousProvider:
+            def __init__(self):
+                self.calls = 0
+
+            def decide(self, context, history, available_tools):
+                self.calls += 1
+                if self.calls == 1:
+                    return ProviderDecision(
+                        kind="tool_call",
+                        tool="inspect_domain",
+                        arguments={"domain": "example.com"},
+                    )
+                return ProviderDecision(kind="final", result=final_payload)
+
+        result = run_ai_investigation(
+            email,
+            security,
+            intelligence,
+            investigation,
+            settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=4),
+            provider=AutonomousProvider(),
+        )
+        self.assertEqual(result.source, "ai_agent")
+        self.assertEqual(result.iterations, 2)
+        self.assertEqual(len(result.tool_calls), 1)
+        self.assertEqual(result.tool_calls[0].name, "inspect_domain")
+        self.assertEqual(result.tool_calls[0].target, "example.com")
+        self.assertEqual(result.tool_calls[0].status, "success")
+        self.assertEqual(result.tool_calls[0].iteration, 1)
+
+    @patch("app.services.ai_agent.provider.time.sleep")
+    @patch("app.services.ai_agent.provider.urlopen")
+    def test_groq_case_6_all_ai_attempts_fail_deterministic_fallback(self, mock_urlopen, mock_sleep):
+        """GROQ CASE 6: All AI attempts fail. Safely returns deterministic fallback with iterations=0 and tool_calls=[]."""
+        email, security, intelligence, investigation = _parts()
+        mock_urlopen.side_effect = HTTPError(
+            "https://api.groq.com/openai/v1/chat/completions",
+            500,
+            "Internal Server Error",
+            {},
+            fp=None,
+        )
+        provider = create_provider(
+            "groq",
+            api_key="gsk_test",
+            model="llama-3.3-70b-versatile",
+            timeout_seconds=10.0,
+        )
+        result = run_ai_investigation(
+            email,
+            security,
+            intelligence,
+            investigation,
+            settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=4),
+            provider=provider,
+        )
+        self.assertEqual(result.source, "deterministic_fallback")
+        self.assertEqual(result.iterations, 0)
+        self.assertEqual(result.tool_calls, [])
+
+    @patch("app.services.ai_agent.provider.time.sleep")
+    @patch("app.services.ai_agent.provider.urlopen")
+    def test_groq_case_7_retry_after_extremely_large_bounded_delay(self, mock_urlopen, mock_sleep):
+        """GROQ CASE 7: Extremely large Retry-After is clamped to max_delay (10.0s)."""
+        resp_success = MagicMock()
+        resp_success.status = 200
+        data_bytes = json.dumps({
+            "choices": [{
+                "message": {
+                    "content": json.dumps({"kind": "tool", "tool": "inspect_url", "arguments": {"url": "http://198.51.100.10/verify"}})
+                }
+            }]
+        }).encode("utf-8")
+        resp_success.__enter__.return_value.read.return_value = data_bytes
+        resp_success.__enter__.return_value.status = 200
+
+        mock_urlopen.side_effect = [
+            HTTPError(
+                "https://api.groq.com/openai/v1/chat/completions",
+                429,
+                "Too Many Requests",
+                {"Retry-After": "3600"},
+                fp=None,
+            ),
+            resp_success,
+        ]
+
+        provider = create_provider(
+            "groq",
+            api_key="gsk_test",
+            model="llama-3.3-70b-versatile",
+            timeout_seconds=10.0,
+            max_retry_delay=10.0,
+        )
+        decision = provider.decide({}, [], ["inspect_url"])
+        self.assertEqual(decision.kind, "tool_call")
+        self.assertEqual(mock_urlopen.call_count, 2)
+        # Verify sleep was clamped to max_retry_delay (10.0) instead of 3600
+        mock_sleep.assert_called_once_with(10.0)
+
+    def test_native_tool_call_response_and_round_trip(self):
+        """Verify native OpenAI-compatible tool_calls:
+        assistant tool_calls -> ToolRegistry execution -> role='tool' with matching tool_call_id -> final synthesis."""
+        email, security, intelligence, investigation = _parts()
+
+        final_payload = {
+            "summary": "Verified domain via native tool call.",
+            "risk_level": "medium",
+            "classification": "suspicious",
+            "confidence": "high",
+            "reasoning": "Observed domain is verified via registered tool.",
+            "key_findings": [
+                {
+                    "title": "Domain Checked",
+                    "severity": "medium",
+                    "explanation": "Native tool executed successfully.",
+                    "evidence": ["example.com"],
+                }
+            ],
+            "recommended_actions": ["Monitor domain traffic"],
+            "attribution": {
+                "status": "infrastructure_only",
+                "assessment": CONSERVATIVE_ATTRIBUTION,
+                "confidence": "low",
+                "supporting_evidence": ["example.com"],
+                "limitations": ["Infrastructure evidence does not identify or attribute a human actor."],
+            },
+            "evidence": ["example.com"],
+            "tool_calls": [],
+            "iterations": 2,
+            "source": "ai_agent",
+        }
+
+        class MockNativeProvider:
+            def __init__(self):
+                self.calls = 0
+                self.recorded_messages = []
+                self.name = "groq"
+                self.model = "openai/gpt-oss-120b"
+
+            def chat_step(self, messages, tools=None):
+                self.calls += 1
+                self.recorded_messages.append([dict(m) for m in messages])
+                if self.calls == 1:
+                    assert tools is not None and len(tools) > 0
+                    return {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "id": "call_abc123",
+                                "type": "function",
+                                "function": {
+                                    "name": "inspect_domain",
+                                    "arguments": json.dumps({"domain": "example.com"}),
+                                },
+                            }
+                        ],
+                    }
+                # Turn 2: verify round-trip messages received by model
+                assert len(messages) >= 4
+                assistant_msg = [m for m in messages if m.get("role") == "assistant"][-1]
+                assert "tool_calls" in assistant_msg
+                tool_msg = [m for m in messages if m.get("role") == "tool"][-1]
+                assert tool_msg["tool_call_id"] == "call_abc123"
+                assert tool_msg["name"] == "inspect_domain"
+                assert "example.com" in tool_msg["content"]
+
+                return {
+                    "role": "assistant",
+                    "content": "Investigation concluded.",
+                    "tool_calls": None,
+                }
+
+            def synthesize_final(self, messages, system_prompt=None):
+                return final_payload
+
+        mock_p = MockNativeProvider()
+        result = run_ai_investigation(
+            email,
+            security,
+            intelligence,
+            investigation,
+            settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=4),
+            provider=mock_p,
+        )
+
+        self.assertEqual(result.source, "ai_agent")
+        self.assertEqual(result.provider, "groq")
+        self.assertEqual(result.model, "openai/gpt-oss-120b")
+        self.assertEqual(result.iterations, 2)
+        self.assertEqual(len(result.tool_calls), 1)
+        self.assertEqual(result.tool_calls[0].name, "inspect_domain")
+        self.assertEqual(result.tool_calls[0].target, "example.com")
+        self.assertEqual(result.tool_calls[0].status, "success")
+        self.assertEqual(result.tool_calls[0].iteration, 1)
+
+    def test_truthful_groq_execution_reporting(self):
+        """Verify successful Groq execution truthfully reports source='ai_agent', provider='groq', and model."""
+        email, security, intelligence, investigation = _parts()
+
+        final_payload = {
+            "summary": "Verified domain via native tool call.",
+            "risk_level": "high",
+            "classification": "phishing",
+            "confidence": "high",
+            "reasoning": "Observed phishing domain verified.",
+            "key_findings": [],
+            "recommended_actions": [],
+            "attribution": {
+                "status": "infrastructure_only",
+                "assessment": CONSERVATIVE_ATTRIBUTION,
+                "confidence": "low",
+                "supporting_evidence": [],
+                "limitations": [],
+            },
+            "evidence": ["example.com"],
+            "tool_calls": [],
+            "iterations": 2,
+            "source": "ai_agent",
+        }
+
+        class MockTruthfulGroqProvider:
+            def __init__(self):
+                self.name = "groq"
+                self.model = "openai/gpt-oss-120b"
+                self.calls = 0
+
+            def chat_step(self, messages, tools=None):
+                self.calls += 1
+                if self.calls == 1:
+                    return {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "id": "call_inspect_1",
+                                "type": "function",
+                                "function": {
+                                    "name": "inspect_domain",
+                                    "arguments": json.dumps({"domain": "example.com"}),
+                                },
+                            }
+                        ],
+                    }
+                return {
+                    "role": "assistant",
+                    "content": "Concluded.",
+                    "tool_calls": None,
+                }
+
+            def synthesize_final(self, messages, system_prompt=None):
+                return final_payload
+
+        provider = MockTruthfulGroqProvider()
+        result = run_ai_investigation(
+            email,
+            security,
+            intelligence,
+            investigation,
+            settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=4),
+            provider=provider,
+        )
+
+        self.assertEqual(result.source, "ai_agent")
+        self.assertEqual(result.provider, "groq")
+        self.assertEqual(result.model, "openai/gpt-oss-120b")
+        self.assertEqual(result.iterations, 2)
+        self.assertEqual(len(result.tool_calls), 1)
+        self.assertEqual(result.tool_calls[0].name, "inspect_domain")
+
+    def test_truthful_deterministic_fallback_reporting(self):
+        """Verify deterministic fallback truthfully reports source and provider as deterministic_fallback and model as None."""
+        email, security, intelligence, investigation = _parts()
+        result = run_ai_investigation(
+            email,
+            security,
+            intelligence,
+            investigation,
+            settings=SimpleNamespace(ai_agent_enabled=False),
+        )
+
+        self.assertEqual(result.source, "deterministic_fallback")
+        self.assertEqual(result.provider, "deterministic_fallback")
+        self.assertIsNone(result.model)
+        self.assertEqual(result.iterations, 0)
+        self.assertEqual(result.tool_calls, [])
+
+    def test_truthful_ai_model_fallback_reporting(self):
+        """Verify fallback to another model truthfully reports the fallback model used and NOT the original model."""
+        email, security, intelligence, investigation = _parts()
+
+        final_payload = {
+            "summary": "Verified domain via fallback model.",
+            "risk_level": "high",
+            "classification": "phishing",
+            "confidence": "high",
+            "reasoning": "Fallback model concluded successfully.",
+            "key_findings": [],
+            "recommended_actions": [],
+            "attribution": {
+                "status": "infrastructure_only",
+                "assessment": CONSERVATIVE_ATTRIBUTION,
+                "confidence": "low",
+                "supporting_evidence": [],
+                "limitations": [],
+            },
+            "evidence": ["example.com"],
+            "tool_calls": [],
+            "iterations": 2,
+            "source": "ai_agent",
+        }
+
+        class MockFallbackProvider:
+            def __init__(self):
+                self.name = "groq"
+                # Simulating that model fallback engaged to openai/gpt-oss-20b
+                self.model = "openai/gpt-oss-20b"
+                self.calls = 0
+
+            def chat_step(self, messages, tools=None):
+                self.calls += 1
+                if self.calls == 1:
+                    return {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "id": "call_fb_1",
+                                "type": "function",
+                                "function": {
+                                    "name": "inspect_domain",
+                                    "arguments": json.dumps({"domain": "example.com"}),
+                                },
+                            }
+                        ],
+                    }
+                return {
+                    "role": "assistant",
+                    "content": "Concluded.",
+                    "tool_calls": None,
+                }
+
+            def synthesize_final(self, messages, system_prompt=None):
+                return final_payload
+
+        provider = MockFallbackProvider()
+        result = run_ai_investigation(
+            email,
+            security,
+            intelligence,
+            investigation,
+            settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=4),
+            provider=provider,
+        )
+
+        self.assertEqual(result.source, "ai_agent")
+        self.assertEqual(result.provider, "groq")
+        self.assertEqual(result.model, "openai/gpt-oss-20b")
+        self.assertNotEqual(result.model, "openai/gpt-oss-120b")
+        self.assertEqual(result.iterations, 2)
+
+    def test_native_invalid_tool_name_and_arguments_rejected(self):
+        """Verify invalid tool name or entity not in evidence is rejected cleanly without crashing."""
+        email, security, intelligence, investigation = _parts()
+
+        class MockInvalidToolsProvider:
+            def __init__(self):
+                self.calls = 0
+                self.model = "openai/gpt-oss-120b"
+
+            def chat_step(self, messages, tools=None):
+                self.calls += 1
+                if self.calls == 1:
+                    # Invalid tool name
+                    return {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "id": "call_bad_1",
+                                "type": "function",
+                                "function": {
+                                    "name": "arbitrary_shell_cmd",
+                                    "arguments": json.dumps({"cmd": "whoami"}),
+                                },
+                            }
+                        ],
+                    }
+                elif self.calls == 2:
+                    # Invalid argument (entity not in evidence)
+                    return {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "id": "call_bad_2",
+                                "type": "function",
+                                "function": {
+                                    "name": "inspect_domain",
+                                    "arguments": json.dumps({"domain": "completely-hallucinated.org"}),
+                                },
+                            }
+                        ],
+                    }
+                return {
+                    "role": "assistant",
+                    "content": "Concluded with errors noted.",
+                    "tool_calls": None,
+                }
+
+            def synthesize_final(self, messages, system_prompt=None):
+                return {
+                    "summary": "Handled invalid tools cleanly",
+                    "risk_level": "low",
+                    "classification": "benign",
+                    "confidence": "low",
+                    "reasoning": "Invalid tools failed validation.",
+                    "key_findings": [],
+                    "recommended_actions": [],
+                    "attribution": {
+                        "status": "infrastructure_only",
+                        "assessment": CONSERVATIVE_ATTRIBUTION,
+                        "confidence": "low",
+                        "supporting_evidence": [],
+                        "limitations": [],
+                    },
+                    "evidence": [],
+                    "tool_calls": [],
+                    "iterations": 3,
+                    "source": "ai_agent",
+                }
+
+        mock_p = MockInvalidToolsProvider()
+        result = run_ai_investigation(
+            email,
+            security,
+            intelligence,
+            investigation,
+            settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=4),
+            provider=mock_p,
+        )
+
+        self.assertEqual(result.source, "ai_agent")
+        self.assertEqual(len(result.tool_calls), 2)
+        self.assertEqual(result.tool_calls[0].name, "arbitrary_shell_cmd")
+        self.assertEqual(result.tool_calls[0].status, "error")
+        self.assertEqual(result.tool_calls[1].name, "inspect_domain")
+        self.assertEqual(result.tool_calls[1].status, "error")
+
+    @patch("app.services.ai_agent.provider.time.sleep")
+    @patch("app.services.ai_agent.provider.urlopen")
+    def test_groq_400_json_validate_fallback_model(self, mock_urlopen, mock_sleep):
+        """Verify HTTP 400 on primary model falls back to secondary model."""
+        err_400 = HTTPError(
+            "https://api.groq.com/openai/v1/chat/completions",
+            400,
+            "Bad Request: json_validate_failed",
+            {},
+            fp=None,
+        )
+        resp_fallback = MagicMock()
+        resp_fallback.status = 200
+        resp_fallback.__enter__.return_value.read.return_value = json.dumps({
+            "choices": [{
+                "message": {
+                    "role": "assistant",
+                    "content": "fallback model response",
+                }
+            }]
+        }).encode("utf-8")
+        resp_fallback.__enter__.return_value.status = 200
+
+        mock_urlopen.side_effect = [err_400, resp_fallback]
+
+        provider = create_provider(
+            "groq",
+            api_key="gsk_test",
+            model="openai/gpt-oss-120b",
+            timeout_seconds=10.0,
+        )
+        res = provider.chat_step([{"role": "user", "content": "hello"}])
+        self.assertEqual(res["role"], "assistant")
+        self.assertEqual(res["content"], "fallback model response")
+        self.assertEqual(provider.model, "openai/gpt-oss-20b")
+
+
     def test_context_excludes_raw_body_attachments_and_secrets(self):
         email, security, intelligence, investigation = _parts()
         context = build_investigation_context(email, security, intelligence, investigation)
@@ -364,13 +1054,13 @@ class AIAgentTest(unittest.TestCase):
             create_provider("groq", api_key=None, model="llama-3.3-70b-versatile", timeout_seconds=30.0)
 
     def test_groq_settings_effective_key_and_defaults(self):
-        s1 = Settings(groq_api_key="gsk_from_groq_env")
+        s1 = Settings(_env_file=None, groq_api_key="gsk_from_groq_env")
         self.assertEqual(s1.effective_ai_api_key, "gsk_from_groq_env")
         self.assertEqual(s1.ai_provider, "groq")
         self.assertEqual(s1.ai_model, "llama-3.3-70b-versatile")
         self.assertEqual(s1.ai_agent_max_iterations, 4)
 
-        s2 = Settings(groq_api_key=None, ai_api_key="fallback_key")
+        s2 = Settings(_env_file=None, groq_api_key=None, ai_api_key="fallback_key")
         self.assertEqual(s2.effective_ai_api_key, "fallback_key")
 
     def test_groq_json_parsing_and_markdown_cleaning(self):

@@ -342,6 +342,8 @@ export interface AIInvestigationResult {
   tool_calls: AIToolCall[];
   iterations: number;
   source: 'ai_agent' | 'deterministic_fallback';
+  provider?: string | null;
+  model?: string | null;
 }
 
 // --- Full API Response Contract ---

@@ -9,6 +9,7 @@ interface AppShellProps {
   contextTitle: string;
   isAnalyzing?: boolean;
   apiOnline?: boolean;
+  casesCount?: number;
   children: React.ReactNode;
 }
 
@@ -18,12 +19,13 @@ export const AppShell: React.FC<AppShellProps> = ({
   contextTitle,
   isAnalyzing = false,
   apiOnline = true,
+  casesCount,
   children,
 }) => {
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#0c0e12] text-[#f1f5f9]">
       {/* Fixed Left Sidebar */}
-      <Sidebar currentTab={currentTab} onSelectTab={onSelectTab} apiOnline={apiOnline} />
+      <Sidebar currentTab={currentTab} onSelectTab={onSelectTab} apiOnline={apiOnline} casesCount={casesCount} />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">

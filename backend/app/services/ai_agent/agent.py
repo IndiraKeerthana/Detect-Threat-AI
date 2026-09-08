@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -10,10 +11,16 @@ from app.schemas.email import EmailAnalysisResponse
 from app.schemas.investigation import InvestigationAnalysis
 from app.schemas.security import SecurityAnalysis
 from app.schemas.threat_intelligence import ThreatIntelligence
+from app.services.ai_agent.prompts import (
+    FINAL_SYNTHESIS_SYSTEM_PROMPT,
+    SYSTEM_PROMPT,
+    make_initial_user_prompt,
+)
 from app.services.ai_agent.provider import (
     LLMProvider,
     ProviderDecision,
     ProviderError,
+    _clean_and_parse_json,
     create_provider,
 )
 from app.services.ai_agent.schemas import AIAttribution, AIFinding, AIInvestigationResult, AIToolCall
@@ -265,6 +272,8 @@ def _fallback(
         tool_calls=tool_calls or [],
         iterations=min(iterations, 20),
         source="deterministic_fallback",
+        provider="deterministic_fallback",
+        model=None,
     )
 
 
@@ -368,6 +377,8 @@ def run_foundation_ai_investigation(
         result = AIInvestigationResult.model_validate(decision.result)
         result.iterations = 1
         result.source = "ai_agent"
+        result.provider = getattr(selected, "name", "openai")
+        result.model = getattr(selected, "model", None)
         AIInvestigationAgent._validate_result(result, build_investigation_context(
             email, security_analysis, threat_intelligence, investigation
         ))
@@ -409,6 +420,207 @@ class AIInvestigationAgent:
         context: dict[str, Any],
         deterministic: InvestigationAnalysis,
     ) -> AIInvestigationResult:
+        if hasattr(self.provider, "chat_step"):
+            return self._investigate_native(context, deterministic)
+        return self._investigate_legacy(context, deterministic)
+
+    def _investigate_native(
+        self,
+        context: dict[str, Any],
+        deterministic: InvestigationAnalysis,
+    ) -> AIInvestigationResult:
+        from app.services.ai_agent.prompts import (
+            FINAL_SYNTHESIS_SYSTEM_PROMPT,
+            SYSTEM_PROMPT,
+            make_initial_user_prompt,
+        )
+
+        registry: ToolRegistry = self.registry_factory(context)
+        tools_schema = registry.get_tools_schema()
+        messages: list[dict[str, Any]] = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": make_initial_user_prompt(context)},
+        ]
+        calls: list[AIToolCall] = []
+        seen: set[str] = set()
+
+        for iteration in range(1, self.max_iterations + 1):
+            try:
+                msg = self.provider.chat_step(messages, tools=tools_schema)
+                tool_calls = msg.get("tool_calls")
+                if tool_calls and isinstance(tool_calls, list):
+                    messages.append({
+                        "role": "assistant",
+                        "content": msg.get("content"),
+                        "tool_calls": tool_calls,
+                    })
+                    for tc in tool_calls:
+                        fn = tc.get("function", {})
+                        fn_name = fn.get("name", "")
+                        raw_args = fn.get("arguments", "{}")
+                        try:
+                            args = json.loads(raw_args) if isinstance(raw_args, str) else (raw_args or {})
+                        except Exception:
+                            args = {}
+                        if not isinstance(args, dict):
+                            args = {}
+                        key = tool_call_key(fn_name, args)
+                        call_id = tc.get("id", f"call_{len(calls) + 1}")
+                        if key in seen:
+                            summary = f"Repeated tool call to {fn_name} skipped."
+                            calls.append(
+                                AIToolCall(
+                                    name=fn_name,
+                                    arguments=args,
+                                    result_summary=summary,
+                                    target="",
+                                    iteration=iteration,
+                                    status="skipped",
+                                )
+                            )
+                            messages.append({
+                                "role": "tool",
+                                "tool_call_id": call_id,
+                                "name": fn_name,
+                                "content": json.dumps({"status": "skipped", "message": "Repeated tool call."}),
+                            })
+                            continue
+                        seen.add(key)
+                        target = str(
+                            args.get("entity")
+                            or args.get("ip")
+                            or args.get("domain")
+                            or args.get("url")
+                            or args.get("code")
+                            or ""
+                        )
+                        try:
+                            output = registry.execute(fn_name, args)
+                            summary = f"{fn_name} returned {len(output)} field(s)."
+                            calls.append(
+                                AIToolCall(
+                                    name=fn_name,
+                                    arguments=args,
+                                    result_summary=summary,
+                                    target=target,
+                                    iteration=iteration,
+                                    status="success",
+                                )
+                            )
+                            messages.append({
+                                "role": "tool",
+                                "tool_call_id": call_id,
+                                "name": fn_name,
+                                "content": json.dumps(_safe_value(output)),
+                            })
+                        except ToolValidationError as err:
+                            summary = f"{fn_name} validation failed: {err}"
+                            calls.append(
+                                AIToolCall(
+                                    name=fn_name,
+                                    arguments=args,
+                                    result_summary=summary,
+                                    target=target,
+                                    iteration=iteration,
+                                    status="error",
+                                )
+                            )
+                            messages.append({
+                                "role": "tool",
+                                "tool_call_id": call_id,
+                                "name": fn_name,
+                                "content": json.dumps({"status": "error", "error": str(err)}),
+                            })
+                    continue
+
+                if msg.get("content"):
+                    messages.append({
+                        "role": "assistant",
+                        "content": msg.get("content"),
+                    })
+                break
+            except (ProviderError, ValueError, TypeError) as exc:
+                logger.warning("AI investigation iteration %d failed (%s)", iteration, type(exc).__name__)
+                return _fallback(deterministic, iterations=len(calls), tool_calls=calls)
+
+        final_data = None
+        last_content = messages[-1].get("content") if messages and messages[-1].get("role") == "assistant" else None
+        if last_content and isinstance(last_content, str):
+            try:
+                candidate = _clean_and_parse_json(last_content)
+                if isinstance(candidate, dict):
+                    inner = candidate.get("result", candidate.get("data", candidate))
+                    if isinstance(inner, dict) and ("summary" in inner or "risk_level" in inner):
+                        final_data = inner
+            except Exception:
+                final_data = None
+
+        if final_data is None:
+            try:
+                final_raw = self.provider.synthesize_final(messages, system_prompt=FINAL_SYNTHESIS_SYSTEM_PROMPT)
+                final_data = final_raw.get("result", final_raw.get("data", final_raw))
+                if not isinstance(final_data, dict):
+                    raise ProviderError("malformed final synthesis response")
+            except Exception as exc:
+                logger.warning("AI final report synthesis failed (%s)", type(exc).__name__)
+                return _fallback(deterministic, iterations=len(calls), tool_calls=calls)
+
+        try:
+            final_data["source"] = "ai_agent"
+            final_data["iterations"] = max(1, len(calls) + 1)
+            final_data["tool_calls"] = calls
+            final_data["provider"] = getattr(self.provider, "name", "groq")
+            final_data["model"] = getattr(self.provider, "model", None)
+
+            evidence_raw = final_data.get("evidence")
+            if isinstance(evidence_raw, dict):
+                final_data["evidence"] = [
+                    f"{k}: {v}" if not isinstance(v, (dict, list)) else f"{k}: {json.dumps(v)}"
+                    for k, v in evidence_raw.items()
+                ]
+            elif not isinstance(evidence_raw, list):
+                final_data["evidence"] = []
+
+            attr_raw = final_data.get("attribution")
+            if isinstance(attr_raw, str):
+                final_data["attribution"] = {
+                    "status": "infrastructure_only",
+                    "assessment": attr_raw,
+                    "confidence": "low",
+                    "supporting_evidence": [],
+                    "limitations": ["Infrastructure evidence does not identify or attribute a human actor."],
+                }
+            elif isinstance(attr_raw, dict):
+                attr_raw.setdefault("limitations", ["Infrastructure evidence does not identify or attribute a human actor."])
+                attr_raw.setdefault("supporting_evidence", [])
+                attr_raw.setdefault("confidence", "low")
+                attr_raw.setdefault("status", "infrastructure_only")
+            else:
+                final_data["attribution"] = {
+                    "status": "infrastructure_only",
+                    "assessment": CONSERVATIVE_ATTRIBUTION,
+                    "confidence": "low",
+                    "supporting_evidence": [],
+                    "limitations": ["Infrastructure evidence does not identify or attribute a human actor."],
+                }
+
+            result = AIInvestigationResult.model_validate(final_data)
+            result.iterations = max(1, len(calls) + 1)
+            result.source = "ai_agent"
+            result.provider = getattr(self.provider, "name", "groq")
+            result.model = getattr(self.provider, "model", None)
+            self._validate_result(result, context)
+            result.tool_calls = calls
+            return result
+        except Exception as exc:
+            logger.warning("AI final report processing failed (%s)", type(exc).__name__)
+            return _fallback(deterministic, iterations=len(calls), tool_calls=calls)
+
+    def _investigate_legacy(
+        self,
+        context: dict[str, Any],
+        deterministic: InvestigationAnalysis,
+    ) -> AIInvestigationResult:
         registry: ToolRegistry = self.registry_factory(context)
         history: list[dict[str, Any]] = []
         calls: list[AIToolCall] = []
@@ -438,6 +650,8 @@ class AIInvestigationAgent:
                     final_data["source"] = "ai_agent"
                     final_data["iterations"] = iteration
                     final_data["tool_calls"] = calls
+                    final_data["provider"] = getattr(self.provider, "name", "groq")
+                    final_data["model"] = getattr(self.provider, "model", None)
                     evidence_raw = final_data.get("evidence")
                     if isinstance(evidence_raw, dict):
                         final_data["evidence"] = [
@@ -461,6 +675,8 @@ class AIInvestigationAgent:
                     result = AIInvestigationResult.model_validate(final_data)
                     result.iterations = iteration
                     result.source = "ai_agent"
+                    result.provider = getattr(self.provider, "name", "groq")
+                    result.model = getattr(self.provider, "model", None)
                     self._validate_result(result, context)
                     result.tool_calls = calls
                     return result
@@ -507,8 +723,8 @@ class AIInvestigationAgent:
                     history.append({"type": "tool_result", "tool": decision.tool, "error": str(err)})
             except (ProviderError, ValueError, TypeError) as exc:
                 logger.warning("AI investigation iteration %d failed (%s)", iteration, type(exc).__name__)
-                return _fallback(deterministic, iterations=iteration, tool_calls=calls)
-        return _fallback(deterministic, iterations=self.max_iterations, tool_calls=calls)
+                return _fallback(deterministic, iterations=len(calls), tool_calls=calls)
+        return _fallback(deterministic, iterations=len(calls), tool_calls=calls)
 
     @staticmethod
     def _validate_result(result: AIInvestigationResult, context: dict[str, Any]) -> None:

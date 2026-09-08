@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FileUpload } from '../components/upload/FileUpload';
 import { PipelineVisual } from '../components/upload/PipelineVisual';
 import { analyzeEmail } from '../services/api';
@@ -17,18 +17,31 @@ export const Home: React.FC<HomeProps> = ({
   setIsAnalyzing,
 }) => {
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Clean up in-flight requests on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const handleAnalyze = async (file: File) => {
     setIsAnalyzing(true);
     setError(null);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const result = await analyzeEmail(file);
+      const result = await analyzeEmail(file, { signal: controller.signal });
       onInvestigationComplete(result);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Analysis failed. Falling back to local offline forensic view.';
+      const message = err instanceof Error ? err.message : 'Analysis failed. Please check backend connection and retry.';
       setError(message);
-      // Even on backend offline in pure UI review, allow viewing mock data
     } finally {
+      abortControllerRef.current = null;
       setIsAnalyzing(false);
     }
   };

@@ -27,6 +27,137 @@ class ToolValidationError(ValueError):
     """The model requested an unregistered or unsupported operation."""
 
 
+TOOL_SPECIFICATIONS: list[dict[str, Any]] = [
+    {
+        "type": "function",
+        "function": {
+            "name": "inspect_url",
+            "description": "Inspect URL components (scheme, hostname, path, query) and matching security observations from evidence.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "The normalized HTTP or HTTPS URL from evidence to inspect."}
+                },
+                "required": ["url"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "inspect_domain",
+            "description": "Inspect domain details, DNS records, registration, and security observations from evidence.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "domain": {"type": "string", "description": "The domain name from evidence to inspect."}
+                },
+                "required": ["domain"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "inspect_ip",
+            "description": "Inspect IP address reputation, abuse score, geolocation, and ASN observations from evidence.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ip": {"type": "string", "description": "The IPv4 or IPv6 address from evidence to inspect."}
+                },
+                "required": ["ip"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "inspect_dns",
+            "description": "Inspect DNS records (A, MX, TXT) for a domain present in evidence.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "domain": {"type": "string", "description": "The domain name to retrieve DNS records for."}
+                },
+                "required": ["domain"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "inspect_rdap",
+            "description": "Inspect WHOIS / RDAP registration records (registrar, creation date, age) for a domain present in evidence.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "domain": {"type": "string", "description": "The domain name to query registration for."}
+                },
+                "required": ["domain"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "inspect_reputation",
+            "description": "Inspect threat intelligence reputation observations (AbuseIPDB, VirusTotal) for an IP or domain.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "entity_type": {"type": "string", "enum": ["ip", "domain"], "description": "Type of entity to inspect ('ip' or 'domain')."},
+                    "entity": {"type": "string", "description": "The IP address or domain name to inspect reputation for."}
+                },
+                "required": ["entity_type", "entity"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_graph",
+            "description": "Query relationships, connected entities, and edges in the evidence graph. If entity is omitted, queries the entire graph.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "entity": {"type": "string", "description": "Optional entity value to filter connected graph nodes and edges."}
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "explain_indicator",
+            "description": "Retrieve full explanation, severity, and evidence bindings for a specific security indicator code.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "code": {"type": "string", "description": "The security indicator code from evidence (e.g. 'spf_fail', 'content_credential_request')."}
+                },
+                "required": ["code"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_entity_details",
+            "description": "Inspect normalized entity record and all matching security observations for an entity present in evidence.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "entity_type": {"type": "string", "enum": ["ip", "domain", "url"], "description": "Type of the entity."},
+                    "entity": {"type": "string", "description": "The observable value from evidence."}
+                },
+                "required": ["entity_type", "entity"],
+            },
+        },
+    },
+]
+
+
 @dataclass
 class ToolRegistry:
     context: dict[str, Any]
@@ -34,6 +165,10 @@ class ToolRegistry:
     @property
     def names(self) -> list[str]:
         return list(TOOL_NAMES)
+
+    def get_tools_schema(self) -> list[dict[str, Any]]:
+        """Return standard OpenAI-compatible function specifications for registered tools."""
+        return [dict(spec) for spec in TOOL_SPECIFICATIONS if spec["function"]["name"] in TOOL_NAMES]
 
     def execute(self, name: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
         if name not in TOOL_NAMES:
@@ -79,7 +214,19 @@ class ToolRegistry:
         return value.strip()
 
     def _get_entity_details(self, args: dict[str, Any]) -> dict[str, Any]:
-        entity_type, value = self._required(args, "entity_type", "entity")
+        if "entity_type" not in args and "entity" in args:
+            val = str(args["entity"]).strip()
+            if "://" in val:
+                entity_type = "url"
+            else:
+                try:
+                    ipaddress.ip_address(val)
+                    entity_type = "ip"
+                except ValueError:
+                    entity_type = "domain"
+            value = val
+        else:
+            entity_type, value = self._required(args, "entity_type", "entity")
         entity = self._find(entity_type, value)
         observations = [
             item
@@ -135,7 +282,23 @@ class ToolRegistry:
         return self._observations_for("inspect_rdap", "domain", entity["value"], entity, kinds={"rdap", "registration"})
 
     def _inspect_reputation(self, args: dict[str, Any]) -> dict[str, Any]:
-        entity_type, value = self._required(args, "entity_type", "entity")
+        if "entity_type" not in args:
+            if "ip" in args:
+                entity_type, value = "ip", str(args["ip"]).strip()
+            elif "domain" in args:
+                entity_type, value = "domain", str(args["domain"]).strip()
+            elif "entity" in args:
+                val = str(args["entity"]).strip()
+                try:
+                    ipaddress.ip_address(val)
+                    entity_type = "ip"
+                except ValueError:
+                    entity_type = "domain"
+                value = val
+            else:
+                entity_type, value = self._required(args, "entity_type", "entity")
+        else:
+            entity_type, value = self._required(args, "entity_type", "entity")
         entity = self._find(entity_type, value)
         return self._observations_for("inspect_reputation", entity_type, entity["value"], entity, kinds={"reputation"})
 

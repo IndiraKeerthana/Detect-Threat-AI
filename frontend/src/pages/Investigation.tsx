@@ -5,83 +5,81 @@ import { AIInvestigationCard } from '../components/investigation/AIInvestigation
 import { KeyFindingsList } from '../components/threat/KeyFindingsList';
 import { AuthenticationSection } from '../components/evidence/AuthenticationSection';
 import { InfrastructureIntel } from '../components/intelligence/InfrastructureIntel';
-import { AttackGraphPlaceholder } from '../components/graph/AttackGraphPlaceholder';
-import { GeolocationPlaceholder } from '../components/map/GeolocationPlaceholder';
-import { EvidenceTimelinePlaceholder } from '../components/evidence/EvidenceTimelinePlaceholder';
+import { AttackGraph } from '../components/graph/AttackGraph';
+import { GeolocationMap } from '../components/map/GeolocationMap';
+import { EvidenceTimeline } from '../components/evidence/EvidenceTimeline';
 import type { EmailAnalysisResponse } from '../types/investigation';
-import { ArrowLeft } from 'lucide-react';
+import type { CaseRecord, CaseStatus } from '../services/caseStore';
+import { InvestigationVisualProvider } from '../context/InvestigationVisualContext';
 
 interface InvestigationProps {
   data: EmailAnalysisResponse;
+  caseRecord?: CaseRecord;
   onNavigateHome: () => void;
+  onViewReport?: () => void;
+  onStatusChange?: (newStatus: CaseStatus) => void;
 }
 
 export const Investigation: React.FC<InvestigationProps> = ({
   data,
+  caseRecord,
   onNavigateHome,
+  onViewReport,
+  onStatusChange,
 }) => {
   return (
-    <div className="space-y-6">
-      {/* Top Bar with Case Header */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={onNavigateHome}
-          className="inline-flex items-center gap-1.5 text-xs font-mono text-[#94a3b8] hover:text-[#f1f5f9] transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          BACK TO UPLOAD WORKSPACE
-        </button>
+    <InvestigationVisualProvider>
+      <div className="space-y-8 max-w-7xl mx-auto py-2">
+        {/* 1. Case Header with Status Control & View Report Trigger */}
+        <InvestigationHeader
+          data={data}
+          caseRecord={caseRecord}
+          caseId={caseRecord?.id || 'CASE-UNASSIGNED'}
+          onStatusChange={onStatusChange}
+          onViewReport={onViewReport}
+          onNavigateBack={onNavigateHome}
+        />
 
-        <span className="text-xs font-mono text-[#64748b]">
-          CASE REF: <span className="text-[#f1f5f9]">CASE-2026-0891</span>
-        </span>
-      </div>
+        {/* 2. Threat Assessment Hero */}
+        <ThreatAssessmentCard
+          assessment={data.risk_assessment}
+          correlationCount={data.threat_intelligence?.relationships?.length || 0}
+        />
 
-      {/* Main Email & Case Header */}
-      <InvestigationHeader data={data} />
+        {/* 3. Autonomous AI Investigation Record */}
+        <AIInvestigationCard aiData={data.ai_investigation} />
 
-      {/* Primary 2-Column Workstation Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column (8 cols): Primary Forensic Findings & AI */}
-        <div className="lg:col-span-8 space-y-6">
-          {/* Autonomous AI Agent Card */}
-          <AIInvestigationCard aiData={data.ai_investigation} />
-
-          {/* Key Security Findings */}
+        {/* 4. Evidence Matrix: Key Findings + Authentication */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* Left Column: Key Forensic Findings Ledger */}
           <KeyFindingsList
             indicators={data.security_analysis?.indicators}
             aiFindings={data.ai_investigation?.key_findings}
           />
 
-          {/* RFC 8601 Authentication Matrix */}
+          {/* Right Column: RFC 8601 Authentication Verification Matrix */}
           <AuthenticationSection auth={data.security_analysis?.authentication_results} />
-
-          {/* Attack Graph Topology Placeholder */}
-          <AttackGraphPlaceholder graph={data.evidence_graph} />
         </div>
 
-        {/* Right Column (4 cols): Scoring, Infrastructure, Relays, Map */}
-        <div className="lg:col-span-4 space-y-6">
-          {/* Deterministic Scoring Card */}
-          <ThreatAssessmentCard assessment={data.risk_assessment} />
+        {/* 5. Infrastructure Intelligence Telemetry */}
+        <InfrastructureIntel
+          relay={data.relay_analysis}
+          intelligence={data.threat_intelligence}
+          urls={data.security_analysis?.url_analysis}
+        />
 
-          {/* Infrastructure & Threat Telemetry */}
-          <InfrastructureIntel
-            relay={data.relay_analysis}
-            intelligence={data.threat_intelligence}
-            urls={data.security_analysis?.url_analysis}
-          />
+        {/* 6. Forensic Visualizations & Topology Grid */}
+        <div className="space-y-6">
+          {/* Interactive Forensic Attack / Infrastructure Graph */}
+          <AttackGraph data={data} />
 
-          {/* Geolocation Origin Telemetry */}
-          <GeolocationPlaceholder
-            ips={data.relay_analysis?.extracted_ips}
-            primaryIp={data.relay_analysis?.probable_source_infrastructure?.address}
-          />
-
-          {/* Chronological Relay Timeline */}
-          <EvidenceTimelinePlaceholder hops={data.relay_analysis?.relay_hops} />
+          {/* Geolocation & Delivery Chronology 2-Column Sub-grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <GeolocationMap data={data} />
+            <EvidenceTimeline data={data} />
+          </div>
         </div>
       </div>
-    </div>
+    </InvestigationVisualProvider>
   );
 };
