@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { caseStore, type CaseRecord, type CaseStatus, type CaseSeverity } from '../services/caseStore';
 import { NewInvestigationModal } from '../components/cases/NewInvestigationModal';
+import { formatISTTimestamp } from '../utils/dateFormatter';
 
 interface CasesProps {
   onSelectCase: (caseRecord: CaseRecord) => void;
@@ -357,7 +358,7 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
 
                       {/* Last Activity */}
                       <td className="py-3 px-4 whitespace-nowrap text-[#64748b] text-[11px]">
-                        {c.updatedAt ? c.updatedAt.replace(' UTC', '') : c.createdAt}
+                        {formatISTTimestamp(c.updatedAt || c.createdAt, 'Unrecorded')}
                       </td>
 
                       {/* Status */}

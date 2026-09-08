@@ -12,6 +12,7 @@ import type {
   NormalizedTimelineEvent,
   TimelineEventState,
 } from '../../services/investigationAdapter';
+import { formatISTTimestamp } from '../../utils/dateFormatter';
 import { useInvestigationVisual } from '../../context/InvestigationVisualContext';
 import { SectionHeader } from '../investigation/SectionHeader';
 
@@ -115,6 +116,7 @@ export const EvidenceTimeline: React.FC<EvidenceTimelineProps> = ({ data }) => {
           {events.map((evt) => {
             const style = getStateStyle(evt.state);
             const isSelected = selectedTimelineEventId === evt.id;
+            const displayTimestamp = formatISTTimestamp(evt.timeOffset);
 
             return (
               <div key={evt.id} className="relative group">
@@ -149,7 +151,9 @@ export const EvidenceTimeline: React.FC<EvidenceTimelineProps> = ({ data }) => {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs font-mono">
                       <div className="flex items-center space-x-2">
                         <span className="text-[10px] font-bold text-[#64748b]">
-                          {String(evt.step).padStart(2, '0')} // {evt.timeOffset}
+                          <span title={`Original timestamp: ${evt.timeOffset}`}>
+                            {String(evt.step).padStart(2, '0')} // {displayTimestamp}
+                          </span>
                         </span>
                         <span
                           className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase border ${style.badgeClass}`}
@@ -242,4 +246,3 @@ export const EvidenceTimeline: React.FC<EvidenceTimelineProps> = ({ data }) => {
     </div>
   );
 };
-

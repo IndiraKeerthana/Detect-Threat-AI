@@ -4,6 +4,7 @@ import { ReportSection } from '../components/report/ReportSection';
 import type { EmailAnalysisResponse } from '../types/investigation';
 import type { CaseRecord } from '../services/caseStore';
 import { ArrowLeft, Fingerprint } from 'lucide-react';
+import { formatISTTimestamp } from '../utils/dateFormatter';
 
 interface ReportProps {
   data: EmailAnalysisResponse;
@@ -59,11 +60,15 @@ export const Report: React.FC<ReportProps> = ({ data, caseRecord, onNavigateHome
               </div>
               <div className="flex justify-between">
                 <span className="text-[#64748b] text-[10px] uppercase">CREATION TIMESTAMP</span>
-                <span className="text-[#f1f5f9]">{caseRecord?.createdAt || 'Unrecorded'}</span>
+                <span className="text-[#f1f5f9]" title={caseRecord?.createdAt || 'Unrecorded'}>
+                  {formatISTTimestamp(caseRecord?.createdAt, 'Unrecorded')}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#64748b] text-[10px] uppercase">LAST MODIFIED</span>
-                <span className="text-[#f1f5f9]">{caseRecord?.updatedAt || 'Unrecorded'}</span>
+                <span className="text-[#f1f5f9]" title={caseRecord?.updatedAt || 'Unrecorded'}>
+                  {formatISTTimestamp(caseRecord?.updatedAt, 'Unrecorded')}
+                </span>
               </div>
             </div>
 

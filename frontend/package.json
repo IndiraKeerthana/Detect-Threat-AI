@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "node --experimental-strip-types ./src/services/investigationAdapter.test.ts && node --experimental-strip-types ./src/services/api.test.ts",
+    "test": "node --experimental-strip-types ./src/utils/dateFormatter.test.ts && node --experimental-strip-types ./src/services/investigationAdapter.test.ts && node --experimental-strip-types ./src/services/api.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {

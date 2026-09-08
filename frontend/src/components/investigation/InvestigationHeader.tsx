@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import type { EmailAnalysisResponse } from '../../types/investigation';
 import type { CaseRecord, CaseStatus } from '../../services/caseStore';
+import { formatISTTimestamp } from '../../utils/dateFormatter';
 
 interface InvestigationHeaderProps {
   data: EmailAnalysisResponse;
@@ -39,6 +40,8 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
   const confidence = caseRecord?.confidence || data.confidence?.level || 'unknown';
   const createdTimestamp = caseRecord?.createdAt || 'Unrecorded';
   const updatedTimestamp = caseRecord?.updatedAt || 'Unrecorded';
+  const createdTimestampIST = formatISTTimestamp(caseRecord?.createdAt, 'Unrecorded');
+  const updatedTimestampIST = formatISTTimestamp(caseRecord?.updatedAt, 'Unrecorded');
 
   const copyMessageId = () => {
     if (data.message_id) {
@@ -256,14 +259,14 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-[#64748b] text-[10px] uppercase">CREATED</span>
               <span className="text-[#94a3b8] text-[10px]" title={createdTimestamp}>
-                {createdTimestamp.split(' ')[0]}
+                {createdTimestampIST}
               </span>
             </div>
 
             <div className="flex items-center justify-between">
               <span className="text-[#64748b] text-[10px] uppercase">UPDATED</span>
               <span className="text-[#94a3b8] text-[10px]" title={updatedTimestamp}>
-                {updatedTimestamp.split(' ')[0]}
+                {updatedTimestampIST}
               </span>
             </div>
 

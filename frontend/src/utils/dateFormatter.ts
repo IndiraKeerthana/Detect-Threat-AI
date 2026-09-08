@@ -77,7 +77,7 @@ export function formatISTTimestamp(
 
   for (const part of parts) {
     if (part.type === 'day') day = part.value;
-    else if (part.type === 'month') month = part.value;
+    else if (part.type === 'month') month = part.value === 'Sept' ? 'Sep' : part.value;
     else if (part.type === 'year') year = part.value;
     else if (part.type === 'hour') hour = part.value;
     else if (part.type === 'minute') minute = part.value;

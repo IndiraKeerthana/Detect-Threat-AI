@@ -2,6 +2,7 @@ import React from 'react';
 import { Printer, Download, Shield } from 'lucide-react';
 import type { EmailAnalysisResponse } from '../../types/investigation';
 import type { CaseRecord } from '../../services/caseStore';
+import { formatISTTimestamp } from '../../utils/dateFormatter';
 
 interface ReportHeaderProps {
   data: EmailAnalysisResponse;
@@ -92,7 +93,7 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({ data, caseRecord }) 
 
         <div className="bg-[#0f1217] p-2.5 rounded border border-[#1e2430]">
           <span className="text-[10px] text-[#64748b] block uppercase">DATE GENERATED</span>
-          <span className="text-[#f1f5f9]">{new Date().toISOString().split('T')[0]} UTC</span>
+          <span className="text-[#f1f5f9]">{formatISTTimestamp(new Date())}</span>
         </div>
       </div>
     </div>
