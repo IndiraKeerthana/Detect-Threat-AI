@@ -1,0 +1,102 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Custom Base Styles */
+@layer base {
+  * {
+    border-color: var(--border-subtle);
+  }
+  
+  html, body {
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    letter-spacing: -0.01em;
+    overflow-x: hidden;
+  }
+
+  code, kbd, samp, pre {
+    font-family: var(--font-mono);
+    letter-spacing: normal;
+  }
+}
+
+/* Custom Scrollbar for Dense Workstation Layouts */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-app);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-active);
+}
+
+/* Utility Helper Classes */
+.font-mono-code {
+  font-family: var(--font-mono);
+  font-feature-settings: "zero" 1;
+}
+
+.surface-card {
+  background-color: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.surface-card-elevated {
+  background-color: var(--surface-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+}
+
+.surface-card-inset {
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+/* Restrained Badges */
+.badge-critical {
+  background-color: var(--color-critical-surface);
+  border: 1px solid var(--color-critical-border);
+  color: var(--color-critical-text);
+}
+
+.badge-warning {
+  background-color: var(--color-warning-surface);
+  border: 1px solid var(--color-warning-border);
+  color: var(--color-warning-text);
+}
+
+.badge-success {
+  background-color: var(--color-success-surface);
+  border: 1px solid var(--color-success-border);
+  color: var(--color-success-text);
+}
+
+.badge-ai {
+  background-color: var(--color-ai-surface);
+  border: 1px solid var(--color-ai-border);
+  color: var(--color-ai-text);
+}
+
+.badge-infra {
+  background-color: var(--color-infra-surface);
+  border: 1px solid var(--color-infra-border);
+  color: var(--color-infra-text);
+}
+
+.badge-neutral {
+  background-color: var(--surface-elevated);
+  border: 1px solid var(--border-medium);
+  color: var(--text-secondary);
+}

@@ -1,122 +1,95 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import { AppShell } from './components/layout/AppShell';
+import type { NavTab } from './components/layout/Sidebar';
+import { Home } from './pages/Home';
+import { Investigation } from './pages/Investigation';
+import { Cases } from './pages/Cases';
+import { Report } from './pages/Report';
+import { checkBackendHealth } from './services/api';
+import { MOCK_INVESTIGATION_DATA } from './data/mockInvestigation';
+import type { EmailAnalysisResponse } from './types/investigation';
 
-function App() {
-  const [count, setCount] = useState(0)
+export const App: React.FC = () => {
+  const [currentTab, setCurrentTab] = useState<NavTab>('home');
+  const [investigationData, setInvestigationData] = useState<EmailAnalysisResponse>(MOCK_INVESTIGATION_DATA);
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [apiOnline, setApiOnline] = useState<boolean>(true);
+
+  // Check health on load
+  useEffect(() => {
+    let isMounted = true;
+    checkBackendHealth()
+      .then((res) => {
+        if (isMounted) setApiOnline(res.healthy);
+      })
+      .catch(() => {
+        if (isMounted) setApiOnline(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleInvestigationComplete = (data: EmailAnalysisResponse) => {
+    setInvestigationData(data);
+    setCurrentTab('investigation');
+  };
+
+  const getContextTitle = (): string => {
+    switch (currentTab) {
+      case 'home':
+        return 'OVERVIEW & INTAKE';
+      case 'investigation':
+        return 'ACTIVE FORENSIC INVESTIGATION';
+      case 'cases':
+        return 'CASE TRIAGE & AUDIT LOG';
+      case 'report':
+        return 'EXAMINATION DOSSIER EXPORT';
+      default:
+        return 'FORENSIC WORKSTATION';
+    }
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <AppShell
+      currentTab={currentTab}
+      onSelectTab={setCurrentTab}
+      contextTitle={getContextTitle()}
+      isAnalyzing={isAnalyzing}
+      apiOnline={apiOnline}
+    >
+      {currentTab === 'home' && (
+        <Home
+          onInvestigationComplete={handleInvestigationComplete}
+          isAnalyzing={isAnalyzing}
+          setIsAnalyzing={setIsAnalyzing}
+        />
+      )}
 
-      <div className="ticks"></div>
+      {currentTab === 'investigation' && (
+        <Investigation
+          data={investigationData}
+          onNavigateHome={() => setCurrentTab('home')}
+        />
+      )}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      {currentTab === 'cases' && (
+        <Cases
+          onSelectCase={(data) => {
+            setInvestigationData(data);
+            setCurrentTab('investigation');
+          }}
+        />
+      )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
-}
+      {currentTab === 'report' && (
+        <Report
+          data={investigationData}
+          onNavigateHome={() => setCurrentTab('investigation')}
+        />
+      )}
+    </AppShell>
+  );
+};
 
-export default App
+export default App;
