@@ -433,7 +433,7 @@ try {
   console.log('TEST 10: Successful existing investigation rendering remains unchanged');
 
   const graphData = normalizeGraphData(SAMPLE_SUCCESS_RESPONSE);
-  const ipNode = graphData.nodes.find((n) => n.id === 'ip:198.51.100.77');
+  const ipNode = graphData.nodes.find((n) => n.id === 'relay:198.51.100.77' || n.id === 'ip:198.51.100.77');
   assert(ipNode !== undefined, 'IP node 198.51.100.77 must exist in graph');
   assertStrictEqual(ipNode.primaryValue, '198.51.100.77');
 

@@ -11,10 +11,10 @@ export const PipelineVisual: React.FC = () => {
   ];
 
   return (
-    <div className="w-full bg-[#12151b] border border-[#1e2430] rounded-md p-4">
-      <div className="flex items-center justify-between text-[11px] font-mono text-[#64748b] mb-3 px-1">
+    <div className="w-full bg-[var(--surface-subtle)] border border-[var(--border-subtle)] rounded-md p-4">
+      <div className="flex items-center justify-between text-[11px] font-mono text-[var(--text-dim)] mb-3 px-1">
         <span>DETERMINISTIC & AUTONOMOUS RECONSTRUCTION FLOW</span>
-        <span className="text-[#06b6d4]">EVIDENCE CORRELATION</span>
+        <span className="text-[var(--identifier)]">EVIDENCE CORRELATION</span>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-center">
@@ -22,15 +22,15 @@ export const PipelineVisual: React.FC = () => {
           const Icon = step.icon;
           return (
             <React.Fragment key={step.label}>
-              <div className="bg-[#171b23] border border-[#2a3242] rounded p-3 text-left hover:border-[#3e485e] transition-colors">
+              <div className="bg-[var(--surface)] border border-[var(--border-subtle)] rounded p-3 text-left hover:border-[var(--border)] transition-colors">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-mono text-[#64748b]">0{idx + 1}</span>
-                  <Icon className="w-3.5 h-3.5 text-[#94a3b8]" />
+                  <span className="text-[10px] font-mono text-[var(--text-dim)]">0{idx + 1}</span>
+                  <Icon className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                 </div>
-                <div className="text-xs font-mono font-semibold tracking-wider text-[#f1f5f9]">
+                <div className="text-xs font-mono font-semibold tracking-wider text-[var(--text)]">
                   {step.label}
                 </div>
-                <div className="text-[10px] text-[#64748b] font-sans truncate mt-0.5">
+                <div className="text-[10px] text-[var(--text-muted)] font-sans truncate mt-0.5">
                   {step.desc}
                 </div>
               </div>

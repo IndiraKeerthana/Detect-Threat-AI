@@ -77,30 +77,29 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
   const getRiskBadgeClass = (level: string) => {
     switch (level.toLowerCase()) {
       case 'critical':
-        return 'badge-critical';
       case 'high':
-        return 'badge-critical';
+        return 'text-[var(--severity-critical)] bg-[var(--surface-elevated)] border-[var(--border-subtle)]';
       case 'medium':
-        return 'badge-warning';
+        return 'text-[var(--severity-medium)] bg-[var(--surface-elevated)] border-[var(--border-subtle)]';
       case 'low':
       case 'benign':
-        return 'badge-success';
+        return 'text-[var(--severity-low)] bg-[var(--surface-elevated)] border-[var(--border-subtle)]';
       default:
-        return 'badge-neutral';
+        return 'text-[var(--text-muted)] bg-[var(--surface-elevated)] border-[var(--border-subtle)]';
     }
   };
 
   const getStatusColor = (st: CaseStatus) => {
     switch (st) {
       case 'OPEN':
-        return 'text-[#38bdf8] bg-[#0c202d] border-[#164e63]';
+        return 'text-[var(--identifier)] bg-[var(--surface-elevated)] border-[var(--border-subtle)]';
       case 'IN REVIEW':
-        return 'text-[#fcd34d] bg-[#261b0c] border-[#5c3c12]';
+        return 'text-[var(--severity-medium)] bg-[var(--surface-elevated)] border-[var(--border-subtle)]';
       case 'CONTAINED':
-        return 'text-[#6ee7b7] bg-[#0e241b] border-[#164e3b]';
+        return 'text-[var(--state-pass)] bg-[var(--surface-elevated)] border-[var(--border-subtle)]';
       case 'CLOSED':
       default:
-        return 'text-[#94a3b8] bg-[#171b23] border-[#2a3242]';
+        return 'text-[var(--text-muted)] bg-[var(--surface-elevated)] border-[var(--border-subtle)]';
     }
   };
 
@@ -114,27 +113,28 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
   };
 
   return (
-    <div className="surface-card p-5 border border-[#1e2430] space-y-4">
+    <div className="surface-card p-5 border border-[var(--border-subtle)] space-y-4">
       {/* 1. Top Action & Navigation Row */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#1e2430]">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]">
         <div className="flex items-center space-x-3">
           {onNavigateBack && (
             <button
+              type="button"
               onClick={onNavigateBack}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#171b23] hover:bg-[#1e232e] text-[#94a3b8] hover:text-[#f1f5f9] border border-[#2a3242] text-xs font-mono transition-colors"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-muted)] hover:text-[var(--text)] border border-[var(--border-subtle)] text-xs font-mono transition-colors cursor-pointer"
               title="Return to Ingestion Console"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>OVERVIEW</span>
+              <span>Overview</span>
             </button>
           )}
 
           <div className="flex items-center space-x-2 text-xs font-mono">
-            <span className="px-2 py-0.5 rounded bg-[#171b23] border border-[#2a3242] text-[#06b6d4] font-bold">
+            <span className="px-2 py-0.5 rounded bg-[var(--surface-elevated)] border border-[var(--border-subtle)] text-[var(--identifier)] font-bold">
               {activeId}
             </span>
-            <span className="text-[#64748b]">/</span>
-            <span className="text-[#94a3b8]">SUSPICIOUS EMAIL INVESTIGATION</span>
+            <span className="text-[var(--text-dim)]">/</span>
+            <span className="text-[var(--text-muted)]">Investigation</span>
           </div>
         </div>
 
@@ -145,7 +145,7 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
             <button
               type="button"
               onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-xs font-mono font-semibold transition-colors ${getStatusColor(
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-xs font-mono font-semibold transition-colors cursor-pointer ${getStatusColor(
                 currentStatus
               )}`}
               title="Change Case Workflow Status"
@@ -156,38 +156,39 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
             </button>
 
             {statusDropdownOpen && (
-              <div className="absolute right-0 mt-1 w-40 bg-[#0f1217] border border-[#2a3242] rounded shadow-xl py-1 z-30 font-mono text-xs">
-                <div className="px-3 py-1 text-[10px] text-[#64748b] uppercase border-b border-[#1e2430]">
+              <div className="absolute right-0 mt-1 w-40 bg-[var(--surface)] border border-[var(--border)] rounded shadow-xl py-1 z-30 font-mono text-xs">
+                <div className="px-3 py-1 text-[10px] text-[var(--text-dim)] uppercase border-b border-[var(--border-subtle)] font-sans">
                   Set Case Status
                 </div>
                 {statuses.map((st) => (
                   <button
                     key={st}
+                    type="button"
                     onClick={() => handleSelectStatus(st)}
-                    className={`w-full text-left px-3 py-1.5 flex items-center justify-between hover:bg-[#171b23] transition-colors ${
-                      currentStatus === st ? 'text-[#f1f5f9] font-bold' : 'text-[#94a3b8]'
+                    className={`w-full text-left px-3 py-1.5 flex items-center justify-between hover:bg-[var(--surface-hover)] transition-colors cursor-pointer ${
+                      currentStatus === st ? 'text-[var(--text)] font-bold' : 'text-[var(--text-muted)]'
                     }`}
                   >
                     <span>{st}</span>
-                    {currentStatus === st && <Check className="w-3 h-3 text-[#10b981]" />}
+                    {currentStatus === st && <Check className="w-3 h-3 text-[var(--state-pass)]" />}
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* DOWNLOAD FORENSIC REPORT PDF ACTION */}
+          {/* DOWNLOAD FORENSIC REPORT PDF ACTION (Solid Flat Button) */}
           <button
             type="button"
             onClick={handleDownloadReport}
             disabled={downloading}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-[#8b5cf6] hover:bg-[#7c3aed] text-white border border-[#9d7aea] text-xs font-mono font-medium transition-colors shadow-sm disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text)] border border-[var(--border)] text-xs font-mono font-medium transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
             title="Download complete PDF forensic investigation report"
           >
             {downloading ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3.5 h-3.5 text-[var(--text-muted)]" />
             )}
             <span>{downloading ? 'GENERATING PDF...' : 'DOWNLOAD REPORT'}</span>
           </button>
@@ -197,10 +198,10 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
             <button
               type="button"
               onClick={onViewReport}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-[#171b23] hover:bg-[#8b5cf6] text-[#c4b5fd] hover:text-white border border-[#3e485e] hover:border-[#8b5cf6] text-xs font-mono font-medium transition-colors shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text)] border border-[var(--border-subtle)] text-xs font-mono font-medium transition-colors shadow-sm cursor-pointer"
               title="Generate and review structured forensic dossier"
             >
-              <FileText className="w-3.5 h-3.5" />
+              <FileText className="w-3.5 h-3.5 text-[var(--text-dim)]" />
               <span>VIEW REPORT</span>
             </button>
           )}
@@ -214,25 +215,25 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
 
       {/* 2. Main Forensic Identification & Metadata Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-        {/* Left 7 Cols: Incident Title, Identities & RFC Message-ID */}
+        {/* Left 7 Cols: Incident Title & Message-ID */}
         <div className="lg:col-span-7 space-y-2.5">
           <div className="flex items-start gap-2.5">
-            <ShieldAlert className="w-5 h-5 text-[#ef4444] shrink-0 mt-0.5" />
+            <ShieldAlert className="w-5 h-5 text-[var(--severity-critical)] shrink-0 mt-0.5" />
             <div>
-              <h1 className="text-lg font-semibold text-[#f1f5f9] tracking-tight leading-snug">
+              <h1 className="text-lg font-semibold text-[var(--text)] tracking-tight leading-snug font-sans">
                 {caseRecord?.title || data.subject || '(No Subject Provided)'}
               </h1>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#94a3b8] mt-1 font-sans">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-muted)] mt-1 font-sans">
                 <span>
                   From:{' '}
-                  <span className="font-mono text-[#f1f5f9] font-medium">
+                  <span className="font-mono text-[var(--identifier)] font-medium">
                     {data.from || 'Unspecified'}
                   </span>
                 </span>
-                <span className="text-[#3e485e]">•</span>
+                <span className="text-[var(--text-dim)]">•</span>
                 <span>
                   To:{' '}
-                  <span className="font-mono text-[#f1f5f9]">
+                  <span className="font-mono text-[var(--text)]">
                     {data.to || 'Unspecified'}
                   </span>
                 </span>
@@ -241,14 +242,14 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
           </div>
 
           {/* Monospace Bar for Message-ID */}
-          <div className="bg-[#0a0c10] border border-[#1e2430] rounded p-2.5 flex items-center justify-between gap-3 text-xs font-mono">
+          <div className="bg-[var(--surface-subtle)] border border-[var(--border-subtle)] rounded p-2.5 flex items-center justify-between gap-3 text-xs font-mono">
             <div className="flex items-center space-x-2 truncate">
-              <Fingerprint className="w-3.5 h-3.5 text-[#8b5cf6] shrink-0" />
-              <span className="text-[10px] uppercase text-[#64748b] tracking-wider shrink-0">
-                RFC 5322 MESSAGE-ID
+              <Fingerprint className="w-3.5 h-3.5 text-[var(--identifier)] shrink-0" />
+              <span className="text-[10px] uppercase text-[var(--text-dim)] tracking-wider shrink-0 font-sans">
+                RFC 5322 Message-ID
               </span>
               <span
-                className="text-[#06b6d4] truncate select-all px-1.5 py-0.5 rounded bg-[#12151b] border border-[#1e2430]"
+                className="text-[var(--identifier)] truncate select-all px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--border-subtle)]"
                 title={data.message_id || 'None'}
               >
                 {data.message_id || 'None'}
@@ -257,14 +258,15 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
 
             {data.message_id && (
               <button
+                type="button"
                 onClick={copyMessageId}
-                className="px-2 py-0.5 rounded bg-[#171b23] hover:bg-[#1e232e] text-[#94a3b8] hover:text-[#f1f5f9] border border-[#2a3242] text-[10px] font-mono shrink-0 transition-colors flex items-center gap-1"
+                className="px-2 py-0.5 rounded bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text-muted)] hover:text-[var(--text)] border border-[var(--border-subtle)] text-[10px] font-mono shrink-0 transition-colors flex items-center gap-1 cursor-pointer"
                 title="Copy technical identifier to clipboard"
               >
                 {copied ? (
                   <>
-                    <Check className="w-3 h-3 text-[#10b981]" />
-                    <span className="text-[#10b981]">COPIED</span>
+                    <Check className="w-3 h-3 text-[var(--state-pass)]" />
+                    <span className="text-[var(--state-pass)]">COPIED</span>
                   </>
                 ) : (
                   <>
@@ -278,40 +280,40 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
         </div>
 
         {/* Right 5 Cols: Forensic Case Metadata Panel */}
-        <div className="lg:col-span-5 bg-[#0f1217] border border-[#1e2430] p-3 rounded space-y-1.5 text-xs font-mono">
-          <div className="text-[10px] text-[#64748b] uppercase tracking-wider pb-1 border-b border-[#1e2430] flex items-center justify-between">
-            <span>FORENSIC CASE METADATA</span>
-            <span className="text-[#06b6d4]">{activeId}</span>
+        <div className="lg:col-span-5 bg-[var(--surface-subtle)] border border-[var(--border-subtle)] p-3 rounded space-y-1.5 text-xs font-mono">
+          <div className="text-[10px] text-[var(--text-dim)] uppercase tracking-wider pb-1 border-b border-[var(--border-subtle)] flex items-center justify-between font-sans">
+            <span>Forensic Case Metadata</span>
+            <span className="text-[var(--identifier)] font-mono">{activeId}</span>
           </div>
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-1">
             <div className="flex items-center justify-between">
-              <span className="text-[#64748b] text-[10px] uppercase">CLASSIFICATION</span>
-              <span className="text-[#c4b5fd] font-semibold uppercase">{classification}</span>
+              <span className="text-[var(--text-dim)] text-[10px] font-sans">Classification:</span>
+              <span className="text-[var(--text)] font-semibold font-sans">{classification}</span>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-[#64748b] text-[10px] uppercase">CONFIDENCE</span>
-              <span className="text-[#f1f5f9] font-medium uppercase">{confidence}</span>
+              <span className="text-[var(--text-dim)] text-[10px] font-sans">Confidence:</span>
+              <span className="text-[var(--text-muted)] font-medium font-sans">{confidence}</span>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-[#64748b] text-[10px] uppercase">CREATED</span>
-              <span className="text-[#94a3b8] text-[10px]" title={createdTimestamp}>
+              <span className="text-[var(--text-dim)] text-[10px] font-sans">Created:</span>
+              <span className="text-[var(--text-muted)] text-[10px]" title={createdTimestamp}>
                 {createdTimestampIST}
               </span>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-[#64748b] text-[10px] uppercase">UPDATED</span>
-              <span className="text-[#94a3b8] text-[10px]" title={updatedTimestamp}>
+              <span className="text-[var(--text-dim)] text-[10px] font-sans">Updated:</span>
+              <span className="text-[var(--text-muted)] text-[10px]" title={updatedTimestamp}>
                 {updatedTimestampIST}
               </span>
             </div>
 
-            <div className="flex items-center justify-between col-span-2 pt-1 border-t border-[#1e2430]">
-              <span className="text-[#64748b] text-[10px] uppercase">ORIGIN HOST</span>
-              <span className="text-[#06b6d4] font-medium text-[11px] truncate">
+            <div className="flex items-center justify-between col-span-2 pt-1 border-t border-[var(--border-subtle)]">
+              <span className="text-[var(--text-dim)] text-[10px] font-sans">Origin host:</span>
+              <span className="text-[var(--identifier)] font-medium text-[11px] truncate">
                 {caseRecord?.sourceIp || data.relay_analysis?.probable_source_infrastructure?.address || 'Unavailable'}
               </span>
             </div>

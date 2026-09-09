@@ -40,7 +40,7 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Clean up in-flight requests and timers on unmount
+  // Clean up in-flight requests on unmount
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
@@ -66,7 +66,7 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
     onClose();
   }, [isAnalyzing, onClose]);
 
-  // Handle escape key to dismiss or cancel in-flight analysis
+  // Handle escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -157,7 +157,6 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
     let stepTimer2: ReturnType<typeof setTimeout> | undefined;
 
     try {
-      // Step timer updates for realistic forensic feedback
       stepTimer1 = setTimeout(() => {
         setAnalysisStep('RECONSTRUCTING PERIMETER RELAY HOPS & RESOLVING GEOLOCATION...');
       }, 700);
@@ -236,29 +235,30 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0a0c10]/85 backdrop-blur-sm animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
       {/* Modal Dialog Card */}
       <div
         ref={modalRef}
-        className="w-full max-w-xl bg-[#0f1217] border border-[#2a3242] rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="w-full max-w-xl bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
       >
         {/* Header Bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e2430] bg-[#12151b]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)] bg-[var(--surface-subtle)]">
           <div className="space-y-0.5">
             <div className="flex items-center space-x-2">
-              <span className="w-2 h-2 rounded-full bg-[#8b5cf6] animate-pulse" />
-              <h2 className="text-sm font-bold font-mono tracking-wider text-[#f1f5f9] uppercase">
+              <span className="w-2 h-2 rounded-full bg-[var(--ai)] animate-pulse" />
+              <h2 className="text-sm font-bold font-mono tracking-wider text-[var(--text)] uppercase">
                 NEW INVESTIGATION
               </h2>
             </div>
-            <p className="text-xs text-[#64748b] font-sans">
+            <p className="text-xs text-[var(--text-muted)] font-sans">
               Ingest and analyze raw .eml message for forensic indicators.
             </p>
           </div>
 
           <button
+            type="button"
             onClick={handleClose}
-            className="p-1.5 rounded text-[#64748b] hover:text-[#f1f5f9] hover:bg-[#171b23] border border-transparent hover:border-[#2a3242] transition-colors"
+            className="p-1.5 rounded text-[var(--text-dim)] hover:text-[var(--text)] hover:bg-[var(--surface-elevated)] border border-transparent hover:border-[var(--border-subtle)] transition-colors cursor-pointer"
             title={isAnalyzing ? 'Cancel analysis (Esc)' : 'Close modal (Esc)'}
           >
             <X className="w-4 h-4" />
@@ -269,8 +269,8 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
         <div className="p-6 space-y-5 overflow-y-auto font-sans">
           {/* File Dropzone Area */}
           <div>
-            <label className="block text-xs font-mono text-[#94a3b8] uppercase tracking-wider mb-2">
-              1. Email Artifact (.eml) <span className="text-[#ef4444]">*</span>
+            <label className="block text-xs font-mono text-[var(--text-muted)] uppercase tracking-wider mb-2">
+              1. Email Artifact (.eml) <span className="text-[var(--severity-critical)]">*</span>
             </label>
 
             <div
@@ -280,10 +280,10 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
               onClick={() => !isAnalyzing && fileInputRef.current?.click()}
               className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-all select-none ${
                 dragOver
-                  ? 'border-[#8b5cf6] bg-[#1a152e]'
+                  ? 'border-[var(--ai)] bg-[var(--surface-elevated)]'
                   : selectedFile
-                  ? 'border-[#3e485e] bg-[#12151b]'
-                  : 'border-[#1e2430] bg-[#0c0e12] hover:border-[#3e485e] hover:bg-[#12151b]'
+                  ? 'border-[var(--border)] bg-[var(--surface-subtle)]'
+                  : 'border-[var(--border-subtle)] bg-[var(--surface-subtle)] hover:border-[var(--border)] hover:bg-[var(--surface)]'
               }`}
             >
               <input
@@ -297,29 +297,29 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
 
               {!selectedFile ? (
                 <div className="space-y-2">
-                  <div className="w-10 h-10 rounded bg-[#171b23] border border-[#2a3242] mx-auto flex items-center justify-center text-[#94a3b8]">
-                    <UploadCloud className="w-5 h-5 text-[#8b5cf6]" />
+                  <div className="w-10 h-10 rounded bg-[var(--surface)] border border-[var(--border-subtle)] mx-auto flex items-center justify-center text-[var(--text-muted)]">
+                    <UploadCloud className="w-5 h-5 text-[var(--ai)]" />
                   </div>
                   <div>
-                    <span className="text-xs text-[#f1f5f9] font-medium">
-                      Click to browse or drop an <code className="font-mono text-[#06b6d4]">.eml</code> file
+                    <span className="text-xs text-[var(--text)] font-medium">
+                      Click to browse or drop an <code className="font-mono text-[var(--identifier)]">.eml</code> file
                     </span>
-                    <p className="text-[11px] text-[#64748b] font-mono mt-0.5">
+                    <p className="text-[11px] text-[var(--text-dim)] font-mono mt-0.5">
                       Max file threshold 10 MB • RFC 822/5322 Standard
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between gap-3 p-3 bg-[#171b23] border border-[#2a3242] rounded text-left">
+                <div className="flex items-center justify-between gap-3 p-3 bg-[var(--surface)] border border-[var(--border-subtle)] rounded text-left">
                   <div className="flex items-center space-x-3 truncate">
-                    <div className="w-8 h-8 rounded bg-[#1e2430] border border-[#3e485e] flex items-center justify-center text-[#10b981] shrink-0">
+                    <div className="w-8 h-8 rounded bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--state-pass)] shrink-0">
                       <FileCheck2 className="w-4 h-4" />
                     </div>
                     <div className="truncate">
-                      <div className="text-xs font-mono text-[#f1f5f9] font-medium truncate">
+                      <div className="text-xs font-mono text-[var(--text)] font-medium truncate">
                         {selectedFile.name}
                       </div>
-                      <div className="text-[10px] font-mono text-[#64748b]">
+                      <div className="text-[10px] font-mono text-[var(--text-muted)]">
                         {formatFileSize(selectedFile.size)} • Ready for ingestion
                       </div>
                     </div>
@@ -329,7 +329,7 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
                     type="button"
                     onClick={handleRemoveFile}
                     disabled={isAnalyzing}
-                    className="p-1.5 text-[#64748b] hover:text-[#ef4444] rounded hover:bg-[#261114] transition-colors"
+                    className="p-1.5 text-[var(--text-dim)] hover:text-[var(--severity-critical)] rounded hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer"
                     title="Remove artifact"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -342,8 +342,8 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
           {/* Optional Metadata Fields */}
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-mono text-[#94a3b8] uppercase tracking-wider mb-1.5">
-                2. Case Title <span className="text-[#64748b] font-normal font-sans">(Optional)</span>
+              <label className="block text-xs font-mono text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
+                2. Case Title <span className="text-[var(--text-dim)] font-normal font-sans">(Optional)</span>
               </label>
               <input
                 type="text"
@@ -351,13 +351,13 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
                 onChange={(e) => setCaseTitle(e.target.value)}
                 disabled={isAnalyzing}
                 placeholder="e.g. Executive Phishing Dispatch - Sep 2026"
-                className="w-full bg-[#12151b] border border-[#1e2430] focus:border-[#3e485e] rounded px-3 py-2 text-xs text-[#f1f5f9] placeholder-[#475569] font-mono outline-none"
+                className="w-full bg-[var(--surface-subtle)] border border-[var(--border-subtle)] focus:border-[var(--border-active)] rounded px-3 py-2 text-xs text-[var(--text)] placeholder-[var(--text-disabled)] font-mono outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-[#94a3b8] uppercase tracking-wider mb-1.5">
-                3. Analyst Intake Notes <span className="text-[#64748b] font-normal font-sans">(Optional)</span>
+              <label className="block text-xs font-mono text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
+                3. Analyst Intake Notes <span className="text-[var(--text-dim)] font-normal font-sans">(Optional)</span>
               </label>
               <textarea
                 rows={2}
@@ -365,26 +365,26 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
                 onChange={(e) => setAnalystNotes(e.target.value)}
                 disabled={isAnalyzing}
                 placeholder="Add internal SOC ticket ID, observed telemetry, or dispatcher priority..."
-                className="w-full bg-[#12151b] border border-[#1e2430] focus:border-[#3e485e] rounded px-3 py-2 text-xs text-[#f1f5f9] placeholder-[#475569] font-sans outline-none resize-none"
+                className="w-full bg-[var(--surface-subtle)] border border-[var(--border-subtle)] focus:border-[var(--border-active)] rounded px-3 py-2 text-xs text-[var(--text)] placeholder-[var(--text-disabled)] font-sans outline-none resize-none"
               />
             </div>
           </div>
 
           {/* Progress / Analyzing Indicator State */}
           {isAnalyzing && (
-            <div className="p-4 bg-[#12151b] border border-[#3e485e] rounded-md space-y-2.5 animate-pulse">
+            <div className="p-4 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-md space-y-2.5 animate-pulse">
               <div className="flex items-center justify-between text-xs font-mono">
-                <span className="flex items-center gap-2 text-[#c4b5fd]">
-                  <span className="w-2 h-2 rounded-full bg-[#8b5cf6] animate-ping" />
+                <span className="flex items-center gap-2 text-[var(--ai)]">
+                  <span className="w-2 h-2 rounded-full bg-[var(--ai)] animate-ping" />
                   PROCESSING FORENSIC EXTRACTION
                 </span>
-                <span className="text-[#64748b]">ENGINE ACTIVE</span>
+                <span className="text-[var(--text-dim)]">ENGINE ACTIVE</span>
               </div>
-              <div className="h-1.5 w-full bg-[#1a202c] rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-[#8b5cf6] to-[#06b6d4] w-2/3 rounded-full animate-[progress_1.5s_ease-in-out_infinite]" />
+              <div className="h-1.5 w-full bg-[var(--surface-elevated)] rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-[var(--ai)] to-[var(--identifier)] w-2/3 rounded-full animate-[progress_1.5s_ease-in-out_infinite]" />
               </div>
-              <div className="flex items-center gap-2 text-[11px] font-mono text-[#94a3b8]">
-                <Terminal className="w-3.5 h-3.5 text-[#06b6d4] shrink-0" />
+              <div className="flex items-center gap-2 text-[11px] font-mono text-[var(--text-muted)]">
+                <Terminal className="w-3.5 h-3.5 text-[var(--identifier)] shrink-0" />
                 <span className="truncate">{analysisStep}</span>
               </div>
             </div>
@@ -392,19 +392,19 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
 
           {/* Operational Error State */}
           {errorTitle && (
-            <div className="p-3 bg-[#261114] border border-[#5c1d24] rounded-md flex items-start gap-3 text-xs">
-              <AlertCircle className="w-4 h-4 text-[#ef4444] shrink-0 mt-0.5" />
+            <div className="p-3 bg-[var(--surface-elevated)] border border-[var(--severity-critical)] rounded-md flex items-start gap-3 text-xs">
+              <AlertCircle className="w-4 h-4 text-[var(--severity-critical)] shrink-0 mt-0.5" />
               <div className="space-y-0.5">
-                <div className="font-mono font-bold text-[#fca5a5]">{errorTitle}</div>
-                <div className="text-[#fca5a5]/90 leading-relaxed font-sans">{errorMessage}</div>
+                <div className="font-mono font-bold text-[var(--severity-critical)]">{errorTitle}</div>
+                <div className="text-[var(--text-muted)] leading-relaxed font-sans">{errorMessage}</div>
               </div>
             </div>
           )}
 
           {/* Engine Capability Footer Tag */}
-          <div className="flex items-center justify-between pt-2 border-t border-[#1e2430] text-[11px] font-mono text-[#64748b]">
+          <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)] text-[11px] font-mono text-[var(--text-dim)]">
             <span className="flex items-center gap-1.5">
-              <Shield className="w-3.5 h-3.5 text-[#8b5cf6]" />
+              <Shield className="w-3.5 h-3.5 text-[var(--ai)]" />
               Multi-turn Autonomous Agent & RFC Verification
             </span>
             <span className="flex items-center gap-1">
@@ -415,14 +415,14 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
         </div>
 
         {/* Modal Actions Footer */}
-        <div className="px-6 py-4 bg-[#12151b] border-t border-[#1e2430] flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="px-6 py-4 bg-[var(--surface-subtle)] border-t border-[var(--border-subtle)] flex flex-col sm:flex-row items-center justify-between gap-3">
           <button
             type="button"
             onClick={handleLoadSample}
             disabled={isAnalyzing}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded bg-[#171b23] hover:bg-[#1e232e] text-[#c4b5fd] hover:text-white border border-[#2a3242] text-xs font-mono transition-colors disabled:opacity-50"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded badge-ai text-xs font-mono transition-colors disabled:opacity-50 cursor-pointer"
           >
-            <Sparkles className="w-3.5 h-3.5 text-[#8b5cf6]" />
+            <Sparkles className="w-3.5 h-3.5 text-[var(--ai)]" />
             LOAD SAMPLE SPECIMEN
           </button>
 
@@ -430,7 +430,7 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 sm:flex-none px-4 py-2 rounded bg-[#171b23] hover:bg-[#1e232e] text-[#94a3b8] hover:text-[#f1f5f9] border border-[#2a3242] text-xs font-mono transition-colors"
+              className="flex-1 sm:flex-none px-4 py-2 rounded bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-muted)] hover:text-[var(--text)] border border-[var(--border-subtle)] text-xs font-mono transition-colors cursor-pointer"
             >
               {isAnalyzing ? 'CANCEL ANALYSIS' : 'CANCEL'}
             </button>
@@ -439,11 +439,11 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
               type="button"
               onClick={handleAnalyze}
               disabled={isAnalyzing || !selectedFile}
-              className="flex-1 sm:flex-none px-5 py-2 rounded bg-[#8b5cf6] hover:bg-[#7c3aed] text-white text-xs font-mono font-medium flex items-center justify-center gap-1.5 shadow-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 sm:flex-none px-5 py-2 rounded bg-[var(--text)] hover:opacity-90 text-[var(--background)] text-xs font-mono font-medium flex items-center justify-center gap-1.5 shadow-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               {isAnalyzing ? (
                 <>
-                  <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="w-3 h-3 border-2 border-[var(--background)]/30 border-t-[var(--background)] rounded-full animate-spin" />
                   ANALYZING...
                 </>
               ) : (

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import type { DragEvent, ChangeEvent } from 'react';
-import { UploadCloud, FileCheck2, Trash2, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
+import { UploadCloud, FileCheck2, Trash2, AlertCircle, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 
 interface FileUploadProps {
   onAnalyze: (file: File) => void;
@@ -89,15 +89,15 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   return (
     <div className="w-full space-y-4">
       {/* Capability Indicator Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-[#12151b] border border-[#1e2430] rounded text-xs">
-        <span className="text-[11px] font-mono text-[#64748b]">INSPECTION ENGINE:</span>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 bg-[var(--surface-subtle)] border border-[var(--border-subtle)] rounded text-xs">
+        <span className="text-[11px] font-mono text-[var(--text-dim)]">INSPECTION ENGINE:</span>
         <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono">
           {capabilities.map((c, i) => (
-            <span key={c.label} className="inline-flex items-center gap-1.5 text-[#94a3b8]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#3e485e]" />
-              <span className="text-[#f1f5f9]">{c.label}</span>
-              <span className="text-[#64748b] text-[10px]">({c.desc})</span>
-              {i < capabilities.length - 1 && <span className="text-[#2a3242] ml-1.5">|</span>}
+            <span key={c.label} className="inline-flex items-center gap-1.5 text-[var(--text-muted)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--state-pass)]" />
+              <span className="text-[var(--text)]">{c.label}</span>
+              <span className="text-[var(--text-dim)] text-[10px]">({c.desc})</span>
+              {i < capabilities.length - 1 && <span className="text-[var(--border-subtle)] ml-1.5">|</span>}
             </span>
           ))}
         </div>
@@ -111,10 +111,10 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         onClick={() => fileInputRef.current?.click()}
         className={`relative border-2 border-dashed rounded-lg p-8 md:p-10 transition-all cursor-pointer select-none text-center ${
           dragOver
-            ? 'border-[#8b5cf6] bg-[#171424]'
+            ? 'border-[var(--identifier)] bg-[var(--surface-hover)]'
             : selectedFile
-            ? 'border-[#2a3242] bg-[#12151b]'
-            : 'border-[#1e2430] bg-[#101319] hover:border-[#2a3242] hover:bg-[#12151b]'
+            ? 'border-[var(--border-active)] bg-[var(--surface)]'
+            : 'border-[var(--border-subtle)] bg-[var(--surface-subtle)] hover:border-[var(--border)] hover:bg-[var(--surface)]'
         }`}
       >
         <input
@@ -127,30 +127,30 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
         {!selectedFile ? (
           <div className="space-y-3">
-            <div className="w-12 h-12 rounded-md bg-[#171b23] border border-[#2a3242] mx-auto flex items-center justify-center text-[#94a3b8]">
-              <UploadCloud className="w-6 h-6 text-[#94a3b8]" />
+            <div className="w-12 h-12 rounded-md bg-[var(--surface-elevated)] border border-[var(--border-subtle)] mx-auto flex items-center justify-center text-[var(--text-muted)]">
+              <UploadCloud className="w-6 h-6 text-[var(--text-muted)]" />
             </div>
             <div>
-              <p className="text-sm font-medium text-[#f1f5f9]">
-                Drop raw <code className="font-mono text-[#06b6d4]">.eml</code> file here, or{' '}
-                <span className="text-[#8b5cf6] underline underline-offset-4">browse local storage</span>
+              <p className="text-sm font-medium text-[var(--text)] font-sans">
+                Drop raw <code className="font-mono text-[var(--identifier)]">.eml</code> file here, or{' '}
+                <span className="text-[var(--identifier)] underline underline-offset-4 font-mono">browse local storage</span>
               </p>
-              <p className="text-xs text-[#64748b] mt-1 font-mono">
+              <p className="text-xs text-[var(--text-dim)] mt-1 font-mono">
                 Standard RFC 822/5322 formatted email • Up to 10 MB per investigation
               </p>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-[#171b23] border border-[#2a3242] rounded-md text-left">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-[var(--surface-elevated)] border border-[var(--border)] rounded-md text-left">
             <div className="flex items-center space-x-3 truncate">
-              <div className="w-9 h-9 rounded bg-[#1e232e] border border-[#3e485e] flex items-center justify-center text-[#10b981] shrink-0">
+              <div className="w-9 h-9 rounded bg-[var(--surface)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--state-pass)] shrink-0">
                 <FileCheck2 className="w-5 h-5" />
               </div>
               <div className="truncate">
-                <div className="text-sm font-mono text-[#f1f5f9] truncate font-medium">
+                <div className="text-sm font-mono text-[var(--text)] truncate font-medium">
                   {selectedFile.name}
                 </div>
-                <div className="text-xs font-mono text-[#64748b]">
+                <div className="text-xs font-mono text-[var(--text-dim)]">
                   {formatFileSize(selectedFile.size)} • RFC 822 Validated
                 </div>
               </div>
@@ -161,7 +161,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 type="button"
                 onClick={handleRemove}
                 disabled={isAnalyzing}
-                className="p-2 text-[#64748b] hover:text-[#ef4444] rounded hover:bg-[#261114] border border-transparent hover:border-[#5c1d24] transition-colors"
+                className="p-2 text-[var(--text-dim)] hover:text-[var(--severity-critical)] rounded hover:bg-[var(--surface-hover)] border border-transparent transition-colors cursor-pointer"
                 title="Remove file"
               >
                 <Trash2 className="w-4 h-4" />
@@ -174,17 +174,17 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                   onAnalyze(selectedFile);
                 }}
                 disabled={isAnalyzing}
-                className="px-4 py-2 bg-[#8b5cf6] hover:bg-[#7c3aed] text-white text-xs font-mono font-medium rounded flex items-center gap-2 shadow-sm transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text)] border border-[var(--border)] text-xs font-mono font-medium rounded flex items-center gap-2 shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {isAnalyzing ? (
                   <>
-                    <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ANALYZING EVIDENCE...
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--identifier)]" />
+                    <span>ANALYZING EVIDENCE...</span>
                   </>
                 ) : (
                   <>
-                    ANALYZE .EML
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <span>ANALYZE .EML</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-[var(--text-dim)]" />
                   </>
                 )}
               </button>
@@ -195,8 +195,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
       {/* Validation or API Error Banner */}
       {(validationError || error) && (
-        <div className="p-3 bg-[#261114] border border-[#5c1d24] rounded-md flex items-start gap-2.5 text-xs text-[#fca5a5]">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#ef4444]" />
+        <div className="p-3.5 bg-[var(--surface-elevated)] border border-[var(--severity-critical)] rounded-md flex items-start gap-2.5 text-xs text-[var(--severity-critical)]">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
           <div>
             <span className="font-semibold font-mono">FORENSIC REJECTION:</span>{' '}
             {validationError || error}
@@ -204,15 +204,15 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         </div>
       )}
 
-      {/* Quick Demo Loader */}
-      <div className="flex items-center justify-between text-xs text-[#64748b] pt-1">
+      {/* Quick Sample Loader */}
+      <div className="flex items-center justify-between text-xs text-[var(--text-dim)] pt-1">
         <span>No sample file at hand?</span>
         <button
           type="button"
           onClick={onLoadMock}
-          className="inline-flex items-center gap-1.5 text-xs font-mono text-[#c4b5fd] hover:text-white transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
         >
-          <Sparkles className="w-3.5 h-3.5 text-[#8b5cf6]" />
+          <Sparkles className="w-3.5 h-3.5 text-[var(--ai)]" />
           Load Verified Forensic Sample (security_signals.eml)
         </button>
       </div>

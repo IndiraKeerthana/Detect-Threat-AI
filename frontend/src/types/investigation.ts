@@ -364,6 +364,10 @@ export interface EmailAnalysisResponse {
   body_text: string | null;
   body_html: string | null;
   attachments: AttachmentMetadata[];
+  parsed_email?: {
+    from_address?: string | null;
+    from_name?: string | null;
+  } | null;
   relay_analysis?: RelayAnalysis | null;
   security_analysis?: SecurityAnalysis | null;
   threat_intelligence?: ThreatIntelligence | null;

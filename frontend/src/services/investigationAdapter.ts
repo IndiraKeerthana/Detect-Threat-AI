@@ -119,15 +119,74 @@ export interface NormalizedTimelineEvent {
 // ADAPTER FUNCTIONS
 // ============================================================================
 
+export interface SenderInfo {
+  displayName: string | null;
+  address: string | null;
+  domain: string | null;
+  label: string;
+  secondaryMeta: string;
+  isAvailable: boolean;
+}
+
 /**
- * Normalizes graph nodes and edges from EmailAnalysisResponse
- * Enforces strict 3-layer topology:
- * 1. Primary Observed Email Path (Solid edges: EMAIL -> SENDER -> RELAY -> SOURCE IP)
- * 2. Correlated Email Relationships (Solid edges: EMAIL -> REPLY-TO, EMAIL -> URL PAYLOAD)
- * 3. External Intelligence Enrichment (Dashed edges: SOURCE IP -> ASN, SOURCE IP -> GEOLOCATION)
- * Node budget: 5-8 nodes max.
- * Provenance: IPs like 8.8.8.8 from external threat intel/DNS lookups are NEVER promoted to observed SOURCE IP or SMTP RELAY.
+ * Robustly parses sender identity from parsed email, From header, or auth results.
  */
+export function parseSenderInfo(data: EmailAnalysisResponse): SenderInfo {
+  const authDomain = data.security_analysis?.authentication_results?.from_domain;
+  const rawFrom = data.from || (data as unknown as Record<string, unknown>).from_header as string || '';
+  const parsedEmail = data.parsed_email as Record<string, unknown> | undefined;
+
+  let displayName: string | null = (parsedEmail?.from_name as string) || (parsedEmail?.from_display_name as string) || null;
+  let address: string | null = (parsedEmail?.from_address as string) || null;
+
+  if (rawFrom && (!displayName || !address)) {
+    const match = rawFrom.match(/^(?:"?([^"<]+)"?\s*)?<?([^>]+)>?$/);
+    if (match) {
+      if (!displayName && match[1]?.trim()) displayName = match[1].trim();
+      if (!address && match[2]?.trim() && match[2].includes('@')) address = match[2].trim();
+    }
+  }
+
+  if (!address && rawFrom.includes('@')) {
+    address = rawFrom.trim();
+  }
+
+  const domain = authDomain || (address && address.includes('@') ? address.split('@')[1] : null);
+
+  const isAvailable = Boolean(address || domain || displayName);
+
+  if (!isAvailable) {
+    return {
+      displayName: null,
+      address: null,
+      domain: null,
+      label: 'SENDER\n[Unavailable]',
+      secondaryMeta: 'Sender Information Unavailable',
+      isAvailable: false,
+    };
+  }
+
+  let label = '';
+  if (displayName && address) {
+    label = `${displayName}\n${address}`;
+  } else if (address) {
+    label = address;
+  } else if (domain) {
+    label = domain;
+  } else {
+    label = displayName || 'Sender';
+  }
+
+  return {
+    displayName,
+    address,
+    domain,
+    label,
+    secondaryMeta: domain ? `From Domain: ${domain}` : 'From Header Identity',
+    isAvailable: true,
+  };
+}
+
 export function normalizeGraphData(data: EmailAnalysisResponse): NormalizedGraphData {
   const nodesMap = new Map<string, NormalizedGraphNode>();
   const edgesMap = new Map<string, NormalizedGraphEdge>();
@@ -138,13 +197,13 @@ export function normalizeGraphData(data: EmailAnalysisResponse): NormalizedGraph
   // Stage 0: Root Email Node
   const rootEmailId = 'email:root';
   const emailSubject = data.subject || 'Email Subject';
-  const emailFrom = data.from || undefined;
+  const emailDisplayVal = emailSubject.length > 25 ? emailSubject.slice(0, 22) + '...' : emailSubject;
   nodesMap.set(rootEmailId, {
     id: rootEmailId,
     type: 'email',
-    label: data.message_id ? data.message_id.replace(/[<>]/g, '') : 'Root Email Artifact',
+    label: emailDisplayVal,
     primaryValue: emailSubject,
-    secondaryMeta: emailFrom,
+    secondaryMeta: data.from || 'RFC 5322 Message',
     severity: 'info',
     status: 'neutral',
     whyItMatters: 'Primary investigation root artifact received for forensic evaluation.',
@@ -160,19 +219,25 @@ export function normalizeGraphData(data: EmailAnalysisResponse): NormalizedGraph
     },
   });
 
-  // Stage 1: Sender Node (Authenticated From Header Domain or Identity)
+  // Stage 1: Sender Node (Rank 1)
+  const senderInfo = parseSenderInfo(data);
   const probableRelayAddress = data.relay_analysis?.probable_source_infrastructure?.address;
   const isRelayObserved = Boolean(probableRelayAddress && probableRelayAddress.trim().length > 0);
 
-  const fromDomain = data.security_analysis?.authentication_results?.from_domain;
   const authResults = data.security_analysis?.authentication_results;
-  const isAuthFail = authResults?.spf?.result === 'fail' || authResults?.dmarc?.result === 'fail';
+  const isAuthFail = authResults?.spf?.result === 'fail' || authResults?.dmarc?.result === 'fail' || authResults?.dkim?.result === 'fail';
 
   let senderNodeId: string | null = null;
-  if (fromDomain) {
-    senderNodeId = `domain:${fromDomain.toLowerCase()}`;
-    const domainProperties: Record<string, unknown> = { domain: fromDomain, role: 'sender' };
-    const domainEvidence: string[] = ['RFC 5322 From header domain'];
+
+  if (senderInfo.isAvailable) {
+    senderNodeId = `domain:${(senderInfo.address || senderInfo.domain || 'sender').toLowerCase()}`;
+    const domainProperties: Record<string, unknown> = {
+      domain: senderInfo.domain,
+      address: senderInfo.address,
+      display_name: senderInfo.displayName,
+      role: 'sender',
+    };
+    const domainEvidence: string[] = ['RFC 5322 From header identity'];
 
     if (authResults?.spf?.result) {
       domainProperties.spf = authResults.spf.result;
@@ -187,32 +252,33 @@ export function normalizeGraphData(data: EmailAnalysisResponse): NormalizedGraph
       domainEvidence.push(`DMARC ${authResults.dmarc.result}`);
     }
 
-    const domainObs = data.threat_intelligence?.observations?.find(
-      (o) => o.entity_type === 'domain' && o.entity.toLowerCase() === fromDomain.toLowerCase()
-    );
-    if (domainObs?.data) {
-      const dData = domainObs.data as Record<string, unknown>;
-      if (typeof dData.age_days === 'number') domainProperties.age_days = dData.age_days;
-      if (typeof dData.registrar === 'string') domainProperties.registrar = dData.registrar;
-      if (typeof dData.created_date === 'string') domainProperties.created_date = dData.created_date;
-    }
-    if (domainObs?.evidence && Array.isArray(domainObs.evidence)) {
-      domainEvidence.push(...domainObs.evidence);
+    const fromDomain = senderInfo.domain;
+    if (fromDomain) {
+      const domainObs = data.threat_intelligence?.observations?.find(
+        (o) => o.entity_type === 'domain' && o.entity.toLowerCase() === fromDomain.toLowerCase()
+      );
+      if (domainObs?.data) {
+        const dData = domainObs.data as Record<string, unknown>;
+        if (typeof dData.age_days === 'number') domainProperties.age_days = dData.age_days;
+        if (typeof dData.registrar === 'string') domainProperties.registrar = dData.registrar;
+        if (typeof dData.created_date === 'string') domainProperties.created_date = dData.created_date;
+      }
+      if (domainObs?.evidence && Array.isArray(domainObs.evidence)) {
+        domainEvidence.push(...domainObs.evidence);
+      }
     }
 
     nodesMap.set(senderNodeId, {
       id: senderNodeId,
       type: 'domain',
-      label: fromDomain,
-      primaryValue: fromDomain,
-      secondaryMeta: domainProperties.age_days !== undefined
-        ? `From Header (Age: ${domainProperties.age_days}d)`
-        : 'Authenticated From Domain',
+      label: senderInfo.label,
+      primaryValue: senderInfo.address || senderInfo.domain || senderInfo.displayName || 'Sender',
+      secondaryMeta: senderInfo.secondaryMeta,
       severity: isAuthFail ? 'high' : 'info',
       status: isAuthFail ? 'suspicious' : 'neutral',
       whyItMatters: isAuthFail
-        ? 'Email sender domain failed SPF/DMARC authentication checks.'
-        : 'Authenticated envelope and header sender domain.',
+        ? 'Email sender identity failed authentication checks (SPF/DKIM/DMARC).'
+        : 'Envelope and header sender identity.',
       rankColumn: 1,
       source: 'RFC 5322 From',
       confidence: 'high',
@@ -220,18 +286,17 @@ export function normalizeGraphData(data: EmailAnalysisResponse): NormalizedGraph
       evidence: domainEvidence,
     });
 
-    edgesMap.set(`${rootEmailId}->${senderNodeId}:sent_from`, {
-      id: `${rootEmailId}->${senderNodeId}:sent_from`,
+    edgesMap.set(`${rootEmailId}->${senderNodeId}:sent_by`, {
+      id: `${rootEmailId}->${senderNodeId}:sent_by`,
       source: rootEmailId,
       target: senderNodeId,
-      relationship: 'sent_from',
-      label: 'SENT FROM',
+      relationship: 'sent_by',
+      label: 'SENT BY',
       isObserved: true,
       confidence: 'high',
       evidence: ['RFC 5322 From header match'],
     });
   } else if (isRelayObserved) {
-    // Only render sender placeholder in horizontal topology when real infrastructure IS observed
     senderNodeId = 'domain:sender_unavailable';
     nodesMap.set(senderNodeId, {
       id: senderNodeId,
@@ -241,37 +306,50 @@ export function normalizeGraphData(data: EmailAnalysisResponse): NormalizedGraph
       secondaryMeta: 'Not observed in headers',
       severity: 'info',
       status: 'unavailable',
-      whyItMatters: 'No authenticated sender domain observed in headers.',
+      whyItMatters: 'No authenticated sender domain or address observed in headers.',
       rankColumn: 1,
       source: 'Header Analysis',
       confidence: 'high',
       properties: { role: 'sender' },
-      evidence: ['No RFC 5322 From header domain observed'],
+      evidence: ['No RFC 5322 From header identity observed'],
     });
 
-    edgesMap.set(`${rootEmailId}->${senderNodeId}:sent_from_na`, {
-      id: `${rootEmailId}->${senderNodeId}:sent_from_na`,
+    edgesMap.set(`${rootEmailId}->${senderNodeId}:sent_by_na`, {
+      id: `${rootEmailId}->${senderNodeId}:sent_by_na`,
       source: rootEmailId,
       target: senderNodeId,
-      relationship: 'sent_from',
-      label: 'SENT FROM (N/A)',
+      relationship: 'sent_by',
+      label: 'SENT BY (N/A)',
       isObserved: false,
       confidence: 'high',
       evidence: ['Unobserved sender domain stage'],
     });
   }
 
-  // Stage 2: Ingress Relay & Infrastructure Processing
+  // Stage 2: Ingress Relay & Source Infrastructure Processing
   if (isRelayObserved && probableRelayAddress) {
-    // --- REAL OBSERVED INFRASTRUCTURE TOPOLOGY (FULL 6-STAGE TOPOLOGY) ---
+    // Look up reverse DNS hostname if available
+    let reverseDns: string | undefined;
+    if (data.relay_analysis?.relay_hops) {
+      for (const hop of data.relay_analysis.relay_hops) {
+        if (hop.extracted_ips?.some((ip) => ip.address === probableRelayAddress) && hop.hostnames?.[0]) {
+          reverseDns = hop.hostnames[0];
+          break;
+        }
+      }
+    }
 
-    // SMTP Relay Node (Rank 2)
+    // Unified OBSERVED RELAY / SOURCE INFRASTRUCTURE Node (Rank 2)
     const relayNodeId = `relay:${probableRelayAddress.toLowerCase()}`;
-    const matchingObs = data.threat_intelligence?.observations?.find(
+    const matchingObs = obsList.find(
       (o) => o.entity_type === 'ip' && o.entity.toLowerCase() === probableRelayAddress.toLowerCase()
     );
     const obsData = (matchingObs?.data || {}) as Record<string, unknown>;
-    const ipProperties: Record<string, unknown> = { address: probableRelayAddress, role: 'relay' };
+    const ipProperties: Record<string, unknown> = {
+      address: probableRelayAddress,
+      reverse_dns: reverseDns || obsData.reverse_dns,
+      role: 'relay_and_source',
+    };
     if (data.relay_analysis?.probable_source_infrastructure?.reason) {
       ipProperties.selection_reason = data.relay_analysis.probable_source_infrastructure.reason;
     }
@@ -295,12 +373,12 @@ export function normalizeGraphData(data: EmailAnalysisResponse): NormalizedGraph
     nodesMap.set(relayNodeId, {
       id: relayNodeId,
       type: 'relay',
-      label: probableRelayAddress,
+      label: reverseDns ? `${probableRelayAddress}\n${reverseDns}` : probableRelayAddress,
       primaryValue: probableRelayAddress,
-      secondaryMeta: 'Perimeter Ingress Relay',
+      secondaryMeta: reverseDns ? `Host: ${reverseDns}` : 'Perimeter Ingress Infrastructure',
       severity: isAbuseHigh ? 'critical' : 'info',
       status: isAbuseHigh ? 'malicious' : 'neutral',
-      whyItMatters: 'Strongest verified public ingress infrastructure candidate extracted from Received header chain.',
+      whyItMatters: 'Strongest verified public ingress relay and source infrastructure candidate extracted from Received header chain.',
       rankColumn: 2,
       source: matchingObs?.provider ? `Received Ingress / ${matchingObs.provider}` : 'Received Header Ingress',
       confidence: 'high',
@@ -309,55 +387,20 @@ export function normalizeGraphData(data: EmailAnalysisResponse): NormalizedGraph
     });
 
     const edgeSource = senderNodeId || rootEmailId;
-    edgesMap.set(`${edgeSource}->${relayNodeId}:delivered_via`, {
-      id: `${edgeSource}->${relayNodeId}:delivered_via`,
+    edgesMap.set(`${edgeSource}->${relayNodeId}:received_via`, {
+      id: `${edgeSource}->${relayNodeId}:received_via`,
       source: edgeSource,
       target: relayNodeId,
-      relationship: 'delivered_via',
-      label: 'DELIVERED VIA',
+      relationship: 'received_via',
+      label: 'RECEIVED VIA',
       isObserved: true,
       confidence: 'high',
       evidence: ['Received header ingress route'],
     });
 
-    // Source IP Node (Rank 3)
-    const sourceIpNodeId = `ip:${probableRelayAddress.toLowerCase()}`;
-    const ipProps: Record<string, unknown> = { address: probableRelayAddress, role: 'source_ip' };
-    if (typeof obsData.abuse_confidence_score === 'number') {
-      ipProps.abuse_score = obsData.abuse_confidence_score;
-    }
-    if (typeof obsData.reverse_dns === 'string') ipProps.reverse_dns = obsData.reverse_dns;
-
-    nodesMap.set(sourceIpNodeId, {
-      id: sourceIpNodeId,
-      type: 'ip',
-      label: probableRelayAddress,
-      primaryValue: probableRelayAddress,
-      secondaryMeta: 'Source IP Endpoint',
-      severity: isAbuseHigh ? 'critical' : 'info',
-      status: isAbuseHigh ? 'malicious' : 'neutral',
-      whyItMatters: 'Verified public origin IP address associated with email ingress infrastructure.',
-      rankColumn: 3,
-      source: 'Relay Analysis',
-      confidence: 'high',
-      properties: ipProps,
-      evidence: matchingObs?.evidence || ['Extracted from ingress relay hop'],
-    });
-
-    edgesMap.set(`${relayNodeId}->${sourceIpNodeId}:origin_ip`, {
-      id: `${relayNodeId}->${sourceIpNodeId}:origin_ip`,
-      source: relayNodeId,
-      target: sourceIpNodeId,
-      relationship: 'origin_ip',
-      label: 'SOURCE IP',
-      isObserved: true,
-      confidence: 'high',
-      evidence: ['Relay origin endpoint'],
-    });
-
     // Layer C: External Intelligence Enrichment (Dashed Edges)
 
-    // Consolidated SINGLE NETWORK / ASN Node
+    // Consolidated SINGLE NETWORK / ASN Node (Rank 3)
     let asnVal: string | undefined;
     let ispVal: string | undefined;
     let cidrVal: string | undefined;
@@ -381,38 +424,42 @@ export function normalizeGraphData(data: EmailAnalysisResponse): NormalizedGraph
       }
     }
 
+    let parentForGeo = relayNodeId;
+
     if (asnVal) {
       const asnNodeId = `asn:${asnVal.toLowerCase()}`;
-      const asnLabel = ispVal ? `${asnVal} (${ispVal})` : asnVal;
+      const asnLabel = ispVal ? `${asnVal}\n${ispVal}` : asnVal;
       nodesMap.set(asnNodeId, {
         id: asnNodeId,
         type: 'asn',
         label: asnLabel,
         primaryValue: asnVal,
-        secondaryMeta: ispVal || 'BGP Autonomous System',
+        secondaryMeta: 'Observed network for source infrastructure',
         severity: 'info',
         status: 'neutral',
-        whyItMatters: 'BGP Autonomous System routing authority announcing network IP prefixes.',
-        rankColumn: 4,
+        whyItMatters: 'BGP Autonomous System routing authority announcing network IP prefixes for source infrastructure.',
+        rankColumn: 3,
         source: asnProvider || 'BGP Routing Telemetry',
         confidence: 'high',
         properties: { asn: asnVal, isp: ispVal, cidr: cidrVal, role: 'network' },
         evidence: asnEvidence.length > 0 ? asnEvidence : [`BGP announced by ${asnVal}`],
       });
 
-      edgesMap.set(`${sourceIpNodeId}->${asnNodeId}:announced_by`, {
-        id: `${sourceIpNodeId}->${asnNodeId}:announced_by`,
-        source: sourceIpNodeId,
+      edgesMap.set(`${relayNodeId}->${asnNodeId}:announced_by`, {
+        id: `${relayNodeId}->${asnNodeId}:announced_by`,
+        source: relayNodeId,
         target: asnNodeId,
         relationship: 'announced_by',
         label: 'ANNOUNCED BY',
-        isObserved: false, // DASHED EDGE FOR OSINT ENRICHMENT
+        isObserved: false, // DASHED OSINT EDGE
         confidence: 'high',
         evidence: [`BGP routing announcement via ${asnVal}`],
       });
+
+      parentForGeo = asnNodeId;
     }
 
-    // Consolidated SINGLE GEOLOCATION Node
+    // Consolidated SINGLE GEOLOCATION Node (Rank 4)
     let cityVal: string | undefined;
     let countryVal: string | undefined;
     let codeVal: string | undefined;
@@ -455,25 +502,24 @@ export function normalizeGraphData(data: EmailAnalysisResponse): NormalizedGraph
         type: 'location',
         label: locString || 'Geolocation',
         primaryValue: locString || 'Geolocation',
-        secondaryMeta: (latVal !== undefined && lonVal !== undefined) ? `GPS: ${latVal}, ${lonVal}` : 'Infrastructure Location',
+        secondaryMeta: 'Infrastructure location',
         severity: 'info',
         status: 'neutral',
         whyItMatters: 'Verified IP geolocation telemetry associated with origin infrastructure. Infrastructure location, not attacker physical location.',
-        rankColumn: 5,
+        rankColumn: 4,
         source: geoProvider || 'IP Geolocation Telemetry',
         confidence: 'high',
         properties: { country: countryVal, country_code: codeVal, city: cityVal, latitude: latVal, longitude: lonVal, role: 'geolocation' },
         evidence: geoEvidence.length > 0 ? geoEvidence : [`IP geolocation observed: ${locString}`],
       });
 
-      const parentForGeo = (asnVal ? `asn:${asnVal.toLowerCase()}` : sourceIpNodeId);
-      edgesMap.set(`${parentForGeo}->${geoNodeId}:located_in`, {
-        id: `${parentForGeo}->${geoNodeId}:located_in`,
+      edgesMap.set(`${parentForGeo}->${geoNodeId}:geolocated_to`, {
+        id: `${parentForGeo}->${geoNodeId}:geolocated_to`,
         source: parentForGeo,
         target: geoNodeId,
-        relationship: 'located_in',
-        label: 'LOCATED IN',
-        isObserved: false, // DASHED EDGE FOR OSINT ENRICHMENT
+        relationship: 'geolocated_to',
+        label: 'GEOLOCATED TO',
+        isObserved: false, // DASHED OSINT EDGE
         confidence: 'high',
         evidence: [`Geolocation telemetry observed via ${geoProvider || 'telemetry'}`],
       });
@@ -485,7 +531,7 @@ export function normalizeGraphData(data: EmailAnalysisResponse): NormalizedGraph
     nodesMap.set(unavailStateId, {
       id: unavailStateId,
       type: 'relay',
-      label: 'NO VERIFIED ORIGIN INFRASTRUCTURE',
+      label: 'NO VERIFIED SOURCE INFRASTRUCTURE',
       primaryValue: 'No Public Source Candidate',
       secondaryMeta: 'Relay Infrastructure Unavailable',
       severity: 'info',
@@ -514,9 +560,10 @@ export function normalizeGraphData(data: EmailAnalysisResponse): NormalizedGraph
     });
   }
 
-  // Layer B: Correlated Email Relationships (Solid Edges)
+  // Layer B: Correlated Email Secondary Relationships (Solid Edges)
 
   // Secondary Branch 1: Diverted Reply-To Domain Node
+  const fromDomain = senderInfo.domain;
   const replyToDomain = data.security_analysis?.authentication_results?.reply_to_domain;
   if (replyToDomain && replyToDomain !== fromDomain) {
     const replyToId = `domain:replyto_${replyToDomain.toLowerCase()}`;
@@ -536,19 +583,19 @@ export function normalizeGraphData(data: EmailAnalysisResponse): NormalizedGraph
       evidence: ['Differs from RFC 5322 From domain'],
     });
 
-    edgesMap.set(`${rootEmailId}->${replyToId}:redirects_to`, {
-      id: `${rootEmailId}->${replyToId}:redirects_to`,
+    edgesMap.set(`${rootEmailId}->${replyToId}:replies_to`, {
+      id: `${rootEmailId}->${replyToId}:replies_to`,
       source: rootEmailId,
       target: replyToId,
-      relationship: 'redirects_to',
-      label: 'REDIRECTS REPLIES TO',
+      relationship: 'replies_to',
+      label: 'REPLIES TO',
       isObserved: true,
       confidence: 'high',
       evidence: ['Reply-To header redirection'],
     });
   }
 
-  // Secondary Branch 2: Extracted URL Payload Node (Cap at 1 key URL for node budget)
+  // Secondary Branch 2: Extracted URL Payload Node
   const extractedUrls = data.security_analysis?.url_analysis?.urls || [];
   if (extractedUrls.length > 0) {
     const targetUrlObj = extractedUrls[0];
@@ -595,12 +642,12 @@ export function normalizeGraphData(data: EmailAnalysisResponse): NormalizedGraph
       evidence: urlEvidence,
     });
 
-    edgesMap.set(`${rootEmailId}->${urlId}:contains_link`, {
-      id: `${rootEmailId}->${urlId}:contains_link`,
+    edgesMap.set(`${rootEmailId}->${urlId}:contains_url`, {
+      id: `${rootEmailId}->${urlId}:contains_url`,
       source: rootEmailId,
       target: urlId,
-      relationship: 'contains_link',
-      label: 'CONTAINS LINK',
+      relationship: 'contains_url',
+      label: 'CONTAINS URL',
       isObserved: true,
       confidence: 'high',
       evidence: ['Extracted message hyperlink payload'],
@@ -618,9 +665,93 @@ export function normalizeGraphData(data: EmailAnalysisResponse): NormalizedGraph
   };
 }
 
+export interface PathInterpretationDetails {
+  sourceIp: string | null;
+  reverseDns: string | null;
+  network: string | null;
+  location: string | null;
+  summaryParagraph: string;
+  disclaimer: string;
+  secondaryReplyTo: string | null;
+  secondaryUrl: string | null;
+  hasVerifiedInfrastructure: boolean;
+}
+
+/**
+ * Generates human-readable, evidence-based path interpretation and key details.
+ */
+export function generatePathInterpretation(data: EmailAnalysisResponse): PathInterpretationDetails {
+  const relayAddress = data.relay_analysis?.probable_source_infrastructure?.address || null;
+
+  let reverseDns: string | null = null;
+  if (relayAddress && data.relay_analysis?.relay_hops) {
+    for (const hop of data.relay_analysis.relay_hops) {
+      if (hop.extracted_ips?.some((ip) => ip.address === relayAddress) && hop.hostnames?.[0]) {
+        reverseDns = hop.hostnames[0];
+        break;
+      }
+    }
+  }
+
+  let network: string | null = null;
+  let location: string | null = null;
+
+  const obsList = data.threat_intelligence?.observations || [];
+  if (relayAddress && obsList.length > 0) {
+    for (const o of obsList) {
+      if (o.status === 'success' && o.data && (o.entity.toLowerCase() === relayAddress.toLowerCase() || o.entity_type === 'ip')) {
+        const d = o.data as Record<string, unknown>;
+        if (!network && (d.asn || d.as_number)) {
+          const asn = String(d.asn || d.as_number);
+          const isp = typeof d.isp === 'string' ? d.isp : (typeof d.organization === 'string' ? d.organization : undefined);
+          network = isp ? `${asn} (${isp})` : asn;
+        }
+        if (!location && (d.city || d.country || d.country_code)) {
+          const country = typeof d.country === 'string' ? d.country : undefined;
+          const code = typeof d.country_code === 'string' ? d.country_code : undefined;
+          const city = typeof d.city === 'string' ? d.city : undefined;
+          location = [city, country || code].filter(Boolean).join(', ');
+        }
+      }
+    }
+  }
+
+  const senderInfo = parseSenderInfo(data);
+  const fromDomain = senderInfo.domain;
+  const replyToDomain = data.security_analysis?.authentication_results?.reply_to_domain;
+  const secondaryReplyTo = (replyToDomain && replyToDomain !== fromDomain) ? replyToDomain : null;
+
+  const extractedUrls = data.security_analysis?.url_analysis?.urls || [];
+  const secondaryUrl = extractedUrls[0]?.url || null;
+
+  let summaryParagraph = '';
+  if (relayAddress) {
+    const hostStr = reverseDns ? `${reverseDns} (${relayAddress})` : relayAddress;
+    const netStr = network ? ` associated with ${network}` : '';
+    const locStr = location ? ` and has verified geolocation data for ${location}` : '';
+    summaryParagraph = `The email was received through ${hostStr}.${netStr}${locStr}. This represents observed email infrastructure and does not establish attacker identity or physical location.`;
+  } else {
+    summaryParagraph = `The available email headers did not provide enough verified public infrastructure evidence to establish a source path.`;
+  }
+
+  const disclaimer = `This identifies probable source infrastructure, not the attacker's physical location or identity.`;
+
+  return {
+    sourceIp: relayAddress,
+    reverseDns,
+    network,
+    location,
+    summaryParagraph,
+    disclaimer,
+    secondaryReplyTo,
+    secondaryUrl,
+    hasVerifiedInfrastructure: Boolean(relayAddress),
+  };
+}
+
 /**
  * Normalizes investigation stage path for top breadcrumb navigation.
- * Strict Provenance: Only displays relay & IP if observed in email relay analysis.
+ * Strict Provenance: Dynamically builds observed email path stages.
  */
 export function normalizeInvestigationPath(data: EmailAnalysisResponse): InvestigationPathStage[] {
   const path: InvestigationPathStage[] = [];
@@ -630,22 +761,22 @@ export function normalizeInvestigationPath(data: EmailAnalysisResponse): Investi
     id: 'path-email',
     category: 'EMAIL',
     label: 'EMAIL',
-    value: data.subject ? (data.subject.length > 25 ? data.subject.slice(0, 22) + '...' : data.subject) : 'Email Artifact',
+    value: data.subject ? (data.subject.length > 22 ? data.subject.slice(0, 20) + '...' : data.subject) : 'Email Artifact',
     status: 'available',
-    detail: data.from || 'RFC 5322 Message',
+    detail: 'Artifact',
   });
 
   // 2. Sender / Identity
-  const fromDomain = data.security_analysis?.authentication_results?.from_domain;
+  const senderInfo = parseSenderInfo(data);
   const isAuthFail = data.security_analysis?.authentication_results?.spf?.result === 'fail' || data.security_analysis?.authentication_results?.dmarc?.result === 'fail';
-  if (fromDomain) {
+  if (senderInfo.isAvailable) {
     path.push({
       id: 'path-sender',
       category: 'SENDER',
       label: 'SENDER',
-      value: fromDomain,
+      value: senderInfo.address || senderInfo.domain || senderInfo.displayName || 'Sender',
       status: isAuthFail ? 'suspicious' : 'available',
-      detail: isAuthFail ? 'Auth Failure' : 'Authenticated',
+      detail: isAuthFail ? 'Auth Fail' : 'Header Sender',
     });
   } else {
     path.push({
@@ -657,115 +788,76 @@ export function normalizeInvestigationPath(data: EmailAnalysisResponse): Investi
     });
   }
 
-  // 3. SMTP Relay
+  // 3. Observed Relay / Source Infrastructure
   const relayAddress = data.relay_analysis?.probable_source_infrastructure?.address;
   if (relayAddress) {
     path.push({
       id: 'path-relay',
       category: 'RELAY',
-      label: 'RELAY',
+      label: 'OBSERVED RELAY / SOURCE',
       value: relayAddress,
       status: 'available',
-      detail: 'Received Hop',
+      detail: 'Public Ingress',
     });
+
+    // 4. Network / ASN
+    let asnVal: string | undefined;
+    if (data.threat_intelligence?.observations) {
+      for (const o of data.threat_intelligence.observations) {
+        if (o.status === 'success' && o.data && (o.entity.toLowerCase() === relayAddress.toLowerCase() || o.entity_type === 'ip')) {
+          const asn = (o.data as Record<string, unknown>).asn || (o.data as Record<string, unknown>).as_number;
+          if (asn) {
+            asnVal = String(asn);
+            break;
+          }
+        }
+      }
+    }
+    if (asnVal) {
+      path.push({
+        id: 'path-network',
+        category: 'NETWORK',
+        label: 'NETWORK',
+        value: asnVal,
+        status: 'available',
+        detail: 'BGP Route',
+      });
+    }
+
+    // 5. Geolocation
+    let geoVal: string | undefined;
+    if (data.threat_intelligence?.observations) {
+      for (const o of data.threat_intelligence.observations) {
+        if (o.status === 'success' && o.data && (o.entity.toLowerCase() === relayAddress.toLowerCase() || o.entity_type === 'ip')) {
+          const d = o.data as Record<string, unknown>;
+          const country = typeof d.country === 'string' ? d.country : undefined;
+          const code = typeof d.country_code === 'string' ? d.country_code : undefined;
+          const city = typeof d.city === 'string' ? d.city : undefined;
+          if (country || code || city) {
+            geoVal = [city, country || code].filter(Boolean).join(', ');
+            break;
+          }
+        }
+      }
+    }
+    if (geoVal) {
+      path.push({
+        id: 'path-location',
+        category: 'GEOLOCATION',
+        label: 'VERIFIED GEOLOCATION',
+        value: geoVal,
+        status: 'available',
+        detail: 'GPS Telemetry',
+      });
+    }
   } else {
     path.push({
       id: 'path-relay',
       category: 'RELAY',
-      label: 'RELAY',
-      value: 'Unavailable',
+      label: 'NO VERIFIED SOURCE INFRASTRUCTURE',
+      value: 'Unestablished',
       status: 'unavailable',
-    });
-  }
-
-  // 4. Source IP
-  if (relayAddress) {
-    const matchingObs = data.threat_intelligence?.observations?.find(
-      (o) => o.entity_type === 'ip' && o.entity.toLowerCase() === relayAddress.toLowerCase()
-    );
-    const score = ((matchingObs?.data as Record<string, unknown>)?.abuse_confidence_score as number) || 0;
-    path.push({
-      id: 'path-ip',
-      category: 'SOURCE_IP',
-      label: 'SOURCE IP',
-      value: relayAddress,
-      status: score > 50 ? 'malicious' : 'available',
-      detail: score > 0 ? `Abuse ${score}%` : 'Public IP',
-    });
-  } else {
-    path.push({
-      id: 'path-ip',
-      category: 'SOURCE_IP',
-      label: 'SOURCE IP',
-      value: 'Unavailable',
-      status: 'unavailable',
-    });
-  }
-
-  // 5. Network / ASN (Only if associated with observed relayAddress)
-  let asnVal: string | undefined;
-  if (relayAddress && data.threat_intelligence?.observations) {
-    for (const o of data.threat_intelligence.observations) {
-      if (o.status === 'success' && o.data && (o.entity.toLowerCase() === relayAddress.toLowerCase() || o.entity_type === 'ip')) {
-        const asn = (o.data as Record<string, unknown>).asn || (o.data as Record<string, unknown>).as_number;
-        if (asn) {
-          asnVal = String(asn);
-          break;
-        }
-      }
-    }
-  }
-  if (asnVal) {
-    path.push({
-      id: 'path-network',
-      category: 'NETWORK',
-      label: 'NETWORK',
-      value: asnVal,
-      status: 'available',
-      detail: 'BGP Route',
-    });
-  } else {
-    path.push({
-      id: 'path-network',
-      category: 'NETWORK',
-      label: 'NETWORK',
-      value: 'Unavailable',
-      status: 'unavailable',
-    });
-  }
-
-  // 6. Geolocation (Only if associated with observed relayAddress)
-  let geoVal: string | undefined;
-  if (relayAddress && data.threat_intelligence?.observations) {
-    for (const o of data.threat_intelligence.observations) {
-      if (o.status === 'success' && o.data && (o.entity.toLowerCase() === relayAddress.toLowerCase() || o.entity_type === 'ip')) {
-        const d = o.data as Record<string, unknown>;
-        const country = typeof d.country === 'string' ? d.country : undefined;
-        const code = typeof d.country_code === 'string' ? d.country_code : undefined;
-        const city = typeof d.city === 'string' ? d.city : undefined;
-        if (country || code || city) {
-          geoVal = [city, country].filter(Boolean).join(', ') || code;
-          break;
-        }
-      }
-    }
-  }
-  if (geoVal) {
-    path.push({
-      id: 'path-location',
-      category: 'GEOLOCATION',
-      label: 'GEOLOCATION',
-      value: geoVal,
-      status: 'available',
-      detail: 'Verified GPS',
-    });
-  } else {
-    path.push({
-      id: 'path-location',
-      category: 'GEOLOCATION',
-      label: 'GEOLOCATION',
-      value: 'Unavailable',
-      status: 'unavailable',
+      detail: 'No Ingress Candidate',
     });
   }
 
@@ -1382,4 +1474,106 @@ export function normalizeTimelineEvents(data: EmailAnalysisResponse): Normalized
     relatedEntityId: event.relatedEntityId,
     hasLocation: event.hasLocation,
   }));
+}
+
+export interface CategoryResult {
+  primaryCategory: string;
+  relatedCategories: string[];
+}
+
+/**
+ * Derives the Primary Email Category and Related Categories from evidence.
+ * Supported Categories:
+ * - Business Email Compromise (BEC)
+ * - Phishing
+ * - Financial Fraud / Payment Diversion
+ * - Credential Theft
+ * - Malware Delivery
+ * - Impersonation / Spoofing
+ * - Social Engineering
+ * - Spam / Suspicious
+ * - Benign
+ * - Unknown / Requires Investigation
+ */
+export function deriveEmailCategory(data?: EmailAnalysisResponse | null): CategoryResult {
+  if (!data) {
+    return {
+      primaryCategory: 'Unknown / Requires Investigation',
+      relatedCategories: [],
+    };
+  }
+
+  const riskAss = data.risk_assessment;
+  const rawClass = (riskAss?.classification || data.ai_investigation?.classification || '').toLowerCase();
+  const score = riskAss?.score ?? 0;
+  const indicators = data.security_analysis?.indicators || [];
+  const factors = riskAss?.factors || [];
+  const contentSignals = data.security_analysis?.content_signals?.signals || [];
+  const auth = data.security_analysis?.authentication_results;
+
+  const allCodes = new Set<string>();
+  const allEvidenceText: string[] = [];
+
+  indicators.forEach((i) => {
+    allCodes.add(i.code.toUpperCase());
+    allEvidenceText.push(i.title.toLowerCase(), i.explanation.toLowerCase(), ...(i.evidence || []).map((e) => e.toLowerCase()));
+  });
+
+  factors.forEach((f) => {
+    allCodes.add(f.code.toUpperCase());
+    allEvidenceText.push(f.title.toLowerCase(), f.explanation.toLowerCase(), ...(f.evidence || []).map((e) => e.toLowerCase()));
+  });
+
+  contentSignals.forEach((s) => {
+    allCodes.add(s.code.toUpperCase());
+    allEvidenceText.push(s.category.toLowerCase(), s.explanation.toLowerCase(), ...(s.evidence || []).map((e) => e.toLowerCase()));
+  });
+
+  const fullText = `${data.subject || ''} ${data.body_text || ''} ${allEvidenceText.join(' ')}`.toLowerCase();
+
+  const isUrgent = allCodes.has('URGENT_ACTION') || fullText.includes('urgent') || fullText.includes('immediate action') || fullText.includes('deadline');
+  const isPayment = allCodes.has('PAYMENT_REQUEST') || allCodes.has('FINANCIAL_KEYWORD_DENSITY') || fullText.includes('payment') || fullText.includes('wire transfer') || fullText.includes('invoice') || fullText.includes('bank account');
+  const isReplyToMismatch = auth?.reply_to_domain && auth?.from_domain && auth.reply_to_domain.toLowerCase() !== auth.from_domain.toLowerCase();
+  const isAuthFail = auth?.spf?.result === 'fail' || auth?.dkim?.result === 'fail' || auth?.dmarc?.result === 'fail';
+  const isSpoof = allCodes.has('DISPLAY_NAME_SPOOF') || allCodes.has('BRAND_IMPERSONATION') || isReplyToMismatch || isAuthFail;
+
+  const isCredentialHarvest = allCodes.has('DIRECT_CREDENTIAL_LURE') || allCodes.has('CREDENTIAL_HARVESTER') || fullText.includes('onedrive') || fullText.includes('sharepoint') || fullText.includes('login') || fullText.includes('password');
+  const isMalware = allCodes.has('ATTACHMENT_MALWARE') || allCodes.has('EXECUTABLE_ATTACHMENT') || rawClass === 'malware';
+
+  let primaryCategory = 'Unknown / Requires Investigation';
+  const relatedSet = new Set<string>();
+
+  if (rawClass === 'benign' || (score < 20 && indicators.length === 0 && !isAuthFail)) {
+    primaryCategory = 'Benign';
+  } else if (rawClass === 'bec' || (isPayment && (isUrgent || isReplyToMismatch || isAuthFail))) {
+    primaryCategory = 'Business Email Compromise (BEC)';
+    if (isPayment) relatedSet.add('Financial Fraud / Payment Diversion');
+    if (isSpoof) relatedSet.add('Impersonation / Spoofing');
+    if (isUrgent) relatedSet.add('Social Engineering');
+  } else if (isCredentialHarvest || rawClass === 'phishing') {
+    if (isCredentialHarvest) {
+      primaryCategory = 'Credential Theft';
+      relatedSet.add('Phishing');
+    } else {
+      primaryCategory = 'Phishing';
+    }
+    if (isSpoof) relatedSet.add('Impersonation / Spoofing');
+    if (isUrgent) relatedSet.add('Social Engineering');
+  } else if (isMalware) {
+    primaryCategory = 'Malware Delivery';
+    if (isUrgent) relatedSet.add('Social Engineering');
+  } else if (isSpoof && score >= 50) {
+    primaryCategory = 'Impersonation / Spoofing';
+    if (isUrgent) relatedSet.add('Social Engineering');
+  } else if (rawClass === 'suspicious' || rawClass === 'spam' || score >= 30) {
+    primaryCategory = 'Spam / Suspicious';
+    if (isUrgent) relatedSet.add('Social Engineering');
+  }
+
+  relatedSet.delete(primaryCategory);
+
+  return {
+    primaryCategory,
+    relatedCategories: Array.from(relatedSet),
+  };
 }

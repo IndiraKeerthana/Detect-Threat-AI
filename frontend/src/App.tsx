@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ThemeProvider } from './context/ThemeContext';
 import { AppShell } from './components/layout/AppShell';
 import type { NavTab } from './components/layout/Sidebar';
 import { Home } from './pages/Home';
@@ -10,7 +11,7 @@ import { caseStore, type CaseRecord, type CaseStatus } from './services/caseStor
 import { FolderLock, ArrowLeft } from 'lucide-react';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
-export const App: React.FC = () => {
+export const AppContent: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<NavTab>('cases');
   const [activeCase, setActiveCase] = useState<CaseRecord>(caseStore.getActiveCase());
   const [casesList, setCasesList] = useState<CaseRecord[]>(caseStore.getCases());
@@ -24,6 +25,37 @@ export const App: React.FC = () => {
       setActiveCase(caseStore.getActiveCase());
     });
     return unsubscribe;
+  }, []);
+
+  // Global Keyboard Shortcuts (Ctrl+K focus search, U for Upload, C for Cases)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Do not trigger if typing inside input / textarea
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        if (e.key === 'Escape') {
+          target.blur();
+        }
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('global-search-input');
+        if (searchInput) {
+          searchInput.focus();
+        }
+      } else if (e.key.toLowerCase() === 'u' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        setCurrentTab('home');
+      } else if (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        setCurrentTab('cases');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Check health on load
@@ -70,7 +102,7 @@ export const App: React.FC = () => {
   const getContextTitle = (): string => {
     switch (currentTab) {
       case 'home':
-        return 'OVERVIEW & INTAKE CONSOLE';
+        return 'NEW INVESTIGATION • EMAIL INTAKE CONSOLE';
       case 'investigation':
         return activeCase
           ? `ACTIVE INVESTIGATION • ${activeCase.id}`
@@ -78,9 +110,9 @@ export const App: React.FC = () => {
       case 'cases':
         return 'CASE MANAGEMENT & TRIAGE QUEUE';
       case 'report':
-        return activeCase
-          ? `FORENSIC INTELLIGENCE DOSSIER • ${activeCase.id}`
-          : 'FORENSIC INTELLIGENCE REPORT';
+        return 'FORENSIC REPORT LIBRARY';
+      case 'settings':
+        return 'SYSTEM SETTINGS & CONFIGURATION';
       default:
         return 'FORENSIC WORKSTATION';
     }
@@ -117,24 +149,25 @@ export const App: React.FC = () => {
             />
           ) : (
             /* Operational Error State: Case Record Not Found */
-            <div className="surface-card p-12 text-center max-w-lg mx-auto space-y-4 border border-[#2a3242] rounded-lg">
-              <div className="w-12 h-12 rounded bg-[#171b23] border border-[#2a3242] mx-auto flex items-center justify-center text-[#8b5cf6]">
-                <FolderLock className="w-6 h-6 text-[#ef4444]" />
+            <div className="surface-card p-12 text-center max-w-lg mx-auto space-y-4 border border-[var(--border-subtle)] rounded-lg font-mono text-xs">
+              <div className="w-12 h-12 rounded bg-[var(--surface-elevated)] border border-[var(--border-subtle)] mx-auto flex items-center justify-center text-[var(--severity-critical)]">
+                <FolderLock className="w-6 h-6 text-[var(--severity-critical)]" />
               </div>
               <div className="space-y-1">
-                <h2 className="text-sm font-bold font-mono tracking-wider text-[#f1f5f9] uppercase">
+                <h2 className="text-sm font-bold tracking-wider text-[var(--text)] uppercase">
                   CASE RECORD NOT FOUND
                 </h2>
-                <p className="text-xs text-[#94a3b8] font-sans">
+                <p className="text-xs text-[var(--text-muted)] font-sans">
                   The requested case identifier does not exist or has been purged from the session cache.
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setCurrentTab('cases')}
-                className="px-4 py-2 rounded bg-[#171b23] hover:bg-[#1e232e] text-[#f1f5f9] border border-[#2a3242] text-xs font-mono inline-flex items-center gap-1.5 transition-colors"
+                className="px-4 py-2 rounded bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text)] border border-[var(--border)] text-xs font-mono inline-flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                RETURN TO CASES QUEUE
+                <span>RETURN TO CASES QUEUE</span>
               </button>
             </div>
           )}
@@ -149,28 +182,50 @@ export const App: React.FC = () => {
 
       {currentTab === 'report' && (
         <ErrorBoundary>
-          {activeCase ? (
-            <Report
-              data={activeCase.investigationData}
-              caseRecord={activeCase}
-              onNavigateHome={() => setCurrentTab('investigation')}
-            />
-          ) : (
-            <div className="surface-card p-12 text-center max-w-lg mx-auto space-y-4 border border-[#2a3242] rounded-lg">
-              <h2 className="text-sm font-bold font-mono text-[#f1f5f9] uppercase">
-                NO ACTIVE DOSSIER SPECIFIED
-              </h2>
+          <Report
+            onSelectCase={handleSelectCase}
+            onNavigateNewInvestigation={() => setCurrentTab('home')}
+          />
+        </ErrorBoundary>
+      )}
+
+      {currentTab === 'settings' && (
+        <ErrorBoundary>
+          <div className="surface-card p-8 text-center border border-[var(--border-subtle)] rounded-lg space-y-4 max-w-lg mx-auto my-8 font-mono text-xs">
+            <h2 className="text-sm font-bold text-[var(--text)] uppercase tracking-wider">
+              SETTINGS & CONFIGURATION REGISTRY
+            </h2>
+            <p className="text-xs text-[var(--text-muted)] font-sans leading-relaxed">
+              Forensic analysis models and API configurations are managed via environment variables.
+            </p>
+            <div className="flex items-center justify-center gap-3 pt-2">
               <button
-                onClick={() => setCurrentTab('cases')}
-                className="px-4 py-2 rounded bg-[#171b23] hover:bg-[#1e232e] text-[#f1f5f9] border border-[#2a3242] text-xs font-mono inline-flex items-center gap-1.5"
+                type="button"
+                onClick={() => setCurrentTab('home')}
+                className="px-3.5 py-2 rounded bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text)] font-semibold cursor-pointer"
               >
-                SELECT A CASE
+                START NEW INVESTIGATION
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentTab('cases')}
+                className="px-3.5 py-2 rounded bg-[var(--surface)] hover:bg-[var(--surface-elevated)] border border-[var(--border-subtle)] text-[var(--text-muted)] cursor-pointer"
+              >
+                VIEW CASES QUEUE
               </button>
             </div>
-          )}
+          </div>
         </ErrorBoundary>
       )}
     </AppShell>
+  );
+};
+
+export const App: React.FC = () => {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 };
 
