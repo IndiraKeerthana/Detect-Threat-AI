@@ -148,7 +148,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </span>
             <span className="flex items-center gap-1 text-[10px] font-mono font-bold text-[var(--state-pass)]">
               <span className={`w-1.5 h-1.5 rounded-full ${apiOnline ? 'bg-[var(--state-pass)]' : 'bg-[var(--state-fail)]'}`} />
-              {apiOnline ? ':8001' : 'OFFLINE'}
+              {apiOnline ? 'ONLINE' : 'OFFLINE'}
             </span>
           </div>
 

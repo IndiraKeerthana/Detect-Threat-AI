@@ -188,7 +188,7 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
           } else {
             setErrorTitle('ANALYSIS SERVICE UNAVAILABLE');
             setErrorMessage(
-              'Forensic backend at :8001 is offline or unreachable. Ensure the FastAPI server is running or use the sample file below.'
+              'The forensic analysis backend is unreachable. Please verify the backend service is running and try again.'
             );
           }
         } else {
