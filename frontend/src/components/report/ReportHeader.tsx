@@ -1,8 +1,9 @@
-import React from 'react';
-import { Printer, Download, Shield } from 'lucide-react';
+import React, { useState } from 'react';
+import { Printer, Download, Shield, Loader2 } from 'lucide-react';
 import type { EmailAnalysisResponse } from '../../types/investigation';
 import type { CaseRecord } from '../../services/caseStore';
 import { formatISTTimestamp } from '../../utils/dateFormatter';
+import { downloadForensicReportPdf } from '../../services/api';
 
 interface ReportHeaderProps {
   data: EmailAnalysisResponse;
@@ -10,6 +11,7 @@ interface ReportHeaderProps {
 }
 
 export const ReportHeader: React.FC<ReportHeaderProps> = ({ data, caseRecord }) => {
+  const [downloading, setDownloading] = useState(false);
   const activeId = caseRecord?.id || 'CASE-UNASSIGNED';
   const riskLevel = caseRecord?.severity || data.risk_assessment?.level || 'low';
   const score = caseRecord?.riskScore ?? (data.risk_assessment?.score ?? 0);
@@ -17,6 +19,25 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({ data, caseRecord }) 
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const blob = await downloadForensicReportPdf(data, activeId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Forensic_Investigation_Report_${activeId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      window.print();
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -46,20 +67,20 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({ data, caseRecord }) 
         </div>
 
         <div className="flex items-center space-x-2.5">
-          {/* Disabled / Future Action: EXPORT PDF */}
-          <div className="relative group">
-            <button
-              disabled
-              className="px-3 py-1.5 bg-[#12151b] text-[#64748b] border border-[#1e2430] text-xs font-mono rounded flex items-center gap-1.5 cursor-not-allowed opacity-75"
-              title="PDF export dossier pipeline scheduled for Step 8E"
-            >
-              <Download className="w-3.5 h-3.5 text-[#475569]" />
-              <span>EXPORT PDF</span>
-              <span className="text-[9px] px-1 py-0.2 rounded bg-[#171b23] border border-[#2a3242] text-[#8b5cf6]">
-                COMING IN 8E
-              </span>
-            </button>
-          </div>
+          {/* Active Action: DOWNLOAD FORENSIC REPORT PDF */}
+          <button
+            onClick={handleDownload}
+            disabled={downloading}
+            className="px-3.5 py-1.5 bg-[#8b5cf6] hover:bg-[#7c3aed] text-white border border-[#9d7aea] text-xs font-mono font-medium rounded flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-50"
+            title="Download complete PDF forensic investigation report"
+          >
+            {downloading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Download className="w-3.5 h-3.5" />
+            )}
+            <span>{downloading ? 'GENERATING PDF...' : 'DOWNLOAD FORENSIC REPORT'}</span>
+          </button>
 
           {/* Printable Action */}
           <button
@@ -99,3 +120,4 @@ export const ReportHeader: React.FC<ReportHeaderProps> = ({ data, caseRecord }) 
     </div>
   );
 };
+

@@ -9,6 +9,7 @@
 
 import type { EmailAnalysisResponse } from '../types/investigation.ts';
 import { MOCK_INVESTIGATION_DATA } from '../data/mockInvestigation.ts';
+import { fetchCases, updateCaseStatusApi } from './api.ts';
 
 export type CaseStatus = 'OPEN' | 'IN REVIEW' | 'CONTAINED' | 'CLOSED';
 export type CaseSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
@@ -241,15 +242,40 @@ class CaseStore {
         if (Array.isArray(parsed) && parsed.length > 0) {
           this.cases = parsed;
           this.activeCaseId = this.cases[0].id;
-          return;
         }
       }
     } catch {
       // Fallback to seeds if storage unavailable or corrupt
     }
-    this.cases = [...SEED_CASES];
-    this.activeCaseId = this.cases[0].id;
+    if (this.cases.length === 0) {
+      this.cases = [...SEED_CASES];
+      this.activeCaseId = this.cases[0].id;
+    }
     this.persist();
+    this.syncWithBackend();
+  }
+
+  public async syncWithBackend() {
+    try {
+      const backendCases = await fetchCases();
+      if (Array.isArray(backendCases) && backendCases.length > 0) {
+        const mergedMap = new Map<string, CaseRecord>();
+        for (const c of this.cases) {
+          mergedMap.set(c.id.toLowerCase(), c);
+        }
+        for (const bc of backendCases) {
+          mergedMap.set(bc.id.toLowerCase(), bc);
+        }
+        this.cases = Array.from(mergedMap.values());
+        if (this.cases.length > 0 && !this.getCaseById(this.activeCaseId)) {
+          this.activeCaseId = this.cases[0].id;
+        }
+        this.persist();
+        this.notify();
+      }
+    } catch {
+      // Ignore network errors in offline mode
+    }
   }
 
   private persist() {
@@ -259,6 +285,7 @@ class CaseStore {
       // Quota exceeded or in memory only
     }
   }
+
 
   private notify() {
     this.listeners.forEach((listener) => {
@@ -316,6 +343,7 @@ class CaseStore {
       target.updatedAt = `${new Date().toISOString().replace('T', ' ').slice(0, 19)} UTC`;
       this.persist();
       this.notify();
+      updateCaseStatusApi(id, status).catch(() => {});
       return true;
     }
     return false;

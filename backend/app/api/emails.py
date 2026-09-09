@@ -1,6 +1,6 @@
 import asyncio
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, HTTPException, Response, UploadFile, status
 
 from app.config import get_settings
 from app.schemas.email import EmailAnalysisResponse
@@ -10,6 +10,11 @@ from app.services.security_analysis import analyze_security
 from app.services.threat_intelligence import analyze_threat_intelligence
 from app.services.investigation import analyze_investigation
 from app.services.ai_agent.agent import run_ai_investigation
+from app.services.pdf_report_generator import generate_forensic_pdf
+
+from app.services.case_storage import save_case
+import random
+from datetime import datetime, timezone
 
 router = APIRouter()
 
@@ -78,7 +83,7 @@ async def analyze_email(file: UploadFile = File(...)) -> EmailAnalysisResponse:
     except Exception:
         # Step 7 is additive and must never make the established analysis fail.
         ai_investigation = None
-    return parsed_email.model_copy(
+    response_obj = parsed_email.model_copy(
         update={
             "relay_analysis": relay_analysis,
             "security_analysis": security_analysis,
@@ -94,4 +99,56 @@ async def analyze_email(file: UploadFile = File(...)) -> EmailAnalysisResponse:
             "investigation": investigation,
             "ai_investigation": ai_investigation,
         }
+    )
+
+    try:
+        random_suffix = random.randint(1000, 9999)
+        case_id = f"CASE-2026-{random_suffix}"
+        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+        raw_sev = (investigation.risk_assessment.level or "high").upper()
+        severity = "LOW"
+        if "CRIT" in raw_sev:
+            severity = "CRITICAL"
+        elif "HIGH" in raw_sev:
+            severity = "HIGH"
+        elif "MED" in raw_sev:
+            severity = "MEDIUM"
+
+        subject = response_obj.subject or file.filename or "Suspicious Email Ingestion"
+        case_record = {
+            "id": case_id,
+            "title": f"Forensic Ingestion — {subject}",
+            "subject": subject,
+            "sender": response_obj.from_ or "Unknown Sender",
+            "recipient": response_obj.to or "Undisclosed Recipients",
+            "severity": severity,
+            "classification": investigation.risk_assessment.classification or "unclassified",
+            "riskScore": investigation.risk_assessment.score,
+            "confidence": investigation.risk_assessment.confidence.level,
+            "status": "OPEN",
+            "createdAt": now_str,
+            "updatedAt": now_str,
+            "sourceIp": (relay_analysis.probable_source_infrastructure.address or "Unavailable") if relay_analysis and relay_analysis.probable_source_infrastructure else "Unavailable",
+            "investigationData": response_obj.model_dump(by_alias=True),
+        }
+        save_case(case_record)
+    except Exception:
+        pass
+
+    return response_obj
+
+
+
+@router.post("/emails/report/pdf")
+async def generate_report_pdf(payload: EmailAnalysisResponse, case_id: str = "CASE-UNASSIGNED") -> Response:
+    """Generate a downloadable PDF forensic report from an existing EmailAnalysisResponse payload."""
+    data_dict = payload.model_dump(by_alias=True)
+    pdf_bytes = generate_forensic_pdf(data_dict, case_id=case_id)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="Forensic_Investigation_Report_{case_id}.pdf"'
+        },
     )

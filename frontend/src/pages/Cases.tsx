@@ -10,10 +10,14 @@ import {
   ShieldAlert,
   Inbox,
   X,
+  Download,
+  Loader2,
 } from 'lucide-react';
 import { caseStore, type CaseRecord, type CaseStatus, type CaseSeverity } from '../services/caseStore';
 import { NewInvestigationModal } from '../components/cases/NewInvestigationModal';
 import { formatISTTimestamp } from '../utils/dateFormatter';
+import { downloadForensicReportPdf } from '../services/api';
+
 
 interface CasesProps {
   onSelectCase: (caseRecord: CaseRecord) => void;
@@ -29,6 +33,27 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<SortOption>('activity_desc');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownloadCaseReport = async (caseRecord: CaseRecord) => {
+    setDownloadingId(caseRecord.id);
+    try {
+      const blob = await downloadForensicReportPdf(caseRecord.investigationData, caseRecord.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Forensic_Investigation_Report_${caseRecord.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      window.print();
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
 
   // Subscribe to caseStore changes
   useEffect(() => {
@@ -374,17 +399,37 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
 
                       {/* Action */}
                       <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSelectCase(c);
-                          }}
-                          className="px-2.5 py-1 rounded bg-[#171b23] group-hover:bg-[#8b5cf6] text-[#94a3b8] group-hover:text-white border border-[#2a3242] group-hover:border-[#8b5cf6] text-[11px] font-mono transition-colors inline-flex items-center gap-1"
-                        >
-                          Examine
-                          <ArrowUpRight className="w-3 h-3" />
-                        </button>
+                        <div className="flex items-center justify-end space-x-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownloadCaseReport(c);
+                            }}
+                            disabled={downloadingId === c.id}
+                            className="px-2.5 py-1 rounded bg-[#8b5cf6]/20 hover:bg-[#8b5cf6] text-[#c4b5fd] hover:text-white border border-[#8b5cf6]/40 text-[11px] font-mono transition-colors inline-flex items-center gap-1.5 disabled:opacity-50"
+                            title="Download PDF report for this case"
+                          >
+                            {downloadingId === c.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Download className="w-3 h-3" />
+                            )}
+                            <span>{downloadingId === c.id ? 'PDF...' : 'REPORT'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectCase(c);
+                            }}
+                            className="px-2.5 py-1 rounded bg-[#171b23] group-hover:bg-[#1e232e] text-[#94a3b8] group-hover:text-[#f1f5f9] border border-[#2a3242] text-[11px] font-mono transition-colors inline-flex items-center gap-1"
+                          >
+                            Examine
+                            <ArrowUpRight className="w-3 h-3" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -404,14 +449,33 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
                     <span className="font-mono text-xs font-semibold text-[#06b6d4]">
                       {c.id}
                     </span>
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase border ${getStatusBadge(
-                        c.status
-                      )}`}
-                    >
-                      {c.status}
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownloadCaseReport(c);
+                        }}
+                        disabled={downloadingId === c.id}
+                        className="px-2 py-0.5 rounded bg-[#8b5cf6]/20 hover:bg-[#8b5cf6] text-[#c4b5fd] hover:text-white border border-[#8b5cf6]/40 text-[10px] font-mono transition-colors inline-flex items-center gap-1"
+                      >
+                        {downloadingId === c.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Download className="w-3 h-3" />
+                        )}
+                        <span>PDF</span>
+                      </button>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase border ${getStatusBadge(
+                          c.status
+                        )}`}
+                      >
+                        {c.status}
+                      </span>
+                    </div>
                   </div>
+
 
                   <div className="font-sans text-xs font-medium text-[#f1f5f9] line-clamp-2">
                     {c.subject}

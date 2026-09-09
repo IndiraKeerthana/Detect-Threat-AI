@@ -122,9 +122,18 @@ export const Report: React.FC<ReportProps> = ({ data, caseRecord, onNavigateHome
       {/* SECTION 02: Threat Assessment */}
       <ReportSection
         index="02"
-        title="Threat Assessment & Quantitative Scoring"
-        subtitle="Deterministic multi-factor risk assessment and categorization"
+        title="Why Was This Email Flagged? Threat Assessment"
+        subtitle="Deterministic multi-factor risk assessment, scoring, and primary verdict rationale"
       >
+        <div className="bg-[#12151b] border border-[#1e2430] p-3.5 rounded space-y-1.5 mb-4 font-sans text-xs">
+          <span className="font-mono text-[10px] text-[#06b6d4] uppercase block tracking-wider font-bold">
+            VERDICT RATIONALE • WHY FLAGGED
+          </span>
+          <p className="text-[#f1f5f9] leading-relaxed">
+            {data.risk_assessment?.rationale || summary?.summary || 'Email analyzed using deterministic and AI forensic engines.'}
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-mono">
           <div className="bg-[#0f1217] p-3 rounded border border-[#1e2430]">
             <span className="text-[#64748b] text-[10px] block">TOTAL THREAT SCORE</span>
@@ -149,13 +158,16 @@ export const Report: React.FC<ReportProps> = ({ data, caseRecord, onNavigateHome
         {data.risk_assessment?.factors && data.risk_assessment.factors.length > 0 && (
           <div className="mt-4 space-y-2">
             <span className="text-[11px] font-mono text-[#64748b] uppercase block">
-              Contributing Risk Factors
+              Contributing Risk Factors &amp; Impact
             </span>
             <div className="space-y-1.5 text-xs font-mono">
               {data.risk_assessment.factors.map((f) => (
-                <div key={f.code} className="bg-[#12151b] border border-[#1e2430] p-2.5 rounded flex justify-between">
-                  <span className="text-[#f1f5f9]">{f.title}</span>
-                  <span className="text-[#ef4444] font-bold">+{f.contribution} pts</span>
+                <div key={f.code} className="bg-[#12151b] border border-[#1e2430] p-2.5 rounded flex flex-col sm:flex-row justify-between gap-1">
+                  <div>
+                    <span className="text-[#f1f5f9] font-bold block">{f.title}</span>
+                    <span className="text-[11px] text-[#94a3b8] font-sans block">{f.explanation}</span>
+                  </div>
+                  <span className="text-[#ef4444] font-bold shrink-0">+{f.contribution} pts</span>
                 </div>
               ))}
             </div>

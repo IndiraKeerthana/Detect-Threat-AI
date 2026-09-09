@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    database_url: str | None = Field(default=None, validation_alias="DATABASE_URL")
     abuseipdb_api_key: str | None = Field(default=None, validation_alias="ABUSEIPDB_API_KEY")
     virustotal_api_key: str | None = Field(default=None, validation_alias="VIRUSTOTAL_API_KEY")
     ip_geolocation_api_key: str | None = Field(

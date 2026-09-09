@@ -7,10 +7,13 @@ import {
   Fingerprint,
   FileText,
   ChevronDown,
+  Download,
+  Loader2,
 } from 'lucide-react';
 import type { EmailAnalysisResponse } from '../../types/investigation';
 import type { CaseRecord, CaseStatus } from '../../services/caseStore';
 import { formatISTTimestamp } from '../../utils/dateFormatter';
+import { downloadForensicReportPdf } from '../../services/api';
 
 interface InvestigationHeaderProps {
   data: EmailAnalysisResponse;
@@ -31,6 +34,7 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const activeId = caseRecord?.id || caseId;
   const currentStatus: CaseStatus = caseRecord?.status || 'OPEN';
@@ -48,6 +52,25 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
       navigator.clipboard.writeText(data.message_id);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
+    }
+  };
+
+  const handleDownloadReport = async () => {
+    setDownloading(true);
+    try {
+      const blob = await downloadForensicReportPdf(data, activeId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Forensic_Investigation_Report_${activeId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      window.print();
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -152,6 +175,22 @@ export const InvestigationHeader: React.FC<InvestigationHeaderProps> = ({
               </div>
             )}
           </div>
+
+          {/* DOWNLOAD FORENSIC REPORT PDF ACTION */}
+          <button
+            type="button"
+            onClick={handleDownloadReport}
+            disabled={downloading}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-[#8b5cf6] hover:bg-[#7c3aed] text-white border border-[#9d7aea] text-xs font-mono font-medium transition-colors shadow-sm disabled:opacity-50"
+            title="Download complete PDF forensic investigation report"
+          >
+            {downloading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Download className="w-3.5 h-3.5" />
+            )}
+            <span>{downloading ? 'GENERATING PDF...' : 'DOWNLOAD REPORT'}</span>
+          </button>
 
           {/* VIEW FORENSIC REPORT ACTION */}
           {onViewReport && (

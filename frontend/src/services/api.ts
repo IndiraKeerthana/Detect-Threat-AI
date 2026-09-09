@@ -175,3 +175,82 @@ export async function checkBackendHealth(): Promise<{ status: string; healthy: b
     return { status: 'offline', healthy: false };
   }
 }
+
+/**
+ * Request downloadable PDF forensic report from backend.
+ * Returns PDF Blob for client download.
+ */
+export async function downloadForensicReportPdf(
+  data: EmailAnalysisResponse,
+  caseId: string = 'CASE-UNASSIGNED'
+): Promise<Blob> {
+  const endpoint = `${API_BASE_URL}/api/emails/report/pdf?case_id=${encodeURIComponent(caseId)}`;
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new ApiError(`Failed to generate PDF report (HTTP ${response.status})`, response.status);
+  }
+
+  return await response.blob();
+}
+
+/**
+ * Fetch all completed cases from backend persistence.
+ */
+export async function fetchCases(params?: { search?: string; verdict?: string; status?: string }): Promise<any[]> {
+  const query = new URLSearchParams();
+  if (params?.search) query.append('search', params.search);
+  if (params?.verdict) query.append('verdict', params.verdict);
+  if (params?.status) query.append('status', params.status);
+
+  const endpoint = `${API_BASE_URL}/api/cases?${query.toString()}`;
+  try {
+    const res = await fetch(endpoint, { method: 'GET' });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {
+    // Ignore network error in offline mode
+  }
+  return [];
+}
+
+/**
+ * Fetch single completed case by ID from backend.
+ */
+export async function fetchCaseById(caseId: string): Promise<any | null> {
+  const endpoint = `${API_BASE_URL}/api/cases/${encodeURIComponent(caseId)}`;
+  try {
+    const res = await fetch(endpoint, { method: 'GET' });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {
+    // Ignore network error in offline mode
+  }
+  return null;
+}
+
+/**
+ * Update case status in backend storage.
+ */
+export async function updateCaseStatusApi(caseId: string, status: string): Promise<boolean> {
+  const endpoint = `${API_BASE_URL}/api/cases/${encodeURIComponent(caseId)}/status`;
+  try {
+    const res = await fetch(endpoint, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
