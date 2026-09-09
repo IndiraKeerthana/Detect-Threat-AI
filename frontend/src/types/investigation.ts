@@ -394,3 +394,27 @@ export interface CaseItem {
   sourceIp: string;
   aiAttributionStatus: string;
 }
+
+// --- Campaign Grouping & Multi-Case Attack Clustering ---
+
+export interface SharedIndicator {
+  type: 'ip' | 'domain' | 'url';
+  value: string;
+  label: string;
+}
+
+export interface CampaignCluster {
+  id: string;
+  title: string;
+  caseCount: number;
+  highestSeverity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  highestRiskScore: number;
+  cases: any[];
+  sharedIndicators: SharedIndicator[];
+  reasons: string[];
+  dateRange: {
+    earliest: string;
+    latest: string;
+  };
+  attributionCaveat: string;
+}

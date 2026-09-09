@@ -14,6 +14,8 @@ import {
   normalizeTimelineEvents,
   parseValidTimestamp,
   extractHopTimestamp,
+  normalizeInvestigationPath,
+  generateWhyThisMatters,
 } from './investigationAdapter.ts';
 import { caseStore } from './caseStore.ts';
 import type { EmailAnalysisResponse } from '../types/investigation.ts';
@@ -118,21 +120,20 @@ assert(!case1TestNet, 'Violation: Found fabricated TEST-NET-2 node');
 const case1USNode = case1Result.nodes.find((n) => n.label.includes('United States') || n.id === 'location:us');
 assert(!case1USNode, 'Violation: Found fabricated United States geolocation node');
 
-// Assert NO ASN nodes at all
-const case1AnyAsn = case1Result.nodes.filter((n) => n.type === 'asn');
-assertStrictEqual(case1AnyAsn.length, 0, `Violation: Expected 0 ASN nodes, found ${case1AnyAsn.length}`);
+// Assert NO real ASN nodes at all
+const case1RealAsn = case1Result.nodes.filter((n) => n.type === 'asn' && n.status !== 'unavailable');
+assertStrictEqual(case1RealAsn.length, 0, `Violation: Expected 0 real ASN nodes, found ${case1RealAsn.length}`);
 
-// Assert NO Geolocation nodes at all
-const case1AnyGeo = case1Result.nodes.filter((n) => n.type === 'location');
-assertStrictEqual(case1AnyGeo.length, 0, `Violation: Expected 0 Location nodes, found ${case1AnyGeo.length}`);
+// Assert NO real Geolocation nodes at all
+const case1RealGeo = case1Result.nodes.filter((n) => n.type === 'location' && n.status !== 'unavailable');
+assertStrictEqual(case1RealGeo.length, 0, `Violation: Expected 0 real Location nodes, found ${case1RealGeo.length}`);
 
-// Assert NO synthetic ASN edge
-const case1AsnEdge = case1Result.edges.find((e) => e.relationship === 'announced_by');
-assert(!case1AsnEdge, 'Violation: Found synthetic announced_by edge');
+// Assert no fake unavailable placeholder nodes exist when real IP exists
+const case1UnavailAsn = case1Result.nodes.find((n) => n.id === 'asn:unavailable');
+assert(case1UnavailAsn === undefined, 'Expected NO unavailable ASN placeholder node when real IP exists');
 
-// Assert NO synthetic Geolocation edge
-const case1GeoEdge = case1Result.edges.find((e) => e.relationship === 'located_in');
-assert(!case1GeoEdge, 'Violation: Found synthetic located_in edge');
+const case1UnavailGeo = case1Result.nodes.find((n) => n.id === 'location:unavailable');
+assert(case1UnavailGeo === undefined, 'Expected NO unavailable Location placeholder node when real IP exists');
 
 console.log('✓ GRAPH CASE 1 Passed: IP exists with 0 fabricated ASN or Geolocation entities/edges.\n');
 
@@ -175,8 +176,8 @@ const case2AsnEdge = case2Result.edges.find(
 );
 assert(case2AsnEdge !== undefined, 'Expected announced_by edge from IP to verified ASN node');
 
-const case2AnyGeo = case2Result.nodes.filter((n) => n.type === 'location');
-assertStrictEqual(case2AnyGeo.length, 0, 'Expected NO geolocation nodes when none provided');
+const case2AnyGeo = case2Result.nodes.filter((n) => n.type === 'location' && n.status !== 'unavailable');
+assertStrictEqual(case2AnyGeo.length, 0, 'Expected NO real geolocation nodes when none provided');
 
 console.log('✓ GRAPH CASE 2 Passed: Verified ASN created and linked; no geolocation invented.\n');
 
@@ -211,11 +212,11 @@ const case3Input = {
 
 const case3Result = normalizeGraphData(case3Input);
 
-const case3GeoNode = case3Result.nodes.find((n) => n.type === 'location');
+const case3GeoNode = case3Result.nodes.find((n) => n.type === 'location' && n.status !== 'unavailable');
 assert(case3GeoNode !== undefined, 'Expected geolocation node to exist');
 assertStrictEqual(case3GeoNode.id, 'location:de');
-assertStrictEqual(case3GeoNode.primaryValue, 'Germany');
-assertStrictEqual(case3GeoNode.label, 'Frankfurt, Germany [DE]');
+assertStrictEqual(case3GeoNode.primaryValue, 'Frankfurt, Germany');
+assertStrictEqual(case3GeoNode.label, 'Frankfurt, Germany');
 assertStrictEqual(case3GeoNode.properties.country, 'Germany');
 assertStrictEqual(case3GeoNode.properties.country_code, 'DE');
 assertStrictEqual(case3GeoNode.properties.city, 'Frankfurt');
@@ -227,8 +228,8 @@ const case3GeoEdge = case3Result.edges.find(
 );
 assert(case3GeoEdge !== undefined, 'Expected located_in edge from IP to verified Geolocation node');
 
-const case3AnyAsn = case3Result.nodes.filter((n) => n.type === 'asn');
-assertStrictEqual(case3AnyAsn.length, 0, 'Expected NO ASN nodes when none provided');
+const case3AnyAsn = case3Result.nodes.filter((n) => n.type === 'asn' && n.status !== 'unavailable');
+assertStrictEqual(case3AnyAsn.length, 0, 'Expected NO real ASN nodes when none provided');
 
 console.log('✓ GRAPH CASE 3 Passed: Verified Geolocation created with backend properties; no ASN invented.\n');
 
@@ -257,10 +258,10 @@ assert(Array.isArray(case4Result.nodes), 'Nodes must be an array');
 assert(Array.isArray(case4Result.edges), 'Edges must be an array');
 assert(case4Result.nodes.length > 0, 'Root email node should exist');
 
-const case4AsnNodes = case4Result.nodes.filter((n) => n.type === 'asn');
-const case4GeoNodes = case4Result.nodes.filter((n) => n.type === 'location');
-assertStrictEqual(case4AsnNodes.length, 0, 'Expected 0 ASN nodes');
-assertStrictEqual(case4GeoNodes.length, 0, 'Expected 0 Location nodes');
+const case4AsnNodes = case4Result.nodes.filter((n) => n.type === 'asn' && n.status !== 'unavailable');
+const case4GeoNodes = case4Result.nodes.filter((n) => n.type === 'location' && n.status !== 'unavailable');
+assertStrictEqual(case4AsnNodes.length, 0, 'Expected 0 real ASN nodes');
+assertStrictEqual(case4GeoNodes.length, 0, 'Expected 0 real Location nodes');
 
 const case4ForbiddenValues = ['ASN59201', 'TEST-NET-2', 'United States', '37.751', '-97.822', 'mail-gw.suspicious-relay.net', 'secure-alerts-update.com'];
 for (const val of case4ForbiddenValues) {
@@ -271,6 +272,100 @@ for (const val of case4ForbiddenValues) {
 }
 
 console.log('✓ GRAPH CASE 4 Passed: Graph remains valid and zero fabricated intelligence appears.\n');
+
+// CASE 7: No source infrastructure in investigation (Empty/Unavailable state)
+console.log('GRAPH CASE 7: No verified origin infrastructure');
+const case7Input = {
+  subject: 'No Infrastructure Test',
+  from: 'sender@example.com',
+  relay_analysis: {
+    probable_source_infrastructure: {
+      address: null,
+      reason: 'No public relay hop',
+    },
+  },
+  security_analysis: {
+    authentication_results: {
+      from_domain: 'example.com',
+    },
+    url_analysis: { urls: [] },
+  },
+} as unknown as EmailAnalysisResponse;
+
+const case7Result = normalizeGraphData(case7Input);
+
+// 1. Assert no chain of five unavailable graph nodes
+const case7UnavailNodes = case7Result.nodes.filter((n) => n.status === 'unavailable');
+assertStrictEqual(case7UnavailNodes.length, 1, `Expected exactly 1 unavailable state node, found ${case7UnavailNodes.length}`);
+
+// 2. Assert one "NO VERIFIED ORIGIN INFRASTRUCTURE" state node exists
+const case7StateNode = case7Result.nodes.find((n) => n.id === 'infrastructure:unavailable');
+assert(case7StateNode !== undefined, 'Expected infrastructure:unavailable state node to exist');
+assertStrictEqual(case7StateNode.label, 'NO VERIFIED ORIGIN INFRASTRUCTURE');
+assertStrictEqual(case7StateNode.primaryValue, 'No Public Source Candidate');
+assertStrictEqual(case7StateNode.whyItMatters, 'No usable public IP was observed in the Received header relay chain.');
+assertStrictEqual(case7StateNode.properties.role, 'no_verified_infrastructure');
+
+console.log('✓ GRAPH CASE 7 Passed: Exactly one compact NO VERIFIED ORIGIN INFRASTRUCTURE state node generated.\n');
+
+// CASE 8: Real infrastructure (verified IP present)
+console.log('GRAPH CASE 8: Real infrastructure preserves topology');
+const case8Result = normalizeGraphData(case1Input); // case1Input has 198.51.100.99
+
+const case8RelayNode = case8Result.nodes.find((n) => n.id === 'relay:198.51.100.99');
+const case8IpNode = case8Result.nodes.find((n) => n.id === 'ip:198.51.100.99');
+assert(case8RelayNode !== undefined, 'Expected relay node for real infrastructure');
+assert(case8IpNode !== undefined, 'Expected source IP node for real infrastructure');
+
+const case8UnavailState = case8Result.nodes.find((n) => n.id === 'infrastructure:unavailable');
+assert(case8UnavailState === undefined, 'No infrastructure:unavailable node when real infrastructure is observed');
+
+console.log('✓ GRAPH CASE 8 Passed: Real infrastructure preserves normal topology without empty state node.\n');
+
+// CASE 9: Secondary Reply-To and URL payload rendered only when present
+console.log('GRAPH CASE 9: Secondary Reply-To and URL payload branches');
+const case9Input = {
+  subject: 'Phishing Test',
+  from: 'legit@company.com',
+  relay_analysis: {
+    probable_source_infrastructure: { address: null },
+  },
+  security_analysis: {
+    authentication_results: {
+      from_domain: 'company.com',
+      reply_to_domain: 'phisher.com',
+    },
+    url_analysis: {
+      urls: [{ url: 'http://malicious-site.com/login', domain: 'malicious-site.com', is_https: false }],
+    },
+  },
+} as unknown as EmailAnalysisResponse;
+
+const case9Result = normalizeGraphData(case9Input);
+
+const replyToNode = case9Result.nodes.find((n) => n.properties?.role === 'reply_to');
+assert(replyToNode !== undefined, 'Expected Reply-To secondary branch node to exist');
+assertStrictEqual(replyToNode.primaryValue, 'phisher.com');
+
+const urlNode = case9Result.nodes.find((n) => n.properties?.role === 'url_payload');
+assert(urlNode !== undefined, 'Expected URL payload secondary branch node to exist');
+assertStrictEqual(urlNode.primaryValue, 'http://malicious-site.com/login');
+
+// When secondary observables do NOT exist:
+const case9MinimalInput = {
+  subject: 'Clean Test',
+  from: 'legit@company.com',
+  relay_analysis: { probable_source_infrastructure: { address: null } },
+  security_analysis: { authentication_results: { from_domain: 'company.com' }, url_analysis: { urls: [] } },
+} as unknown as EmailAnalysisResponse;
+
+const case9MinimalResult = normalizeGraphData(case9MinimalInput);
+const noReplyTo = case9MinimalResult.nodes.find((n) => n.properties?.role === 'reply_to');
+const noUrl = case9MinimalResult.nodes.find((n) => n.properties?.role === 'url_payload');
+assert(noReplyTo === undefined, 'Reply-To branch must NOT be rendered when absent');
+assert(noUrl === undefined, 'URL Payload branch must NOT be rendered when absent');
+
+console.log('✓ GRAPH CASE 9 Passed: Secondary branches render only when actually present.\n');
 
 // ============================================================================
 // STEP 8.5-FIX-2: MAP GEOLOCATION INTEGRITY TESTS
@@ -951,8 +1046,8 @@ assertStrictEqual(emptyIntelMap, null, 'normalizeMapLocation returns null for em
 
 const emptyIntelGraph = normalizeGraphData(emptyIntelInput);
 for (const node of emptyIntelGraph.nodes) {
-  assert(node.type !== 'asn', 'No ASN node manufactured on empty intelligence');
-  assert(node.type !== 'location', 'No location node manufactured on empty intelligence');
+  assert(node.type !== 'asn' || node.status === 'unavailable', 'No real ASN node manufactured on empty intelligence');
+  assert(node.type !== 'location' || node.status === 'unavailable', 'No real location node manufactured on empty intelligence');
   for (const forbidden of SPECIMEN_FORBIDDEN) {
     assert(!node.label?.includes(forbidden), `Node ${node.id} contains forbidden specimen ${forbidden}`);
   }
@@ -1000,7 +1095,255 @@ for (const input of regressionInputs) {
 }
 console.log('✓ FIX-4 CASE 5 Passed: Specimen values (198.51.100.10, secure-alerts-update.com, NameCheap, ASN59201, Wichita, TEST-NET-2, suspicious-relay) NEVER appear as production fallbacks.\n');
 
+// ============================================================================
+// REDESIGNED TOPOLOGY & INVESTIGATION PATH TESTS
+// ============================================================================
+
+console.log('--- Testing Redesigned Observable Topology & Path Integrity ---\n');
+
+// TOPOLOGY CASE 1: Left-To-Right Column Ranks and Edge Observed Treatment
+console.log('TOPOLOGY CASE 1: Left-To-Right Column Ranks and Edge Observed Treatment');
+const topoInput = case3Input; // Contains Email, Domain, IP, Location
+const topoGraph = normalizeGraphData(topoInput);
+
+const rootNode = topoGraph.nodes.find(n => n.type === 'email');
+assert(rootNode !== undefined, 'Root email node should exist');
+assertStrictEqual(rootNode.rankColumn, 0, 'Root email node rankColumn must be 0');
+
+const domainNode = topoGraph.nodes.find(n => n.type === 'domain');
+assert(domainNode !== undefined, 'Domain node should exist');
+assertStrictEqual(domainNode.rankColumn, 1, 'Domain node rankColumn must be 1');
+
+const ipNode = topoGraph.nodes.find(n => n.type === 'ip');
+assert(ipNode !== undefined, 'IP node should exist');
+assertStrictEqual(ipNode.rankColumn, 3, 'IP node rankColumn must be 3');
+
+const geoNode = topoGraph.nodes.find(n => n.type === 'location');
+assert(geoNode !== undefined, 'Location node should exist');
+assertStrictEqual(geoNode.rankColumn, 5, 'Location node rankColumn must be 5');
+
+// Check edge isObserved
+const sentEdge = topoGraph.edges.find(e => e.relationship === 'sent_from');
+assert(sentEdge !== undefined, 'sent_from edge must exist');
+assertStrictEqual(sentEdge.isObserved, true, 'sent_from edge must be observed (solid line)');
+
+const locatedEdge = topoGraph.edges.find(e => e.relationship === 'located_in');
+assert(locatedEdge !== undefined, 'located_in edge must exist');
+assertStrictEqual(locatedEdge.isObserved, false, 'located_in edge must be OSINT/enrichment (dashed line)');
+
+console.log('✓ TOPOLOGY CASE 1 Passed: Correct left-to-right rank columns and observed vs enrichment edge flags.\n');
+
+// TOPOLOGY CASE 2: Investigation Path Stage Normalization
+console.log('TOPOLOGY CASE 2: Investigation Path Stage Normalization');
+const pathOutput = normalizeInvestigationPath(case3Input);
+
+assertStrictEqual(pathOutput.length, 6, 'Investigation path must contain 6 stage categories');
+assertStrictEqual(pathOutput[0].category, 'EMAIL');
+assertStrictEqual(pathOutput[0].status, 'available');
+
+assertStrictEqual(pathOutput[1].category, 'SENDER');
+assertStrictEqual(pathOutput[1].value, 'example.com');
+assertStrictEqual(pathOutput[1].status, 'available');
+
+assertStrictEqual(pathOutput[2].category, 'RELAY');
+assertStrictEqual(pathOutput[2].value, '198.51.100.99');
+
+assertStrictEqual(pathOutput[3].category, 'SOURCE_IP');
+assertStrictEqual(pathOutput[3].value, '198.51.100.99');
+
+assertStrictEqual(pathOutput[4].category, 'NETWORK');
+assertStrictEqual(pathOutput[4].status, 'unavailable', 'Network stage must be unavailable when no ASN present');
+
+assertStrictEqual(pathOutput[5].category, 'GEOLOCATION');
+assertStrictEqual(pathOutput[5].value, 'Frankfurt, Germany');
+assertStrictEqual(pathOutput[5].status, 'available');
+
+console.log('✓ TOPOLOGY CASE 2 Passed: Investigation path stages reflect exact evidence and unavailable states.\n');
+
+// TOPOLOGY CASE 3: Why This Matters Evidence Assessment Generation
+console.log('TOPOLOGY CASE 3: Why This Matters Evidence Assessment Generation');
+const whyPoints = generateWhyThisMatters(case3Input);
+
+assert(whyPoints.length >= 3, 'Expected at least 3 rationale points');
+assert(whyPoints.some(p => p.includes('198.51.100.99')), 'Point must reference probable source IP');
+assert(whyPoints.some(p => p.includes('Attribution Model: Infrastructure origin only')), 'Point must contain attribution safeguard caveat');
+
+console.log('✓ TOPOLOGY CASE 3 Passed: Dynamic evidence assessment and attribution caveats generated.\n');
+
+// TOPOLOGY CASE 4: Orphan Edge Prevention & Missing Sender Safeguards (CASE-2026-6142 Regression Test)
+console.log('TOPOLOGY CASE 4: Orphan Edge Prevention & Missing Sender Safeguards');
+const orphanEdgeInput = {
+  subject: 'CASE-2026-6142 Test Case',
+  relay_analysis: {
+    probable_source_infrastructure: {
+      address: '203.0.113.10',
+    },
+  },
+  security_analysis: {
+    authentication_results: {
+      from_domain: null,
+    },
+  },
+  evidence_graph: {
+    nodes: [
+      { id: 'domain:target.com', type: 'domain', value: 'target.com', sources: ['headers'] },
+      { id: 'dns:spf_record', type: 'dns', value: 'v=spf1 include:target.com ~all', sources: ['dns'] },
+    ],
+    edges: [
+      { source: 'domain:target.com', target: 'dns:spf_record', relationship: 'resolves_to', confidence: 'high' },
+      { source: 'non_existent_source', target: 'domain:target.com', relationship: 'unknown', confidence: 'high' },
+    ],
+  },
+} as unknown as EmailAnalysisResponse;
+
+const orphanResult = normalizeGraphData(orphanEdgeInput);
+
+const nodeIds = new Set(orphanResult.nodes.map(n => n.id));
+assert(nodeIds.has('domain:sender_unavailable'), 'Must create explicit domain:sender_unavailable node when from_domain is null');
+
+for (const edge of orphanResult.edges) {
+  assert(nodeIds.has(edge.source), `Orphan edge detected: source node '${edge.source}' does not exist in nodes`);
+  assert(nodeIds.has(edge.target), `Orphan edge detected: target node '${edge.target}' does not exist in nodes`);
+}
+
+console.log('✓ TOPOLOGY CASE 4 Passed: 0 orphan edges produced; missing from_domain handled safely.\n');
+
+// TOPOLOGY CASE 5: 8.8.8.8 External Intelligence Provenance Protection
+console.log('TOPOLOGY CASE 5: 8.8.8.8 External Intelligence Provenance Protection');
+const dns8888Input = {
+  message_id: '<dns-lookup-8888@example.com>',
+  subject: 'External Enrichment Provenance Test',
+  from: 'alice@phish-domain.com',
+  relay_analysis: {
+    relay_hops: [],
+    probable_source_infrastructure: {
+      address: null, // NO public source IP observed in email headers!
+      confidence: 'none',
+      reason: 'No external public hop',
+    },
+  },
+  security_analysis: {
+    authentication_results: {
+      from_domain: 'phish-domain.com',
+      spf: { result: 'fail' },
+      dmarc: { result: 'fail' },
+    },
+    url_analysis: { urls: [] },
+  },
+  threat_intelligence: {
+    observations: [
+      {
+        provider: 'Google Public DNS',
+        entity_type: 'ip' as const,
+        entity: '8.8.8.8',
+        kind: 'dns_resolver',
+        status: 'success' as const,
+        data: {
+          asn: 'AS15169',
+          isp: 'Google LLC',
+          country: 'United States',
+          city: 'Los Angeles',
+          abuse_confidence_score: 0,
+        },
+        evidence: ['External DNS Resolver observation'],
+        confidence: 'high' as const,
+      },
+    ],
+  },
+} as unknown as EmailAnalysisResponse;
+
+const graph8888Result = normalizeGraphData(dns8888Input);
+
+// 1. Assert 8.8.8.8 is NOT promoted to SOURCE IP or SMTP RELAY
+const unavailStateNode = graph8888Result.nodes.find((n) => n.id === 'infrastructure:unavailable');
+assert(unavailStateNode !== undefined, 'infrastructure:unavailable state node must exist when no public origin infrastructure exists');
+assertStrictEqual(unavailStateNode.label, 'NO VERIFIED ORIGIN INFRASTRUCTURE');
+
+const hasPromoted8888 = graph8888Result.nodes.some((n) => (n.type === 'ip' || n.type === 'relay') && n.primaryValue.includes('8.8.8.8'));
+assert(!hasPromoted8888, '8.8.8.8 from external intelligence must NOT be promoted to SOURCE IP or SMTP RELAY');
+
+// 2. Assert path bar shows Unavailable for SOURCE IP
+const path8888 = normalizeInvestigationPath(dns8888Input);
+const ipStage = path8888.find((s) => s.category === 'SOURCE_IP');
+assert(ipStage !== undefined, 'SOURCE_IP stage in path bar must exist');
+assertStrictEqual(ipStage.value, 'Unavailable', 'Path bar SOURCE IP must be Unavailable for enrichment-only 8.8.8.8');
+
+// 3. Assert Why This Matters does not claim 8.8.8.8 is observed source IP
+const why8888 = generateWhyThisMatters(dns8888Input);
+for (const point of why8888) {
+  assert(!point.includes('8.8.8.8 is the strongest observed'), 'Why This Matters must NOT claim 8.8.8.8 is observed source IP');
+}
+
+// 4. Assert total visible node budget is strictly bounded (<= 8 nodes)
+assert(graph8888Result.nodes.length <= 8, `Node count must be <= 8, got ${graph8888Result.nodes.length}`);
+
+console.log('✓ TOPOLOGY CASE 5 Passed: 8.8.8.8 provenance strictly protected; not promoted to observed infrastructure.\n');
+
+// TOPOLOGY CASE 6: Forensic Evidence Preservation & Non-Attacker Wording Regression Tests
+console.log('TOPOLOGY CASE 6: Forensic Evidence Preservation & Non-Attacker Wording Regression Tests');
+
+// 1. Documentation IP in Received header -> preserved as raw evidence, excluded from probable public source candidate
+const docIpInput = {
+  subject: 'Doc IP Test',
+  from: 'user@example.com',
+  relay_analysis: {
+    relay_hops: [
+      {
+        hop_number: 1,
+        original_header: 'from mail.example.com (mail.example.com [198.51.100.77]) by mx.example.net;',
+        hostnames: ['mail.example.com'],
+        extracted_ips: [{ address: '198.51.100.77', version: 4, classification: 'documentation_or_test', is_public_source_candidate: false, hop_number: 1 }],
+      },
+    ],
+    extracted_ips: [{ address: '198.51.100.77', version: 4, classification: 'documentation_or_test', is_public_source_candidate: false, hop_number: 1 }],
+    probable_source_infrastructure: {
+      address: null,
+      confidence: 'none',
+      reason: 'No external public hop',
+    },
+  },
+} as unknown as EmailAnalysisResponse;
+
+const docGraph = normalizeGraphData(docIpInput);
+const docStateNode = docGraph.nodes.find((n) => n.id === 'infrastructure:unavailable');
+assert(docStateNode !== undefined, 'NO VERIFIED ORIGIN INFRASTRUCTURE state node must exist when documentation IP is excluded from candidate');
+assertStrictEqual(docStateNode.label, 'NO VERIFIED ORIGIN INFRASTRUCTURE');
+
+// 2. Known DNS resolver IP appearing in Received header -> NOT deleted from raw forensic evidence
+const dnsInHeaderInput = {
+  subject: 'DNS in Header Test',
+  from: 'user@example.com',
+  relay_analysis: {
+    relay_hops: [
+      {
+        hop_number: 1,
+        original_header: 'from mail.example.com (mail.example.com [8.8.8.8]) by mx.example.net;',
+        hostnames: ['mail.example.com'],
+        extracted_ips: [{ address: '8.8.8.8', version: 4, classification: 'public', is_public_source_candidate: true, hop_number: 1 }],
+      },
+    ],
+    extracted_ips: [{ address: '8.8.8.8', version: 4, classification: 'public', is_public_source_candidate: true, hop_number: 1 }],
+    probable_source_infrastructure: {
+      address: '8.8.8.8',
+      confidence: 'high',
+      reason: 'Last external hop',
+    },
+  },
+} as unknown as EmailAnalysisResponse;
+
+assertStrictEqual(dnsInHeaderInput.relay_analysis!.relay_hops[0].extracted_ips[0].address, '8.8.8.8', 'DNS resolver in Received header MUST be preserved in raw relay_hops evidence');
+
+// 3. Why This Matters -> Never claims "attacker IP", "attacker location", "attacker address"
+const whyDoc = generateWhyThisMatters(docIpInput);
+for (const point of whyDoc) {
+  assert(!point.toLowerCase().includes('attacker ip'), 'Why This Matters must NOT contain "attacker IP"');
+  assert(!point.toLowerCase().includes('attacker location'), 'Why This Matters must NOT contain "attacker location"');
+  assert(!point.toLowerCase().includes('attacker address'), 'Why This Matters must NOT contain "attacker address"');
+}
+
+console.log('✓ TOPOLOGY CASE 6 Passed: Raw evidence preserved, documentation IPs excluded from public candidate, and non-attacker attribution wording enforced.\n');
+
 console.log('================================================================');
-console.log('ALL FORENSIC INTEGRITY TESTS (GRAPH + MAP + TIMELINE + FALLBACKS) PASSED!');
+console.log('ALL FORENSIC INTEGRITY TESTS (GRAPH + MAP + TIMELINE + FALLBACKS + TOPOLOGY) PASSED!');
 console.log('================================================================');
 

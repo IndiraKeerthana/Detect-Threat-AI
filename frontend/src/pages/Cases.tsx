@@ -12,8 +12,21 @@ import {
   X,
   Download,
   Loader2,
+  Layers,
+  Network,
+  Globe,
+  Link2,
+  ChevronDown,
+  ChevronRight,
+  AlertTriangle,
 } from 'lucide-react';
-import { caseStore, type CaseRecord, type CaseStatus, type CaseSeverity } from '../services/caseStore';
+import {
+  caseStore,
+  getCampaignClusters,
+  type CaseRecord,
+  type CaseStatus,
+  type CaseSeverity,
+} from '../services/caseStore';
 import { NewInvestigationModal } from '../components/cases/NewInvestigationModal';
 import { formatISTTimestamp } from '../utils/dateFormatter';
 import { downloadForensicReportPdf } from '../services/api';
@@ -32,6 +45,8 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sortBy, setSortBy] = useState<SortOption>('activity_desc');
+  const [viewMode, setViewMode] = useState<'INDIVIDUAL' | 'CAMPAIGNS'>('INDIVIDUAL');
+  const [expandedCampaigns, setExpandedCampaigns] = useState<Record<string, boolean>>({});
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
@@ -62,6 +77,11 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
     });
     return unsubscribe;
   }, []);
+
+  // Compute Campaign Clusters
+  const campaignClusters = useMemo(() => {
+    return getCampaignClusters(cases);
+  }, [cases]);
 
   // Filter and sort computation
   const filteredCases = useMemo(() => {
@@ -235,63 +255,300 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
           </div>
         </div>
 
-        {/* Filter Chips Row */}
+        {/* Filter Chips & View Mode Switcher Row */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#1e2430] text-xs font-mono">
-          {/* Severity Filters */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[#64748b] text-[10px] uppercase tracking-wider mr-1 flex items-center gap-1">
-              <Filter className="w-3 h-3" /> SEVERITY:
-            </span>
-            {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((sev) => (
-              <button
-                key={sev}
-                onClick={() => setFilterSeverity(sev)}
-                className={`px-2.5 py-0.5 rounded text-[11px] font-mono uppercase transition-colors ${
-                  filterSeverity === sev
-                    ? 'bg-[#1e232e] text-[#f1f5f9] border border-[#3e485e]'
-                    : 'bg-[#12151b] text-[#64748b] hover:text-[#94a3b8] border border-[#1e2430]'
-                }`}
-              >
-                {sev}
-              </button>
-            ))}
+          {/* View Mode Toggle Switcher */}
+          <div className="flex items-center space-x-1.5 bg-[#0b0d12] p-1 rounded border border-[#1e2430]">
+            <button
+              type="button"
+              onClick={() => setViewMode('INDIVIDUAL')}
+              className={`px-3 py-1 rounded text-xs font-bold transition-colors ${
+                viewMode === 'INDIVIDUAL'
+                  ? 'bg-[#1e232e] text-[#f1f5f9] border border-[#3e485e] shadow-sm'
+                  : 'text-[#64748b] hover:text-[#94a3b8]'
+              }`}
+            >
+              INDIVIDUAL CASES ({filteredCases.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('CAMPAIGNS')}
+              className={`px-3 py-1 rounded text-xs font-bold transition-colors ${
+                viewMode === 'CAMPAIGNS'
+                  ? 'bg-[#1e1533] text-[#c4b5fd] border border-[#432474] shadow-sm'
+                  : 'text-[#64748b] hover:text-[#94a3b8]'
+              }`}
+            >
+              CAMPAIGN CLUSTERS ({campaignClusters.length})
+            </button>
           </div>
 
-          {/* Status Filters */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[#64748b] text-[10px] uppercase tracking-wider mr-1">
-              STATUS:
-            </span>
-            {['ALL', 'OPEN', 'IN REVIEW', 'CONTAINED', 'CLOSED'].map((st) => (
-              <button
-                key={st}
-                onClick={() => setFilterStatus(st)}
-                className={`px-2.5 py-0.5 rounded text-[11px] font-mono uppercase transition-colors ${
-                  filterStatus === st
-                    ? 'bg-[#1e232e] text-[#f1f5f9] border border-[#3e485e]'
-                    : 'bg-[#12151b] text-[#64748b] hover:text-[#94a3b8] border border-[#1e2430]'
-                }`}
-              >
-                {st}
-              </button>
-            ))}
+          {/* Severity & Status Filters */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[#64748b] text-[10px] uppercase tracking-wider mr-1 flex items-center gap-1">
+                <Filter className="w-3 h-3" /> SEVERITY:
+              </span>
+              {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((sev) => (
+                <button
+                  key={sev}
+                  onClick={() => setFilterSeverity(sev)}
+                  className={`px-2.5 py-0.5 rounded text-[11px] font-mono uppercase transition-colors ${
+                    filterSeverity === sev
+                      ? 'bg-[#1e232e] text-[#f1f5f9] border border-[#3e485e]'
+                      : 'bg-[#12151b] text-[#64748b] hover:text-[#94a3b8] border border-[#1e2430]'
+                  }`}
+                >
+                  {sev}
+                </button>
+              ))}
+            </div>
 
-            {(filterSeverity !== 'ALL' || filterStatus !== 'ALL' || searchQuery) && (
-              <button
-                onClick={resetFilters}
-                className="ml-2 text-[#8b5cf6] hover:text-[#a78bfa] text-[11px] flex items-center gap-1 underline underline-offset-2 transition-colors"
-                title="Reset all active filters"
-              >
-                <RotateCcw className="w-3 h-3" />
-                Reset
-              </button>
-            )}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[#64748b] text-[10px] uppercase tracking-wider mr-1">
+                STATUS:
+              </span>
+              {['ALL', 'OPEN', 'IN REVIEW', 'CONTAINED', 'CLOSED'].map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setFilterStatus(st)}
+                  className={`px-2.5 py-0.5 rounded text-[11px] font-mono uppercase transition-colors ${
+                    filterStatus === st
+                      ? 'bg-[#1e232e] text-[#f1f5f9] border border-[#3e485e]'
+                      : 'bg-[#12151b] text-[#64748b] hover:text-[#94a3b8] border border-[#1e2430]'
+                  }`}
+                >
+                  {st}
+                </button>
+              ))}
+
+              {(filterSeverity !== 'ALL' || filterStatus !== 'ALL' || searchQuery) && (
+                <button
+                  onClick={resetFilters}
+                  className="ml-2 text-[#8b5cf6] hover:text-[#a78bfa] text-[11px] flex items-center gap-1 underline underline-offset-2 transition-colors"
+                  title="Reset all active filters"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Reset
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 3. Forensic Cases Queue (Desktop / Tablet Table) */}
-      <div className="surface-card border border-[#1e2430] overflow-hidden rounded-md">
+      {/* 3. Main Queue & Campaign Cluster Display */}
+      {viewMode === 'CAMPAIGNS' ? (
+        /* CAMPAIGN CLUSTERS VIEW */
+        <div className="space-y-4 font-mono">
+          {campaignClusters.length > 0 ? (
+            campaignClusters.map((cluster) => {
+              const isExpanded = Boolean(expandedCampaigns[cluster.id]);
+              return (
+                <div
+                  key={cluster.id}
+                  className="surface-card border border-[#1e2430] hover:border-[#2a3242] transition-colors rounded-lg overflow-hidden"
+                >
+                  {/* Cluster Header Banner */}
+                  <div className="p-4 bg-[#0a0c10] border-b border-[#1e2430] flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center space-x-2.5">
+                        <span className="text-xs text-[#8b5cf6] font-bold px-2 py-0.5 rounded bg-[#1e1533] border border-[#432474]">
+                          {cluster.id}
+                        </span>
+                        <h2 className="text-sm font-bold text-[#f1f5f9] truncate max-w-lg" title={cluster.title}>
+                          {cluster.title}
+                        </h2>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <span className="text-[#38bdf8] font-bold">
+                          {cluster.caseCount} LINKED CASES
+                        </span>
+                        <span className="text-[#64748b]">•</span>
+                        <span className="text-[#64748b]">
+                          DATE RANGE: <strong className="text-[#f1f5f9]">{cluster.dateRange.earliest} — {cluster.dateRange.latest}</strong>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+                      <span
+                        className={`px-2.5 py-1 rounded text-xs font-bold border uppercase ${getSeverityBadge(
+                          cluster.highestSeverity
+                        )}`}
+                      >
+                        MAX {cluster.highestSeverity}
+                      </span>
+                      <span className="px-2.5 py-1 rounded bg-[#12151b] text-[#f1f5f9] border border-[#2a3242] text-xs font-bold">
+                        MAX SCORE: {cluster.highestRiskScore}/100
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedCampaigns((prev) => ({
+                            ...prev,
+                            [cluster.id]: !prev[cluster.id],
+                          }))
+                        }
+                        className="px-3 py-1.5 rounded bg-[#1e232e] hover:bg-[#2a3242] text-[#f1f5f9] text-xs font-bold border border-[#3e485e] flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        {isExpanded ? (
+                          <>
+                            <ChevronDown className="w-3.5 h-3.5 text-[#8b5cf6]" />
+                            HIDE CASES
+                          </>
+                        ) : (
+                          <>
+                            <ChevronRight className="w-3.5 h-3.5 text-[#8b5cf6]" />
+                            VIEW CASES ({cluster.caseCount})
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Shared Infrastructure & Grouping Rationale Body */}
+                  <div className="p-4 space-y-3 bg-[#08090d]">
+                    {/* Shared Indicators Badges */}
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className="text-[10px] text-[#64748b] font-bold uppercase tracking-wider">
+                        SHARED INDICATORS:
+                      </span>
+                      {cluster.sharedIndicators.map((ind, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2.5 py-1 rounded bg-[#0f172a] text-[#93c5fd] border border-[#1e3a8a] text-xs flex items-center gap-1.5 font-mono"
+                        >
+                          {ind.type === 'ip' ? (
+                            <Network className="w-3 h-3 text-[#06b6d4]" />
+                          ) : ind.type === 'domain' ? (
+                            <Globe className="w-3 h-3 text-[#3b82f6]" />
+                          ) : (
+                            <Link2 className="w-3 h-3 text-[#ef4444]" />
+                          )}
+                          <span>{ind.label}</span>
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Grouping Reasons List */}
+                    <div className="space-y-1 bg-[#0f1217] border border-[#1e2430] p-3 rounded text-xs text-[#94a3b8]">
+                      <span className="text-[9px] uppercase text-[#64748b] font-bold block mb-1">
+                        CLUSTERING RATIONALE & FORENSIC EVIDENCE:
+                      </span>
+                      {cluster.reasons.map((reason, idx) => (
+                        <div key={idx} className="flex items-center gap-1.5 text-[#f1f5f9]">
+                          <span className="text-[#8b5cf6] font-bold">•</span>
+                          <span>{reason}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Non-Attacker Attribution Safeguard Caveat */}
+                    <div className="bg-[#161224] border border-[#3b2166] p-2.5 rounded text-[11px] text-[#c4b5fd] flex items-center gap-2 font-mono">
+                      <AlertTriangle className="w-4 h-4 text-[#a78bfa] flex-shrink-0" />
+                      <span className="leading-snug">
+                        Analytical Correlation: {cluster.attributionCaveat}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Expanded Linked Cases Table */}
+                  {isExpanded && (
+                    <div className="border-t border-[#1e2430] bg-[#0c0e14] p-4 animate-in fade-in duration-200 space-y-3">
+                      <div className="text-[10px] uppercase text-[#64748b] font-bold tracking-wider">
+                        LINKED CASE RECORDS ({cluster.cases.length}):
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs font-mono">
+                          <thead className="bg-[#0f1217] border-b border-[#1e2430] text-[#64748b] text-[10px] uppercase">
+                            <tr>
+                              <th className="py-2.5 px-3">Case ID</th>
+                              <th className="py-2.5 px-3">Subject</th>
+                              <th className="py-2.5 px-3">Sender</th>
+                              <th className="py-2.5 px-3">Severity</th>
+                              <th className="py-2.5 px-3">Risk Score</th>
+                              <th className="py-2.5 px-3">Created</th>
+                              <th className="py-2.5 px-3 text-right">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#1e2430]">
+                            {cluster.cases.map((c) => (
+                              <tr
+                                key={c.id}
+                                onClick={() => onSelectCase(c)}
+                                className="hover:bg-[#171b23] transition-colors cursor-pointer group"
+                              >
+                                <td className="py-2.5 px-3 whitespace-nowrap">
+                                  <span className="text-[#06b6d4] font-semibold hover:underline">
+                                    {c.id}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-3 font-sans text-[#f1f5f9] max-w-xs truncate" title={c.subject}>
+                                  {c.subject}
+                                </td>
+                                <td className="py-2.5 px-3 text-[#94a3b8] max-w-xs truncate" title={c.sender}>
+                                  {c.sender}
+                                </td>
+                                <td className="py-2.5 px-3 whitespace-nowrap">
+                                  <span
+                                    className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${getSeverityBadge(
+                                      c.severity
+                                    )}`}
+                                  >
+                                    {c.severity}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-3 text-[#f1f5f9] font-bold">
+                                  {c.riskScore}/100
+                                </td>
+                                <td className="py-2.5 px-3 text-[#64748b] whitespace-nowrap">
+                                  {formatISTTimestamp(c.createdAt)}
+                                </td>
+                                <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onSelectCase(c);
+                                    }}
+                                    className="px-2.5 py-1 rounded bg-[#1e232e] hover:bg-[#8b5cf6] hover:text-white text-[#94a3b8] text-[10px] font-bold border border-[#3e485e] transition-colors inline-flex items-center gap-1 cursor-pointer"
+                                  >
+                                    VIEW CASE
+                                    <ArrowUpRight className="w-3 h-3" />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            /* Empty State when no campaigns exist */
+            <div className="surface-card p-12 border border-[#1e2430] rounded-md text-center font-mono space-y-3">
+              <div className="w-12 h-12 rounded-full bg-[#12151b] border border-[#2a3242] mx-auto flex items-center justify-center text-[#64748b]">
+                <Layers className="w-6 h-6 text-[#64748b]" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-[#f1f5f9] uppercase tracking-wide">
+                  No linked campaigns detected
+                </h3>
+                <p className="text-xs text-[#64748b] max-w-md mx-auto">
+                  Campaign clustering requires multiple cases sharing meaningful forensic indicators (such as verified source IP, sender domain, or suspicious URL domain).
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* INDIVIDUAL CASES VIEW */
+        <div className="surface-card border border-[#1e2430] overflow-hidden rounded-md">
         {filteredCases.length > 0 ? (
           <>
             {/* Table View (Desktop / Tablet) */}
@@ -576,6 +833,7 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
           </div>
         )}
       </div>
+    )}
 
       {/* 4. New Investigation Modal */}
       <NewInvestigationModal

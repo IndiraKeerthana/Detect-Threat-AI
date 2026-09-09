@@ -84,6 +84,30 @@ const SEED_CASES: CaseRecord[] = [
     investigationData: MOCK_INVESTIGATION_DATA,
   },
   {
+    id: 'CASE-2026-0895',
+    title: 'Credential Harvest Campaign Follow-Up',
+    subject: 'URGENT: Re-verification Needed - Account Suspension',
+    sender: 'security-team@secure-alerts-update.com',
+    recipient: 'executive-office@enterprise-target.internal',
+    severity: 'CRITICAL',
+    classification: 'phishing',
+    riskScore: 94,
+    confidence: 'high',
+    status: 'OPEN',
+    createdAt: '2026-09-08 14:22:10 UTC',
+    updatedAt: '2026-09-08 14:25:00 UTC',
+    sourceIp: '198.51.100.10',
+    analystNotes: 'Correlated with CASE-2026-0891 sharing origin IP 198.51.100.10 and secure-alerts-update.com sender domain.',
+    investigationData: {
+      ...MOCK_INVESTIGATION_DATA,
+      subject: 'URGENT: Re-verification Needed - Account Suspension',
+      from: 'Security Team <security-team@secure-alerts-update.com>',
+      to: 'executive-office@enterprise-target.internal',
+      date: 'Tue, 08 Sep 2026 14:22:10 +0000',
+      message_id: '<20260908142210.C8912B@secure-alerts-update.com>',
+    },
+  },
+  {
     id: 'CASE-2026-0888',
     title: 'Vendor Wire Modification - Executive Impersonation',
     subject: 'Vendor Wire Instructions Updated - Invoice #INV-99201',
@@ -419,3 +443,285 @@ class CaseStore {
 }
 
 export const caseStore = new CaseStore();
+
+// ============================================================================
+// CAMPAIGN GROUPING & MULTI-CASE ATTACK CLUSTERING ALGORITHM
+// ============================================================================
+
+export interface SharedIndicator {
+  type: 'ip' | 'domain' | 'url';
+  value: string;
+  label: string;
+}
+
+export interface CampaignCluster {
+  id: string;
+  title: string;
+  caseCount: number;
+  highestSeverity: CaseSeverity;
+  highestRiskScore: number;
+  cases: CaseRecord[];
+  sharedIndicators: SharedIndicator[];
+  reasons: string[];
+  dateRange: {
+    earliest: string;
+    latest: string;
+  };
+  attributionCaveat: string;
+}
+
+/**
+ * Extracts strong indicators from a case record:
+ * - Source IP
+ * - Sender / From Domain
+ * - Suspicious URL / Payload Domains
+ */
+function extractCaseIndicators(c: CaseRecord): SharedIndicator[] {
+  const indicators: SharedIndicator[] = [];
+  const seen = new Set<string>();
+
+  // 1. Source IP Indicator (verified public origin IP candidate)
+  const rawIp = c.sourceIp || c.investigationData?.relay_analysis?.probable_source_infrastructure?.address;
+  if (
+    rawIp &&
+    typeof rawIp === 'string' &&
+    rawIp.trim().length > 0 &&
+    rawIp.toLowerCase() !== 'unavailable' &&
+    !/^10\./.test(rawIp.trim()) &&
+    !/^192\.168\./.test(rawIp.trim()) &&
+    !/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(rawIp.trim()) &&
+    !/^127\./.test(rawIp.trim())
+  ) {
+    const ipVal = rawIp.trim().toLowerCase();
+    const key = `ip:${ipVal}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      indicators.push({
+        type: 'ip',
+        value: ipVal,
+        label: `Source IP: ${rawIp.trim()}`,
+      });
+    }
+  }
+
+  // 2. Sender / From Domain Indicator
+  let fromDomain: string | null = c.investigationData?.security_analysis?.authentication_results?.from_domain || null;
+  if (!fromDomain && c.sender && c.sender.includes('@')) {
+    const match = c.sender.match(/@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+    if (match) fromDomain = match[1];
+  }
+  if (fromDomain && typeof fromDomain === 'string' && fromDomain.trim().length > 0) {
+    const domVal = fromDomain.trim().toLowerCase();
+    if (domVal.includes('.') && !domVal.endsWith('.internal') && !domVal.endsWith('.local')) {
+      const key = `domain:${domVal}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        indicators.push({
+          type: 'domain',
+          value: domVal,
+          label: `Sender Domain: ${fromDomain.trim()}`,
+        });
+      }
+    }
+  }
+
+  // 3. Suspicious URL / Payload Domain Indicators
+  const urlObjs = c.investigationData?.security_analysis?.url_analysis?.urls || [];
+  const domObjs = c.investigationData?.security_analysis?.url_analysis?.domains || [];
+
+  for (const urlObj of urlObjs) {
+    const d = urlObj.domain || urlObj.associated_domain;
+    if (d && typeof d === 'string' && d.includes('.')) {
+      const urlDomVal = d.trim().toLowerCase();
+      if (!urlDomVal.endsWith('.internal') && !urlDomVal.endsWith('.local')) {
+        const key = `url:${urlDomVal}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          indicators.push({
+            type: 'url',
+            value: urlDomVal,
+            label: `Suspicious URL Domain: ${d.trim()}`,
+          });
+        }
+      }
+    }
+  }
+
+  for (const domObj of domObjs) {
+    const d = domObj.domain;
+    if (d && typeof d === 'string' && d.includes('.')) {
+      const urlDomVal = d.trim().toLowerCase();
+      if (!urlDomVal.endsWith('.internal') && !urlDomVal.endsWith('.local')) {
+        const key = `url:${urlDomVal}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          indicators.push({
+            type: 'url',
+            value: urlDomVal,
+            label: `Suspicious Payload Domain: ${d.trim()}`,
+          });
+        }
+      }
+    }
+  }
+
+  return indicators;
+}
+
+/**
+ * Deterministic Explainable Campaign Clustering Algorithm.
+ * Clusters stored cases sharing verified source IPs, sender domains, or URL domains.
+ * Cases sharing only classification are NEVER grouped.
+ */
+export function getCampaignClusters(cases: CaseRecord[]): CampaignCluster[] {
+  if (!cases || cases.length < 2) {
+    return [];
+  }
+
+  const caseIndicatorsMap = new Map<number, SharedIndicator[]>();
+  const indicatorToCases = new Map<string, number[]>();
+
+  cases.forEach((c, idx) => {
+    const inds = extractCaseIndicators(c);
+    caseIndicatorsMap.set(idx, inds);
+
+    inds.forEach((ind) => {
+      const key = `${ind.type}:${ind.value}`;
+      const existing = indicatorToCases.get(key) || [];
+      existing.push(idx);
+      indicatorToCases.set(key, existing);
+    });
+  });
+
+  // Disjoint Set Union (Union-Find)
+  const parent = cases.map((_, idx) => idx);
+  function find(i: number): number {
+    if (parent[i] === i) return i;
+    parent[i] = find(parent[i]);
+    return parent[i];
+  }
+  function union(i: number, j: number) {
+    const rootI = find(i);
+    const rootJ = find(j);
+    if (rootI !== rootJ) {
+      parent[rootI] = rootJ;
+    }
+  }
+
+  // Union cases sharing strong indicators
+  indicatorToCases.forEach((indices, _key) => {
+    if (indices.length >= 2) {
+      for (let k = 1; k < indices.length; k++) {
+        union(indices[0], indices[k]);
+      }
+    }
+  });
+
+  // Group case indices by component root
+  const clustersMap = new Map<number, number[]>();
+  cases.forEach((_, idx) => {
+    const root = find(idx);
+    const list = clustersMap.get(root) || [];
+    list.push(idx);
+    clustersMap.set(root, list);
+  });
+
+  const rawClusters: CampaignCluster[] = [];
+  let clusterCounter = 1;
+
+  clustersMap.forEach((indices) => {
+    if (indices.length < 2) return;
+
+    const clusterCases = indices.map((idx) => cases[idx]);
+    clusterCases.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const sharedIndicators: SharedIndicator[] = [];
+    const reasons: string[] = [];
+    const seenSharedKeys = new Set<string>();
+
+    indicatorToCases.forEach((caseIndices, key) => {
+      const indicesInThisCluster = caseIndices.filter((idx) => indices.includes(idx));
+      if (indicesInThisCluster.length >= 2 && !seenSharedKeys.has(key)) {
+        seenSharedKeys.add(key);
+        const [type, val] = key.split(':');
+        let label = '';
+        if (type === 'ip') {
+          label = `Source IP: ${val}`;
+          reasons.push(`${indicesInThisCluster.length} cases share the same verified source IP (${val})`);
+          sharedIndicators.push({ type: 'ip', value: val, label });
+        } else if (type === 'domain') {
+          label = `Sender Domain: ${val}`;
+          reasons.push(`${indicesInThisCluster.length} cases share the same sender domain (${val})`);
+          sharedIndicators.push({ type: 'domain', value: val, label });
+        } else if (type === 'url') {
+          label = `Suspicious URL Domain: ${val}`;
+          reasons.push(`${indicesInThisCluster.length} cases share the same suspicious URL domain (${val})`);
+          sharedIndicators.push({ type: 'url', value: val, label });
+        }
+      }
+    });
+
+    const severityOrder: Record<CaseSeverity, number> = {
+      CRITICAL: 4,
+      HIGH: 3,
+      MEDIUM: 2,
+      LOW: 1,
+    };
+    let highestSeverity: CaseSeverity = 'LOW';
+    let maxSevScore = 0;
+    let highestRiskScore = 0;
+
+    clusterCases.forEach((c) => {
+      const score = c.riskScore ?? 0;
+      if (score > highestRiskScore) highestRiskScore = score;
+
+      const sevScore = severityOrder[c.severity] || 1;
+      if (sevScore > maxSevScore) {
+        maxSevScore = sevScore;
+        highestSeverity = c.severity;
+      }
+    });
+
+    const timestamps = clusterCases
+      .map((c) => new Date(c.createdAt).getTime())
+      .filter((t) => !isNaN(t))
+      .sort((a, b) => a - b);
+
+    const earliestStr = timestamps.length > 0 ? new Date(timestamps[0]).toISOString().replace('T', ' ').slice(0, 10) : 'Unknown';
+    const latestStr = timestamps.length > 0 ? new Date(timestamps[timestamps.length - 1]).toISOString().replace('T', ' ').slice(0, 10) : 'Unknown';
+
+    const primaryIp = sharedIndicators.find((i) => i.type === 'ip')?.value;
+    const primaryDomain = sharedIndicators.find((i) => i.type === 'domain')?.value;
+    const primaryUrl = sharedIndicators.find((i) => i.type === 'url')?.value;
+
+    let title = `Campaign Cluster #${String(clusterCounter).padStart(3, '0')}`;
+    if (primaryDomain) {
+      title = `Campaign Cluster: ${primaryDomain}`;
+    } else if (primaryIp) {
+      title = `Campaign Cluster: Shared IP ${primaryIp}`;
+    } else if (primaryUrl) {
+      title = `Campaign Cluster: Payload ${primaryUrl}`;
+    }
+
+    const clusterId = `CMP-${String(clusterCounter).padStart(3, '0')}`;
+    clusterCounter++;
+
+    rawClusters.push({
+      id: clusterId,
+      title,
+      caseCount: clusterCases.length,
+      highestSeverity,
+      highestRiskScore,
+      cases: clusterCases,
+      sharedIndicators,
+      reasons,
+      dateRange: {
+        earliest: earliestStr,
+        latest: latestStr,
+      },
+      attributionCaveat: 'Cases linked by shared infrastructure or indicators. Shared infrastructure does not establish common actor attribution.',
+    });
+  });
+
+  return rawClusters;
+}
