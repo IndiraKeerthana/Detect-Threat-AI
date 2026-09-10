@@ -85,8 +85,23 @@ def build_investigation_context(
     threat_intelligence: ThreatIntelligence,
     investigation: InvestigationAnalysis,
 ) -> dict[str, Any]:
-    """Build a bounded context from parsed, Step 5, and Step 6 models only."""
-    del email  # The route passes the parsed model for API symmetry; no raw body is used.
+    body_raw = getattr(email, "body_text", None) or getattr(email, "body_html", None) or ""
+    email_content = {
+        "subject": getattr(email, "subject", None),
+        "from": getattr(email, "from_", None),
+        "to": getattr(email, "to", None),
+        "reply_to": getattr(email, "reply_to", None),
+        "return_path": getattr(email, "return_path", None),
+        "body_preview": _safe_value(body_raw[:1500]) if body_raw else None,
+        "attachment_files": [
+            {
+                "filename": getattr(a, "filename", None),
+                "content_type": getattr(a, "content_type", ""),
+                "size": getattr(a, "size", 0),
+            }
+            for a in (getattr(email, "attachments", None) or [])
+        ],
+    }
     entities: list[dict[str, Any]] = []
 
     def add_entity(entity_type: str, value: str | None, sources: list[str] | None = None) -> None:
@@ -133,6 +148,7 @@ def build_investigation_context(
             )
         )
     compact = {
+        "email_content": email_content,
         "risk_level": investigation.risk_assessment.level,
         "classification": investigation.risk_assessment.classification,
         "confidence": investigation.risk_assessment.confidence.level,
@@ -785,6 +801,7 @@ def run_ai_investigation(
     enabled = bool(getattr(settings, "ai_agent_enabled", False))
     deterministic = _fallback(investigation)
     if not enabled:
+        logger.info("AI investigation agent is disabled (AI_AGENT_ENABLED=false). Using deterministic fallback.")
         return deterministic
     try:
         context = build_investigation_context(email, security_analysis, threat_intelligence, investigation)
@@ -793,6 +810,9 @@ def run_ai_investigation(
             or getattr(settings, "groq_api_key", None)
             or getattr(settings, "ai_api_key", None)
         )
+        if not api_key and provider is None:
+            logger.warning("AI investigation agent enabled but API key (GROQ_API_KEY / AI_API_KEY) is missing. Using deterministic fallback.")
+            return deterministic
         selected = provider or create_provider(
             str(getattr(settings, "ai_provider", "groq")),
             api_key=api_key,

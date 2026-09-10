@@ -37,7 +37,7 @@ class ProviderTimeout(ProviderError):
 TRANSIENT_HTTP_CODES = {408, 429, 500, 502, 503, 504}
 AUTH_HTTP_CODES = {401, 403}
 
-# Reduced from 3 to 1 to avoid long delays caused by repeated retries.
+# Single attempt per candidate model before evaluating fallbacks.
 MAX_RETRIES_PER_MODEL = 1
 
 DEFAULT_MAX_RETRY_DELAY = 5.0
@@ -362,7 +362,7 @@ class OpenAICompatibleProvider:
                 "max_completion_tokens" not in payload
                 and "max_tokens" not in payload
             ):
-                payload["max_completion_tokens"] = 700
+                payload["max_completion_tokens"] = 950
 
             request = Request(
                 self.endpoint,
@@ -530,16 +530,11 @@ class OpenAICompatibleProvider:
                     # ------------------------------------------------
 
                     if exc.code == 429:
-
                         logger.warning(
-                            "AI provider rate limited "
-                            "model=%s; moving to fallback "
-                            "without retry. body=%s",
-
+                            "AI provider rate limited model=%s; moving to fallback without retry. body=%s",
                             model_name,
                             err_body[:300],
                         )
-
                         break
 
                     # Other transient errors can be retried.
@@ -659,7 +654,7 @@ class OpenAICompatibleProvider:
         tools: list[dict[str, Any]] | None = None,
         *,
         temperature: float = 0,
-        max_tokens: int = 700,
+        max_tokens: int = 950,
     ) -> dict[str, Any]:
         """
         Execute one bounded chat step with native
@@ -695,7 +690,7 @@ class OpenAICompatibleProvider:
         messages: list[dict[str, Any]],
         *,
         system_prompt: str | None = None,
-        max_tokens: int = 700,
+        max_tokens: int = 950,
     ) -> dict[str, Any]:
         """
         Request the final structured JSON investigation
