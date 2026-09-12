@@ -1,0 +1,5241 @@
+{
+  "caseId": "CASE-2026-6599",
+  "from": "Finance Operations <finance-ops@apex-innovations.example>",
+  "to": "Accounts Payable <accounts.payable@enterprise-finance.example>",
+  "cc": "Treasury Operations <treasury-review@enterprise-finance.example>",
+  "bcc": null,
+  "subject": "Urgent: Vendor Banking Details Update Required Before Today's Payment Run",
+  "date": "Fri, 11 Sep 2026 14:22:18 +0000",
+  "message_id": "<20260911142218.42F891B@mail-relay-gw42.example-net.test>",
+  "reply_to": "finance-ops@apex-innovations.example",
+  "return_path": "bounce-handler@mail-relay-gw42.example-net.test",
+  "mime_version": "1.0",
+  "content_type": "multipart/mixed; boundary=\"----=_Part_99182_748291\"",
+  "received": [
+    "from mx1.enterprise-finance.example (mx1.enterprise-finance.example [10.20.1.10]) by mail.enterprise-finance.example with ESMTP id 8xK44p for <accounts.payable@enterprise-finance.example>; Fri, 11 Sep 2026 14:22:30 +0000",
+    "from mail-relay-gw42.example-net.test (mail-relay-gw42.example-net.test [198.51.100.25]) by mx1.enterprise-finance.example with ESMTP id 2pL899; Fri, 11 Sep 2026 14:22:25 +0000",
+    "from client-portal.internal-outpost.net (client-portal.internal-outpost.net [198.51.100.42]) by mail-relay-gw42.example-net.test with ESMTP id 5mN011; Fri, 11 Sep 2026 14:22:18 +0000"
+  ],
+  "body_text": "Dear Accounts Payable and Finance Operations Team,\n\nWe are writing to formally notify your department regarding an essential administrative modification to our corporate remittance and settlement profile prior to today's scheduled afternoon payment run.\n\nOur enterprise treasury committee has finalized the consolidation of commercial receiving accounts under our primary banking partner. Consequently, the existing disbursement routing instructions currently registered on file for Apex Innovations Corp should be updated promptly to ensure timely reconciliation of outstanding invoice settlements. Specifically, disbursement voucher reference INV-2026-88421 in the amount of $148,250.00 is queued for release during today's 4:00 PM EST automated clearing settlement window.\n\nTo prevent any transactional hold, payment rejection, or processing delays by the intermediary clearing house, we request that your disbursement officer review the updated corporate bank details and complete the settlement confirmation before the 3:30 PM EST window today.\n\nPlease access our vendor verification portal via the direct link below:\nhttps://198.51.100.42/vendor-verification/portal\n\nAdditionally, please note our standard vendor policy documentation and transaction guidance can be cross-referenced at:\nhttps://billing-update.example-test.invalid/verify\n\nIMPORTANT PROCEDURAL NOTICE:\nDue to ongoing annual audit protocol synchronization between our respective finance divisions, please handle this settlement instruction directly through the verification portal rather than routing general queries through our customer support switchboard. Standard electronic notifications will confirm once your verified profile update is acknowledged by our treasury desk.\n\nA formal signed copy of the updated banking authorization letter, detailing the new domestic routing and international IBAN instructions, has been attached to this transmission for your accounting records (Vendor_Bank_Details_Update.pdf).\n\nSummary of Pending Disbursement:\n- Vendor Account: Apex Innovations Commercial Division\n- Invoice Identifier: INV-2026-88421\n- Pending Amount: $148,250.00 USD\n- Processing Cutoff: Today, 3:30 PM EST\n- Primary Action Required: Confirm new bank details through the vendor portal link\n\nWe appreciate your prompt collaboration in expediting this update and ensuring our accounts remain current without operational disruption.\n\nSincerely,\n\nFinance Operations & Treasury Group\nApex Innovations Commercial Services\nDirect Settlement Line: +1 (555) 019-4822\nSettlement Desk: vendor-settlements@apex-partners-portal.example\n",
+  "body_html": "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<style>\nbody { font-family: Arial, sans-serif; line-height: 1.6; color: #222; }\n.notice-box { border-left: 4px solid #d97706; padding: 12px 16px; background-color: #fffbeb; margin: 16px 0; }\n.button { display: inline-block; padding: 10px 20px; background-color: #0284c7; color: #ffffff !important; text-decoration: none; border-radius: 4px; font-weight: bold; margin: 12px 0; }\n.summary-table { width: 100%; border-collapse: collapse; margin: 16px 0; }\n.summary-table th, .summary-table td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }\n.summary-table th { background-color: #f8fafc; }\n</style>\n</head>\n<body>\n<p>Dear Accounts Payable and Finance Operations Team,</p>\n\n<p>We are writing to formally notify your department regarding an essential administrative modification to our corporate remittance and settlement profile prior to today's scheduled afternoon payment run.</p>\n\n<p>Our enterprise treasury committee has finalized the consolidation of commercial receiving accounts under our primary banking partner. Consequently, the existing disbursement routing instructions currently registered on file for Apex Innovations Corp should be updated promptly to ensure timely reconciliation of outstanding invoice settlements. Specifically, disbursement voucher reference <strong>INV-2026-88421</strong> in the amount of <strong>$148,250.00</strong> is queued for release during today's 4:00 PM EST automated clearing settlement window.</p>\n\n<div class=\"notice-box\">\n<strong>Action Required:</strong> To prevent any transactional hold, payment rejection, or processing delays by the intermediary clearing house, we request that your disbursement officer review the updated corporate bank details and complete the settlement confirmation before the <strong>3:30 PM EST cutoff</strong> today.\n</div>\n\n<p>Please review updated banking details and complete authorization via our vendor portal:</p>\n<p><a href=\"https://198.51.100.42/vendor-verification/portal\" class=\"button\">Review Updated Banking Details &amp; Confirm</a></p>\n\n<p>For standard audit cross-referencing, our corporate remittance policy is accessible at: <a href=\"https://billing-update.example-test.invalid/verify\">https://billing-update.example-test.invalid/verify</a></p>\n\n<table class=\"summary-table\">\n  <tr><th>Vendor Account</th><td>Apex Innovations Commercial Division</td></tr>\n  <tr><th>Invoice Identifier</th><td>INV-2026-88421</td></tr>\n  <tr><th>Pending Amount</th><td>$148,250.00 USD</td></tr>\n  <tr><th>Processing Cutoff</th><td>Today, 3:30 PM EST</td></tr>\n  <tr><th>Primary Action Required</th><td>Confirm new bank details via secure portal</td></tr>\n</table>\n\n<p><em>Procedural Notice:</em> Due to ongoing annual audit protocol synchronization, please handle this settlement instruction directly through the portal to avoid disbursement delays.</p>\n\n<p>A formal signed copy of the updated banking authorization letter has been attached for your records (<code>Vendor_Bank_Details_Update.pdf</code>).</p>\n\n<p>Sincerely,<br>\n<strong>Finance Operations &amp; Treasury Group</strong><br>\nApex Innovations Commercial Services<br>\nSettlement Desk: vendor-settlements@apex-partners-portal.example</p>\n</body>\n</html>\n",
+  "attachments": [
+    {
+      "filename": "Vendor_Bank_Details_Update.pdf",
+      "content_type": "application/pdf",
+      "size": 604
+    }
+  ],
+  "relay_analysis": {
+    "relay_hops": [
+      {
+        "hop_number": 3,
+        "original_header": "from client-portal.internal-outpost.net (client-portal.internal-outpost.net [198.51.100.42]) by mail-relay-gw42.example-net.test with ESMTP id 5mN011; Fri, 11 Sep 2026 14:22:18 +0000",
+        "hostnames": [
+          "client-portal.internal-outpost.net",
+          "mail-relay-gw42.example-net.test"
+        ],
+        "extracted_ips": [
+          {
+            "address": "198.51.100.42",
+            "version": 4,
+            "classification": "documentation_or_test",
+            "is_public_source_candidate": false,
+            "hop_number": 3
+          }
+        ]
+      },
+      {
+        "hop_number": 2,
+        "original_header": "from mail-relay-gw42.example-net.test (mail-relay-gw42.example-net.test [198.51.100.25]) by mx1.enterprise-finance.example with ESMTP id 2pL899; Fri, 11 Sep 2026 14:22:25 +0000",
+        "hostnames": [
+          "mail-relay-gw42.example-net.test",
+          "mx1.enterprise-finance.example"
+        ],
+        "extracted_ips": [
+          {
+            "address": "198.51.100.25",
+            "version": 4,
+            "classification": "documentation_or_test",
+            "is_public_source_candidate": false,
+            "hop_number": 2
+          }
+        ]
+      },
+      {
+        "hop_number": 1,
+        "original_header": "from mx1.enterprise-finance.example (mx1.enterprise-finance.example [10.20.1.10]) by mail.enterprise-finance.example with ESMTP id 8xK44p for <accounts.payable@enterprise-finance.example>; Fri, 11 Sep 2026 14:22:30 +0000",
+        "hostnames": [
+          "mx1.enterprise-finance.example",
+          "mail.enterprise-finance.example"
+        ],
+        "extracted_ips": [
+          {
+            "address": "10.20.1.10",
+            "version": 4,
+            "classification": "private",
+            "is_public_source_candidate": false,
+            "hop_number": 1
+          }
+        ]
+      }
+    ],
+    "extracted_ips": [
+      {
+        "address": "10.20.1.10",
+        "version": 4,
+        "classification": "private",
+        "is_public_source_candidate": false,
+        "hop_number": 1
+      },
+      {
+        "address": "198.51.100.25",
+        "version": 4,
+        "classification": "documentation_or_test",
+        "is_public_source_candidate": false,
+        "hop_number": 2
+      },
+      {
+        "address": "198.51.100.42",
+        "version": 4,
+        "classification": "documentation_or_test",
+        "is_public_source_candidate": false,
+        "hop_number": 3
+      }
+    ],
+    "probable_source_infrastructure": {
+      "address": null,
+      "confidence": "none",
+      "reason": "No public source candidate remained after excluding private, loopback, link-local, reserved, and documentation/test ranges."
+    },
+    "metadata": {
+      "received_header_count": 3,
+      "input_header_order": "newest_first",
+      "reconstructed_order": "oldest_to_newest",
+      "source_selection_scope": "public IPs only; reserved and internal ranges excluded"
+    }
+  },
+  "security_analysis": {
+    "summary": "Detected 8 explainable security indicator(s); review the evidence before trusting this message.",
+    "indicators": [
+      {
+        "code": "spf_fail",
+        "category": "authentication",
+        "severity": "high",
+        "title": "SPF authentication fail",
+        "explanation": "The Authentication-Results header reports SPF=fail. This is a signal from the receiving mail system, not a new DNS or cryptographic check.",
+        "evidence": [
+          "spf=fail smtp.mailfrom=bounce-handler@mail-relay-gw42.example-net.test"
+        ]
+      },
+      {
+        "code": "content_urgent_action",
+        "category": "content",
+        "severity": "high",
+        "title": "Urgent Action",
+        "explanation": "The message uses urgency or a deadline to pressure the recipient into acting quickly.",
+        "evidence": [
+          "urgent"
+        ]
+      },
+      {
+        "code": "content_payment_request",
+        "category": "content",
+        "severity": "high",
+        "title": "Payment Request",
+        "explanation": "The message requests a transfer, invoice payment, gift card, or change to payment details.",
+        "evidence": [
+          "bank details",
+          "invoice",
+          "payment"
+        ]
+      },
+      {
+        "code": "content_callback_or_contact_change",
+        "category": "content",
+        "severity": "medium",
+        "title": "Callback Or Contact Change",
+        "explanation": "The message asks the recipient to use a new phone number, address, or reply channel.",
+        "evidence": [
+          "new bank details"
+        ]
+      },
+      {
+        "code": "url_ip_literal",
+        "category": "url",
+        "severity": "high",
+        "title": "Link uses an IP address",
+        "explanation": "The link points directly to an IP address instead of a named domain.",
+        "evidence": [
+          "https://198.51.100.42/vendor-verification/portal"
+        ]
+      },
+      {
+        "code": "url_sender_domain_mismatch",
+        "category": "identity",
+        "severity": "medium",
+        "title": "URL hostname differs from sender domain",
+        "explanation": "The message links to a hostname that is not the sender's domain or a subdomain of it.",
+        "evidence": [
+          "URL host: 198.51.100.42",
+          "Sender: apex-innovations.example"
+        ]
+      },
+      {
+        "code": "url_sender_domain_mismatch",
+        "category": "identity",
+        "severity": "medium",
+        "title": "URL hostname differs from sender domain",
+        "explanation": "The message links to a hostname that is not the sender's domain or a subdomain of it.",
+        "evidence": [
+          "URL host: billing-update.example-test.invalid",
+          "Sender: apex-innovations.example"
+        ]
+      },
+      {
+        "code": "return_path_mismatch",
+        "category": "identity",
+        "severity": "low",
+        "title": "Return-Path domain differs from sender",
+        "explanation": "The envelope return domain differs from the visible sender domain; this can be legitimate but is worth review.",
+        "evidence": [
+          "From: apex-innovations.example",
+          "Return-Path: mail-relay-gw42.example-net.test"
+        ]
+      }
+    ],
+    "authentication": {
+      "headers": [
+        "mx1.enterprise-finance.example; spf=fail smtp.mailfrom=bounce-handler@mail-relay-gw42.example-net.test; dkim=pass header.i=@apex-innovations.example header.s=selector1; dmarc=none (p=none dis=none) header.from=apex-innovations.example"
+      ],
+      "authserv_ids": [
+        "mx1.enterprise-finance.example"
+      ],
+      "results": [
+        {
+          "method": "spf",
+          "result": "fail",
+          "domain": "bounce-handler@mail-relay-gw42.example-net.test",
+          "selector": null,
+          "identity": "bounce-handler@mail-relay-gw42.example-net.test",
+          "reason": null,
+          "properties": {
+            "spf": "fail",
+            "smtp.mailfrom": "bounce-handler@mail-relay-gw42.example-net.test"
+          },
+          "raw": "spf=fail smtp.mailfrom=bounce-handler@mail-relay-gw42.example-net.test"
+        },
+        {
+          "method": "dkim",
+          "result": "pass",
+          "domain": null,
+          "selector": "selector1",
+          "identity": null,
+          "reason": null,
+          "properties": {
+            "dkim": "pass",
+            "header.i": "@apex-innovations.example",
+            "header.s": "selector1"
+          },
+          "raw": "dkim=pass header.i=@apex-innovations.example header.s=selector1"
+        },
+        {
+          "method": "dmarc",
+          "result": "none",
+          "domain": "apex-innovations.example",
+          "selector": null,
+          "identity": "apex-innovations.example",
+          "reason": null,
+          "properties": {
+            "dmarc": "none",
+            "p": "none",
+            "dis": "none)",
+            "header.from": "apex-innovations.example"
+          },
+          "raw": "dmarc=none (p=none dis=none) header.from=apex-innovations.example"
+        }
+      ],
+      "spf": {
+        "method": "spf",
+        "result": "fail",
+        "domain": "bounce-handler@mail-relay-gw42.example-net.test",
+        "selector": null,
+        "identity": "bounce-handler@mail-relay-gw42.example-net.test",
+        "reason": null,
+        "properties": {
+          "spf": "fail",
+          "smtp.mailfrom": "bounce-handler@mail-relay-gw42.example-net.test"
+        },
+        "raw": "spf=fail smtp.mailfrom=bounce-handler@mail-relay-gw42.example-net.test"
+      },
+      "dkim": {
+        "method": "dkim",
+        "result": "pass",
+        "domain": null,
+        "selector": "selector1",
+        "identity": null,
+        "reason": null,
+        "properties": {
+          "dkim": "pass",
+          "header.i": "@apex-innovations.example",
+          "header.s": "selector1"
+        },
+        "raw": "dkim=pass header.i=@apex-innovations.example header.s=selector1"
+      },
+      "dmarc": {
+        "method": "dmarc",
+        "result": "none",
+        "domain": "apex-innovations.example",
+        "selector": null,
+        "identity": "apex-innovations.example",
+        "reason": null,
+        "properties": {
+          "dmarc": "none",
+          "p": "none",
+          "dis": "none)",
+          "header.from": "apex-innovations.example"
+        },
+        "raw": "dmarc=none (p=none dis=none) header.from=apex-innovations.example"
+      },
+      "from_domain": "apex-innovations.example",
+      "return_path_domain": "mail-relay-gw42.example-net.test",
+      "reply_to_domain": "apex-innovations.example",
+      "alignment_notes": [
+        "DMARC header.from domain was reported by Authentication-Results."
+      ]
+    },
+    "urls": {
+      "urls": [
+        {
+          "url": "https://198.51.100.42/vendor-verification/portal",
+          "normalized_url": "https://198.51.100.42/vendor-verification/portal",
+          "domain": "198.51.100.42",
+          "scheme": "https",
+          "port": null,
+          "path": "/vendor-verification/portal",
+          "has_query": false,
+          "is_https": true,
+          "associated_domain": "198.51.100.42",
+          "source": "body_text"
+        },
+        {
+          "url": "https://billing-update.example-test.invalid/verify",
+          "normalized_url": "https://billing-update.example-test.invalid/verify",
+          "domain": "billing-update.example-test.invalid",
+          "scheme": "https",
+          "port": null,
+          "path": "/verify",
+          "has_query": false,
+          "is_https": true,
+          "associated_domain": "billing-update.example-test.invalid",
+          "source": "body_text"
+        }
+      ],
+      "domains": [
+        {
+          "domain": "198.51.100.42",
+          "source": "body_text"
+        },
+        {
+          "domain": "billing-update.example-test.invalid",
+          "source": "body_text"
+        },
+        {
+          "domain": "apex-partners-portal.example",
+          "source": "body_text"
+        },
+        {
+          "domain": "mx1.enterprise-finance.example",
+          "source": "header"
+        },
+        {
+          "domain": "mail.enterprise-finance.example",
+          "source": "header"
+        },
+        {
+          "domain": "accounts.payable",
+          "source": "header"
+        },
+        {
+          "domain": "enterprise-finance.example",
+          "source": "header"
+        },
+        {
+          "domain": "mail-relay-gw42.example-net.test",
+          "source": "header"
+        },
+        {
+          "domain": "client-portal.internal-outpost.net",
+          "source": "header"
+        },
+        {
+          "domain": "apex-innovations.example",
+          "source": "header"
+        }
+      ]
+    },
+    "domains": [
+      {
+        "domain": "apex-innovations.example",
+        "source": "from"
+      },
+      {
+        "domain": "mail-relay-gw42.example-net.test",
+        "source": "return_path"
+      },
+      {
+        "domain": "mx1.enterprise-finance.example",
+        "source": "received"
+      },
+      {
+        "domain": "mail.enterprise-finance.example",
+        "source": "received"
+      },
+      {
+        "domain": "accounts.payable",
+        "source": "received"
+      },
+      {
+        "domain": "enterprise-finance.example",
+        "source": "received"
+      },
+      {
+        "domain": "client-portal.internal-outpost.net",
+        "source": "received"
+      },
+      {
+        "domain": "billing-update.example-test.invalid",
+        "source": "url"
+      }
+    ],
+    "content_signals": {
+      "signals": [
+        {
+          "code": "urgent_action",
+          "category": "social_engineering",
+          "severity": "high",
+          "explanation": "The message uses urgency or a deadline to pressure the recipient into acting quickly.",
+          "evidence": [
+            "urgent"
+          ]
+        },
+        {
+          "code": "payment_request",
+          "category": "bec",
+          "severity": "high",
+          "explanation": "The message requests a transfer, invoice payment, gift card, or change to payment details.",
+          "evidence": [
+            "bank details",
+            "invoice",
+            "payment"
+          ]
+        },
+        {
+          "code": "callback_or_contact_change",
+          "category": "bec",
+          "severity": "medium",
+          "explanation": "The message asks the recipient to use a new phone number, address, or reply channel.",
+          "evidence": [
+            "new bank details"
+          ]
+        }
+      ],
+      "normalized_text_length": 5285
+    }
+  },
+  "threat_intelligence": {
+    "entities": [
+      {
+        "type": "domain",
+        "value": "accounts.payable",
+        "sources": [
+          "header",
+          "received"
+        ]
+      },
+      {
+        "type": "domain",
+        "value": "apex-innovations.example",
+        "sources": [
+          "authentication",
+          "dmarc",
+          "from",
+          "header",
+          "reply_to"
+        ]
+      },
+      {
+        "type": "domain",
+        "value": "apex-partners-portal.example",
+        "sources": [
+          "body_text"
+        ]
+      },
+      {
+        "type": "domain",
+        "value": "billing-update.example-test.invalid",
+        "sources": [
+          "body_text",
+          "url"
+        ]
+      },
+      {
+        "type": "domain",
+        "value": "client-portal.internal-outpost.net",
+        "sources": [
+          "header",
+          "received"
+        ]
+      },
+      {
+        "type": "domain",
+        "value": "enterprise-finance.example",
+        "sources": [
+          "header",
+          "received"
+        ]
+      },
+      {
+        "type": "domain",
+        "value": "mail-relay-gw42.example-net.test",
+        "sources": [
+          "authentication",
+          "header",
+          "received",
+          "return_path"
+        ]
+      },
+      {
+        "type": "domain",
+        "value": "mail.enterprise-finance.example",
+        "sources": [
+          "header",
+          "received"
+        ]
+      },
+      {
+        "type": "domain",
+        "value": "mx1.enterprise-finance.example",
+        "sources": [
+          "header",
+          "received"
+        ]
+      },
+      {
+        "type": "ip",
+        "value": "10.20.1.10",
+        "sources": [
+          "received"
+        ]
+      },
+      {
+        "type": "ip",
+        "value": "198.51.100.25",
+        "sources": [
+          "received"
+        ]
+      },
+      {
+        "type": "ip",
+        "value": "198.51.100.42",
+        "sources": [
+          "received",
+          "url"
+        ]
+      },
+      {
+        "type": "url",
+        "value": "https://198.51.100.42/vendor-verification/portal",
+        "sources": [
+          "body_text"
+        ]
+      },
+      {
+        "type": "url",
+        "value": "https://billing-update.example-test.invalid/verify",
+        "sources": [
+          "body_text"
+        ]
+      }
+    ],
+    "observations": [
+      {
+        "provider": "local_ip_classification",
+        "entity_type": "ip",
+        "entity": "10.20.1.10",
+        "kind": "classification",
+        "status": "success",
+        "data": {
+          "address": "10.20.1.10",
+          "version": 4,
+          "classification": "private",
+          "is_public": false,
+          "is_public_source_candidate": false,
+          "enrichment_status": "skipped",
+          "enrichment_reason": "Non-public, private, loopback, link-local, multicast, reserved, or documentation IP."
+        },
+        "evidence": [
+          "10.20.1.10"
+        ],
+        "retrieved_at": "2026-09-12T14:08:17.635573+00:00",
+        "confidence": "high"
+      },
+      {
+        "provider": "local_ip_classification",
+        "entity_type": "ip",
+        "entity": "198.51.100.25",
+        "kind": "classification",
+        "status": "success",
+        "data": {
+          "address": "198.51.100.25",
+          "version": 4,
+          "classification": "documentation_or_test",
+          "is_public": false,
+          "is_public_source_candidate": false,
+          "enrichment_status": "skipped",
+          "enrichment_reason": "Non-public, private, loopback, link-local, multicast, reserved, or documentation IP."
+        },
+        "evidence": [
+          "198.51.100.25"
+        ],
+        "retrieved_at": "2026-09-12T14:08:17.635613+00:00",
+        "confidence": "high"
+      },
+      {
+        "provider": "local_ip_classification",
+        "entity_type": "ip",
+        "entity": "198.51.100.42",
+        "kind": "classification",
+        "status": "success",
+        "data": {
+          "address": "198.51.100.42",
+          "version": 4,
+          "classification": "documentation_or_test",
+          "is_public": false,
+          "is_public_source_candidate": false,
+          "enrichment_status": "skipped",
+          "enrichment_reason": "Non-public, private, loopback, link-local, multicast, reserved, or documentation IP."
+        },
+        "evidence": [
+          "198.51.100.42"
+        ],
+        "retrieved_at": "2026-09-12T14:08:17.635631+00:00",
+        "confidence": "high"
+      },
+      {
+        "provider": "virustotal",
+        "entity_type": "domain",
+        "entity": "client-portal.internal-outpost.net",
+        "kind": "reputation",
+        "status": "success",
+        "data": {
+          "last_analysis_stats": {
+            "malicious": 0,
+            "suspicious": 0,
+            "undetected": 89,
+            "harmless": 0,
+            "timeout": 0
+          },
+          "reputation": 0,
+          "last_analysis_date": 1789220791
+        },
+        "evidence": [
+          "client-portal.internal-outpost.net"
+        ],
+        "retrieved_at": "2026-09-12T14:08:18.618911+00:00",
+        "confidence": "high"
+      },
+      {
+        "provider": "dns",
+        "entity_type": "domain",
+        "entity": "accounts.payable",
+        "kind": "dns",
+        "status": "success",
+        "data": {
+          "addresses": [],
+          "a": [],
+          "aaaa": [],
+          "mx": [],
+          "ns": [],
+          "txt": [],
+          "spf": [],
+          "dmarc": [],
+          "record_errors": [
+            "A/AAAA"
+          ]
+        },
+        "evidence": [],
+        "retrieved_at": "2026-09-12T14:08:19.447443+00:00",
+        "confidence": "high"
+      },
+      {
+        "provider": "dns",
+        "entity_type": "domain",
+        "entity": "apex-innovations.example",
+        "kind": "dns",
+        "status": "success",
+        "data": {
+          "addresses": [],
+          "a": [],
+          "aaaa": [],
+          "mx": [],
+          "ns": [],
+          "txt": [],
+          "spf": [],
+          "dmarc": [],
+          "record_errors": [
+            "A/AAAA"
+          ]
+        },
+        "evidence": [],
+        "retrieved_at": "2026-09-12T14:08:19.464230+00:00",
+        "confidence": "high"
+      },
+      {
+        "provider": "dns",
+        "entity_type": "domain",
+        "entity": "apex-partners-portal.example",
+        "kind": "dns",
+        "status": "success",
+        "data": {
+          "addresses": [],
+          "a": [],
+          "aaaa": [],
+          "mx": [],
+          "ns": [],
+          "txt": [],
+          "spf": [],
+          "dmarc": [],
+          "record_errors": [
+            "A/AAAA"
+          ]
+        },
+        "evidence": [],
+        "retrieved_at": "2026-09-12T14:08:19.480838+00:00",
+        "confidence": "high"
+      },
+      {
+        "provider": "dns",
+        "entity_type": "domain",
+        "entity": "billing-update.example-test.invalid",
+        "kind": "dns",
+        "status": "success",
+        "data": {
+          "addresses": [],
+          "a": [],
+          "aaaa": [],
+          "mx": [],
+          "ns": [],
+          "txt": [],
+          "spf": [],
+          "dmarc": [],
+          "record_errors": [
+            "A/AAAA"
+          ]
+        },
+        "evidence": [],
+        "retrieved_at": "2026-09-12T14:08:19.497367+00:00",
+        "confidence": "high"
+      },
+      {
+        "provider": "dns",
+        "entity_type": "domain",
+        "entity": "client-portal.internal-outpost.net",
+        "kind": "dns",
+        "status": "success",
+        "data": {
+          "addresses": [],
+          "a": [],
+          "aaaa": [],
+          "mx": [],
+          "ns": [],
+          "txt": [],
+          "spf": [],
+          "dmarc": [],
+          "record_errors": [
+            "A/AAAA"
+          ]
+        },
+        "evidence": [],
+        "retrieved_at": "2026-09-12T14:08:19.539329+00:00",
+        "confidence": "high"
+      },
+      {
+        "provider": "dns",
+        "entity_type": "domain",
+        "entity": "enterprise-finance.example",
+        "kind": "dns",
+        "status": "success",
+        "data": {
+          "addresses": [],
+          "a": [],
+          "aaaa": [],
+          "mx": [],
+          "ns": [],
+          "txt": [],
+          "spf": [],
+          "dmarc": [],
+          "record_errors": [
+            "A/AAAA"
+          ]
+        },
+        "evidence": [],
+        "retrieved_at": "2026-09-12T14:08:19.556890+00:00",
+        "confidence": "high"
+      },
+      {
+        "provider": "dns",
+        "entity_type": "domain",
+        "entity": "mail-relay-gw42.example-net.test",
+        "kind": "dns",
+        "status": "success",
+        "data": {
+          "addresses": [],
+          "a": [],
+          "aaaa": [],
+          "mx": [],
+          "ns": [],
+          "txt": [],
+          "spf": [],
+          "dmarc": [],
+          "record_errors": [
+            "A/AAAA"
+          ]
+        },
+        "evidence": [],
+        "retrieved_at": "2026-09-12T14:08:19.575175+00:00",
+        "confidence": "high"
+      },
+      {
+        "provider": "dns",
+        "entity_type": "domain",
+        "entity": "mail.enterprise-finance.example",
+        "kind": "dns",
+        "status": "success",
+        "data": {
+          "addresses": [],
+          "a": [],
+          "aaaa": [],
+          "mx": [],
+          "ns": [],
+          "txt": [],
+          "spf": [],
+          "dmarc": [],
+          "record_errors": [
+            "A/AAAA"
+          ]
+        },
+        "evidence": [],
+        "retrieved_at": "2026-09-12T14:08:19.593370+00:00",
+        "confidence": "high"
+      },
+      {
+        "provider": "dns",
+        "entity_type": "domain",
+        "entity": "mx1.enterprise-finance.example",
+        "kind": "dns",
+        "status": "success",
+        "data": {
+          "addresses": [],
+          "a": [],
+          "aaaa": [],
+          "mx": [],
+          "ns": [],
+          "txt": [],
+          "spf": [],
+          "dmarc": [],
+          "record_errors": [
+            "A/AAAA"
+          ]
+        },
+        "evidence": [],
+        "retrieved_at": "2026-09-12T14:08:19.610394+00:00",
+        "confidence": "high"
+      }
+    ],
+    "relationships": [
+      {
+        "source_type": "url",
+        "source": "https://billing-update.example-test.invalid/verify",
+        "target_type": "domain",
+        "target": "billing-update.example-test.invalid",
+        "relationship": "hosted_by",
+        "providers": [
+          "local_correlation"
+        ]
+      }
+    ],
+    "provider_status": [
+      {
+        "provider": "local_ip_classification",
+        "configured": true,
+        "status": "available",
+        "checked": 3,
+        "message": null
+      },
+      {
+        "provider": "abuseipdb",
+        "configured": true,
+        "status": "available",
+        "checked": 9,
+        "message": null
+      },
+      {
+        "provider": "virustotal",
+        "configured": true,
+        "status": "degraded",
+        "checked": 9,
+        "message": "Some lookups failed"
+      },
+      {
+        "provider": "geolocation",
+        "configured": true,
+        "status": "available",
+        "checked": 0,
+        "message": null
+      },
+      {
+        "provider": "dns",
+        "configured": true,
+        "status": "available",
+        "checked": 9,
+        "message": "Some DNS record lookups failed"
+      },
+      {
+        "provider": "rdap",
+        "configured": true,
+        "status": "error",
+        "checked": 9,
+        "message": "Provider unavailable or returned invalid data"
+      }
+    ]
+  },
+  "correlations": [
+    {
+      "code": "auth_infrastructure_correlation",
+      "relationship": "authentication_context_has_infrastructure",
+      "explanation": "Authentication results are evaluated alongside observable infrastructure.",
+      "evidence": [
+        "dkim=pass",
+        "dmarc=none",
+        "spf=fail"
+      ],
+      "entities": [
+        "10.20.1.10",
+        "198.51.100.25",
+        "198.51.100.42",
+        "authentication"
+      ],
+      "confidence": "medium",
+      "sources": [
+        "authentication",
+        "structured_intelligence"
+      ]
+    },
+    {
+      "code": "content_callback_or_contact_change",
+      "relationship": "indicator_supported_by_evidence",
+      "explanation": "The message asks the recipient to use a new phone number, address, or reply channel.",
+      "evidence": [
+        "new bank details"
+      ],
+      "entities": [
+        "message"
+      ],
+      "confidence": "medium",
+      "sources": [
+        "security_analysis"
+      ]
+    },
+    {
+      "code": "content_payment_request",
+      "relationship": "indicator_supported_by_evidence",
+      "explanation": "The message requests a transfer, invoice payment, gift card, or change to payment details.",
+      "evidence": [
+        "bank details",
+        "invoice",
+        "payment"
+      ],
+      "entities": [
+        "message"
+      ],
+      "confidence": "high",
+      "sources": [
+        "security_analysis"
+      ]
+    },
+    {
+      "code": "content_urgent_action",
+      "relationship": "indicator_supported_by_evidence",
+      "explanation": "The message uses urgency or a deadline to pressure the recipient into acting quickly.",
+      "evidence": [
+        "urgent"
+      ],
+      "entities": [
+        "message"
+      ],
+      "confidence": "high",
+      "sources": [
+        "security_analysis"
+      ]
+    },
+    {
+      "code": "content_url_correlation",
+      "relationship": "content_signal_targets_url",
+      "explanation": "Content signals and extracted URLs occur in the same structured message evidence.",
+      "evidence": [
+        "callback_or_contact_change",
+        "https://198.51.100.42/vendor-verification/portal",
+        "https://billing-update.example-test.invalid/verify",
+        "payment_request",
+        "urgent_action"
+      ],
+      "entities": [
+        "content",
+        "https://198.51.100.42/vendor-verification/portal",
+        "https://billing-update.example-test.invalid/verify"
+      ],
+      "confidence": "medium",
+      "sources": [
+        "content_signals",
+        "url_extractor"
+      ]
+    },
+    {
+      "code": "domain_ip_correlation",
+      "relationship": "hosted_by",
+      "explanation": "Structured DNS or hosting evidence links a domain and an IP.",
+      "evidence": [
+        "billing-update.example-test.invalid",
+        "https://billing-update.example-test.invalid/verify"
+      ],
+      "entities": [
+        "billing-update.example-test.invalid",
+        "https://billing-update.example-test.invalid/verify"
+      ],
+      "confidence": "high",
+      "sources": [
+        "local_correlation"
+      ]
+    },
+    {
+      "code": "domain_reputation_correlation",
+      "relationship": "has_reputation_observation",
+      "explanation": "A provider supplied a reputation observation for the infrastructure.",
+      "evidence": [
+        "client-portal.internal-outpost.net"
+      ],
+      "entities": [
+        "client-portal.internal-outpost.net"
+      ],
+      "confidence": "high",
+      "sources": [
+        "virustotal"
+      ]
+    },
+    {
+      "code": "registration_dns_correlation",
+      "relationship": "has_registration_or_dns_observation",
+      "explanation": "A provider supplied registration or DNS evidence for the observable.",
+      "evidence": [
+        "accounts.payable",
+        "apex-innovations.example",
+        "apex-partners-portal.example",
+        "billing-update.example-test.invalid",
+        "client-portal.internal-outpost.net",
+        "enterprise-finance.example",
+        "mail-relay-gw42.example-net.test",
+        "mail.enterprise-finance.example",
+        "mx1.enterprise-finance.example"
+      ],
+      "entities": [
+        "accounts.payable",
+        "apex-innovations.example",
+        "apex-partners-portal.example",
+        "billing-update.example-test.invalid",
+        "client-portal.internal-outpost.net",
+        "enterprise-finance.example",
+        "mail-relay-gw42.example-net.test",
+        "mail.enterprise-finance.example",
+        "mx1.enterprise-finance.example"
+      ],
+      "confidence": "high",
+      "sources": [
+        "dns"
+      ]
+    },
+    {
+      "code": "return_path_mismatch",
+      "relationship": "indicator_supported_by_evidence",
+      "explanation": "The envelope return domain differs from the visible sender domain; this can be legitimate but is worth review.",
+      "evidence": [
+        "From: apex-innovations.example",
+        "Return-Path: mail-relay-gw42.example-net.test"
+      ],
+      "entities": [
+        "apex-innovations.example",
+        "mail-relay-gw42.example-net.test"
+      ],
+      "confidence": "low",
+      "sources": [
+        "security_analysis"
+      ]
+    },
+    {
+      "code": "sender_ip_correlation",
+      "relationship": "sender_domain_observed_from_ip",
+      "explanation": "The sender domain and a relay/source IP are present in the structured message evidence.",
+      "evidence": [
+        "10.20.1.10",
+        "198.51.100.25",
+        "198.51.100.42",
+        "apex-innovations.example"
+      ],
+      "entities": [
+        "10.20.1.10",
+        "198.51.100.25",
+        "198.51.100.42",
+        "apex-innovations.example"
+      ],
+      "confidence": "medium",
+      "sources": [
+        "from",
+        "received"
+      ]
+    },
+    {
+      "code": "sender_reply_correlation",
+      "relationship": "sender_reply_aligned",
+      "explanation": "Reply-To is aligned with the authenticated sender domain.",
+      "evidence": [
+        "apex-innovations.example"
+      ],
+      "entities": [
+        "apex-innovations.example"
+      ],
+      "confidence": "high",
+      "sources": [
+        "authentication",
+        "security_analysis"
+      ]
+    },
+    {
+      "code": "sender_return_correlation",
+      "relationship": "sender_return_mismatch",
+      "explanation": "Return-Path uses a different domain from the authenticated sender.",
+      "evidence": [
+        "apex-innovations.example",
+        "mail-relay-gw42.example-net.test"
+      ],
+      "entities": [
+        "apex-innovations.example",
+        "mail-relay-gw42.example-net.test"
+      ],
+      "confidence": "high",
+      "sources": [
+        "authentication",
+        "security_analysis"
+      ]
+    },
+    {
+      "code": "spf_fail",
+      "relationship": "indicator_supported_by_evidence",
+      "explanation": "The Authentication-Results header reports SPF=fail. This is a signal from the receiving mail system, not a new DNS or cryptographic check.",
+      "evidence": [
+        "spf=fail smtp.mailfrom=bounce-handler@mail-relay-gw42.example-net.test"
+      ],
+      "entities": [
+        "mail-relay-gw42.example-net.test"
+      ],
+      "confidence": "high",
+      "sources": [
+        "security_analysis"
+      ]
+    },
+    {
+      "code": "url_domain_correlation",
+      "relationship": "url_hosted_by_domain",
+      "explanation": "The extracted URL hostname matches a normalized domain observable.",
+      "evidence": [
+        "https://billing-update.example-test.invalid/verify",
+        "billing-update.example-test.invalid"
+      ],
+      "entities": [
+        "https://billing-update.example-test.invalid/verify",
+        "billing-update.example-test.invalid"
+      ],
+      "confidence": "high",
+      "sources": [
+        "local_correlation"
+      ]
+    },
+    {
+      "code": "url_ip_literal",
+      "relationship": "indicator_supported_by_evidence",
+      "explanation": "The link points directly to an IP address instead of a named domain.",
+      "evidence": [
+        "https://198.51.100.42/vendor-verification/portal"
+      ],
+      "entities": [
+        "198.51.100.42",
+        "https://198.51.100.42/vendor-verification/portal"
+      ],
+      "confidence": "high",
+      "sources": [
+        "security_analysis"
+      ]
+    },
+    {
+      "code": "url_sender_domain_mismatch",
+      "relationship": "indicator_supported_by_evidence",
+      "explanation": "The message links to a hostname that is not the sender's domain or a subdomain of it.",
+      "evidence": [
+        "Sender: apex-innovations.example",
+        "URL host: 198.51.100.42",
+        "URL host: billing-update.example-test.invalid"
+      ],
+      "entities": [
+        "198.51.100.42",
+        "apex-innovations.example",
+        "billing-update.example-test.invalid"
+      ],
+      "confidence": "medium",
+      "sources": [
+        "security_analysis"
+      ]
+    }
+  ],
+  "evidence_graph": {
+    "nodes": [
+      {
+        "id": "domain:accounts.payable",
+        "type": "domain",
+        "value": "accounts.payable",
+        "sources": [
+          "dns",
+          "header",
+          "received"
+        ],
+        "properties": {
+          "observable": true,
+          "provider": "dns",
+          "source": "dns",
+          "confidence": "high",
+          "observation_kind": "dns",
+          "observation_status": "success",
+          "addresses": "[]",
+          "mx": "[]",
+          "ns": "[]",
+          "txt": "[]",
+          "spf": "[]",
+          "dmarc": "[]",
+          "record_errors": "[\"A/AAAA\"]"
+        }
+      },
+      {
+        "id": "domain:apex-innovations.example",
+        "type": "domain",
+        "value": "apex-innovations.example",
+        "sources": [
+          "authentication",
+          "dmarc",
+          "dns",
+          "from",
+          "header",
+          "reply_to"
+        ],
+        "properties": {
+          "observable": true,
+          "identity_field": "dmarc",
+          "provider": "dns",
+          "source": "dns",
+          "confidence": "high",
+          "observation_kind": "dns",
+          "observation_status": "success",
+          "addresses": "[]",
+          "mx": "[]",
+          "ns": "[]",
+          "txt": "[]",
+          "spf": "[]",
+          "dmarc": "[]",
+          "record_errors": "[\"A/AAAA\"]"
+        }
+      },
+      {
+        "id": "domain:apex-partners-portal.example",
+        "type": "domain",
+        "value": "apex-partners-portal.example",
+        "sources": [
+          "body_text",
+          "dns"
+        ],
+        "properties": {
+          "observable": true,
+          "provider": "dns",
+          "source": "dns",
+          "confidence": "high",
+          "observation_kind": "dns",
+          "observation_status": "success",
+          "addresses": "[]",
+          "mx": "[]",
+          "ns": "[]",
+          "txt": "[]",
+          "spf": "[]",
+          "dmarc": "[]",
+          "record_errors": "[\"A/AAAA\"]"
+        }
+      },
+      {
+        "id": "domain:billing-update.example-test.invalid",
+        "type": "domain",
+        "value": "billing-update.example-test.invalid",
+        "sources": [
+          "body_text",
+          "dns",
+          "url"
+        ],
+        "properties": {
+          "observable": true,
+          "provider": "dns",
+          "source": "dns",
+          "confidence": "high",
+          "observation_kind": "dns",
+          "observation_status": "success",
+          "addresses": "[]",
+          "mx": "[]",
+          "ns": "[]",
+          "txt": "[]",
+          "spf": "[]",
+          "dmarc": "[]",
+          "record_errors": "[\"A/AAAA\"]"
+        }
+      },
+      {
+        "id": "domain:client-portal.internal-outpost.net",
+        "type": "domain",
+        "value": "client-portal.internal-outpost.net",
+        "sources": [
+          "dns",
+          "header",
+          "received",
+          "virustotal"
+        ],
+        "properties": {
+          "observable": true,
+          "provider": "dns",
+          "source": "dns",
+          "confidence": "high",
+          "observation_kind": "dns",
+          "observation_status": "success",
+          "last_analysis_stats": "{\"harmless\":0,\"malicious\":0,\"suspicious\":0,\"timeout\":0,\"undetected\":89}",
+          "reputation": 0,
+          "last_analysis_date": 1789220791,
+          "addresses": "[]",
+          "mx": "[]",
+          "ns": "[]",
+          "txt": "[]",
+          "spf": "[]",
+          "dmarc": "[]",
+          "record_errors": "[\"A/AAAA\"]"
+        }
+      },
+      {
+        "id": "domain:enterprise-finance.example",
+        "type": "domain",
+        "value": "enterprise-finance.example",
+        "sources": [
+          "dns",
+          "header",
+          "received"
+        ],
+        "properties": {
+          "observable": true,
+          "provider": "dns",
+          "source": "dns",
+          "confidence": "high",
+          "observation_kind": "dns",
+          "observation_status": "success",
+          "addresses": "[]",
+          "mx": "[]",
+          "ns": "[]",
+          "txt": "[]",
+          "spf": "[]",
+          "dmarc": "[]",
+          "record_errors": "[\"A/AAAA\"]"
+        }
+      },
+      {
+        "id": "domain:mail-relay-gw42.example-net.test",
+        "type": "domain",
+        "value": "mail-relay-gw42.example-net.test",
+        "sources": [
+          "authentication",
+          "dns",
+          "header",
+          "received",
+          "return_path"
+        ],
+        "properties": {
+          "observable": true,
+          "identity_field": "return_path",
+          "provider": "dns",
+          "source": "dns",
+          "confidence": "high",
+          "observation_kind": "dns",
+          "observation_status": "success",
+          "addresses": "[]",
+          "mx": "[]",
+          "ns": "[]",
+          "txt": "[]",
+          "spf": "[]",
+          "dmarc": "[]",
+          "record_errors": "[\"A/AAAA\"]"
+        }
+      },
+      {
+        "id": "domain:mail.enterprise-finance.example",
+        "type": "domain",
+        "value": "mail.enterprise-finance.example",
+        "sources": [
+          "dns",
+          "header",
+          "received"
+        ],
+        "properties": {
+          "observable": true,
+          "provider": "dns",
+          "source": "dns",
+          "confidence": "high",
+          "observation_kind": "dns",
+          "observation_status": "success",
+          "addresses": "[]",
+          "mx": "[]",
+          "ns": "[]",
+          "txt": "[]",
+          "spf": "[]",
+          "dmarc": "[]",
+          "record_errors": "[\"A/AAAA\"]"
+        }
+      },
+      {
+        "id": "domain:mx1.enterprise-finance.example",
+        "type": "domain",
+        "value": "mx1.enterprise-finance.example",
+        "sources": [
+          "dns",
+          "header",
+          "received"
+        ],
+        "properties": {
+          "observable": true,
+          "provider": "dns",
+          "source": "dns",
+          "confidence": "high",
+          "observation_kind": "dns",
+          "observation_status": "success",
+          "addresses": "[]",
+          "mx": "[]",
+          "ns": "[]",
+          "txt": "[]",
+          "spf": "[]",
+          "dmarc": "[]",
+          "record_errors": "[\"A/AAAA\"]"
+        }
+      },
+      {
+        "id": "email:message",
+        "type": "email",
+        "value": "message",
+        "sources": [
+          "structured_analysis"
+        ],
+        "properties": {
+          "kind": "analyzed_message"
+        }
+      },
+      {
+        "id": "identity:dmarc:apex-innovations.example",
+        "type": "identity",
+        "value": "dmarc:apex-innovations.example",
+        "sources": [
+          "dmarc"
+        ],
+        "properties": {
+          "field": "dmarc",
+          "domain": "apex-innovations.example"
+        }
+      },
+      {
+        "id": "identity:from:apex-innovations.example",
+        "type": "identity",
+        "value": "from:apex-innovations.example",
+        "sources": [
+          "from"
+        ],
+        "properties": {
+          "field": "from",
+          "domain": "apex-innovations.example"
+        }
+      },
+      {
+        "id": "identity:reply_to:apex-innovations.example",
+        "type": "identity",
+        "value": "reply_to:apex-innovations.example",
+        "sources": [
+          "reply_to"
+        ],
+        "properties": {
+          "field": "reply_to",
+          "domain": "apex-innovations.example"
+        }
+      },
+      {
+        "id": "identity:return_path:mail-relay-gw42.example-net.test",
+        "type": "identity",
+        "value": "return_path:mail-relay-gw42.example-net.test",
+        "sources": [
+          "return_path"
+        ],
+        "properties": {
+          "field": "return_path",
+          "domain": "mail-relay-gw42.example-net.test"
+        }
+      },
+      {
+        "id": "indicator:content_callback_or_contact_change",
+        "type": "indicator",
+        "value": "content_callback_or_contact_change",
+        "sources": [
+          "security_analysis"
+        ],
+        "properties": {}
+      },
+      {
+        "id": "indicator:content_payment_request",
+        "type": "indicator",
+        "value": "content_payment_request",
+        "sources": [
+          "security_analysis"
+        ],
+        "properties": {}
+      },
+      {
+        "id": "indicator:content_urgent_action",
+        "type": "indicator",
+        "value": "content_urgent_action",
+        "sources": [
+          "security_analysis"
+        ],
+        "properties": {}
+      },
+      {
+        "id": "indicator:return_path_mismatch",
+        "type": "indicator",
+        "value": "return_path_mismatch",
+        "sources": [
+          "security_analysis"
+        ],
+        "properties": {}
+      },
+      {
+        "id": "indicator:spf_fail",
+        "type": "indicator",
+        "value": "spf_fail",
+        "sources": [
+          "security_analysis"
+        ],
+        "properties": {}
+      },
+      {
+        "id": "indicator:url_ip_literal",
+        "type": "indicator",
+        "value": "url_ip_literal",
+        "sources": [
+          "security_analysis"
+        ],
+        "properties": {}
+      },
+      {
+        "id": "indicator:url_sender_domain_mismatch",
+        "type": "indicator",
+        "value": "url_sender_domain_mismatch",
+        "sources": [
+          "security_analysis"
+        ],
+        "properties": {}
+      },
+      {
+        "id": "ip:10.20.1.10",
+        "type": "ip",
+        "value": "10.20.1.10",
+        "sources": [
+          "local_ip_classification",
+          "received"
+        ],
+        "properties": {
+          "observable": true,
+          "provider": "local_ip_classification",
+          "source": "local_ip_classification",
+          "confidence": "high",
+          "observation_kind": "classification",
+          "observation_status": "success"
+        }
+      },
+      {
+        "id": "ip:198.51.100.25",
+        "type": "ip",
+        "value": "198.51.100.25",
+        "sources": [
+          "local_ip_classification",
+          "received"
+        ],
+        "properties": {
+          "observable": true,
+          "provider": "local_ip_classification",
+          "source": "local_ip_classification",
+          "confidence": "high",
+          "observation_kind": "classification",
+          "observation_status": "success"
+        }
+      },
+      {
+        "id": "ip:198.51.100.42",
+        "type": "ip",
+        "value": "198.51.100.42",
+        "sources": [
+          "body_text",
+          "local_ip_classification",
+          "received",
+          "url"
+        ],
+        "properties": {
+          "observable": true,
+          "provider": "local_ip_classification",
+          "source": "local_ip_classification",
+          "confidence": "high",
+          "observation_kind": "classification",
+          "observation_status": "success"
+        }
+      },
+      {
+        "id": "provider:dns:domain:accounts.payable:dns",
+        "type": "provider",
+        "value": "dns:domain:accounts.payable:dns",
+        "sources": [
+          "dns"
+        ],
+        "properties": {
+          "kind": "dns",
+          "status": "success"
+        }
+      },
+      {
+        "id": "provider:dns:domain:apex-innovations.example:dns",
+        "type": "provider",
+        "value": "dns:domain:apex-innovations.example:dns",
+        "sources": [
+          "dns"
+        ],
+        "properties": {
+          "kind": "dns",
+          "status": "success"
+        }
+      },
+      {
+        "id": "provider:dns:domain:apex-partners-portal.example:dns",
+        "type": "provider",
+        "value": "dns:domain:apex-partners-portal.example:dns",
+        "sources": [
+          "dns"
+        ],
+        "properties": {
+          "kind": "dns",
+          "status": "success"
+        }
+      },
+      {
+        "id": "provider:dns:domain:billing-update.example-test.invalid:dns",
+        "type": "provider",
+        "value": "dns:domain:billing-update.example-test.invalid:dns",
+        "sources": [
+          "dns"
+        ],
+        "properties": {
+          "kind": "dns",
+          "status": "success"
+        }
+      },
+      {
+        "id": "provider:dns:domain:client-portal.internal-outpost.net:dns",
+        "type": "provider",
+        "value": "dns:domain:client-portal.internal-outpost.net:dns",
+        "sources": [
+          "dns"
+        ],
+        "properties": {
+          "kind": "dns",
+          "status": "success"
+        }
+      },
+      {
+        "id": "provider:dns:domain:enterprise-finance.example:dns",
+        "type": "provider",
+        "value": "dns:domain:enterprise-finance.example:dns",
+        "sources": [
+          "dns"
+        ],
+        "properties": {
+          "kind": "dns",
+          "status": "success"
+        }
+      },
+      {
+        "id": "provider:dns:domain:mail-relay-gw42.example-net.test:dns",
+        "type": "provider",
+        "value": "dns:domain:mail-relay-gw42.example-net.test:dns",
+        "sources": [
+          "dns"
+        ],
+        "properties": {
+          "kind": "dns",
+          "status": "success"
+        }
+      },
+      {
+        "id": "provider:dns:domain:mail.enterprise-finance.example:dns",
+        "type": "provider",
+        "value": "dns:domain:mail.enterprise-finance.example:dns",
+        "sources": [
+          "dns"
+        ],
+        "properties": {
+          "kind": "dns",
+          "status": "success"
+        }
+      },
+      {
+        "id": "provider:dns:domain:mx1.enterprise-finance.example:dns",
+        "type": "provider",
+        "value": "dns:domain:mx1.enterprise-finance.example:dns",
+        "sources": [
+          "dns"
+        ],
+        "properties": {
+          "kind": "dns",
+          "status": "success"
+        }
+      },
+      {
+        "id": "provider:local_ip_classification:ip:10.20.1.10:classification",
+        "type": "provider",
+        "value": "local_ip_classification:ip:10.20.1.10:classification",
+        "sources": [
+          "local_ip_classification"
+        ],
+        "properties": {
+          "kind": "classification",
+          "status": "success"
+        }
+      },
+      {
+        "id": "provider:local_ip_classification:ip:198.51.100.25:classification",
+        "type": "provider",
+        "value": "local_ip_classification:ip:198.51.100.25:classification",
+        "sources": [
+          "local_ip_classification"
+        ],
+        "properties": {
+          "kind": "classification",
+          "status": "success"
+        }
+      },
+      {
+        "id": "provider:local_ip_classification:ip:198.51.100.42:classification",
+        "type": "provider",
+        "value": "local_ip_classification:ip:198.51.100.42:classification",
+        "sources": [
+          "local_ip_classification"
+        ],
+        "properties": {
+          "kind": "classification",
+          "status": "success"
+        }
+      },
+      {
+        "id": "provider:virustotal:domain:client-portal.internal-outpost.net:reputation",
+        "type": "provider",
+        "value": "virustotal:domain:client-portal.internal-outpost.net:reputation",
+        "sources": [
+          "virustotal"
+        ],
+        "properties": {
+          "kind": "reputation",
+          "status": "success"
+        }
+      },
+      {
+        "id": "url:https://198.51.100.42/vendor-verification/portal",
+        "type": "url",
+        "value": "https://198.51.100.42/vendor-verification/portal",
+        "sources": [
+          "body_text"
+        ],
+        "properties": {
+          "observable": true,
+          "scheme": "https",
+          "path": "/vendor-verification/portal",
+          "https": true
+        }
+      },
+      {
+        "id": "url:https://billing-update.example-test.invalid/verify",
+        "type": "url",
+        "value": "https://billing-update.example-test.invalid/verify",
+        "sources": [
+          "body_text"
+        ],
+        "properties": {
+          "observable": true,
+          "scheme": "https",
+          "path": "/verify",
+          "https": true
+        }
+      }
+    ],
+    "edges": [
+      {
+        "source": "domain:accounts.payable",
+        "target": "provider:dns:domain:accounts.payable:dns",
+        "relationship": "observed_by",
+        "providers": [
+          "dns"
+        ],
+        "evidence": [
+          "dns"
+        ],
+        "confidence": "high",
+        "properties": {
+          "kind": "dns"
+        }
+      },
+      {
+        "source": "domain:apex-innovations.example",
+        "target": "provider:dns:domain:apex-innovations.example:dns",
+        "relationship": "observed_by",
+        "providers": [
+          "dns"
+        ],
+        "evidence": [
+          "dns"
+        ],
+        "confidence": "high",
+        "properties": {
+          "kind": "dns"
+        }
+      },
+      {
+        "source": "domain:apex-partners-portal.example",
+        "target": "provider:dns:domain:apex-partners-portal.example:dns",
+        "relationship": "observed_by",
+        "providers": [
+          "dns"
+        ],
+        "evidence": [
+          "dns"
+        ],
+        "confidence": "high",
+        "properties": {
+          "kind": "dns"
+        }
+      },
+      {
+        "source": "domain:billing-update.example-test.invalid",
+        "target": "provider:dns:domain:billing-update.example-test.invalid:dns",
+        "relationship": "observed_by",
+        "providers": [
+          "dns"
+        ],
+        "evidence": [
+          "dns"
+        ],
+        "confidence": "high",
+        "properties": {
+          "kind": "dns"
+        }
+      },
+      {
+        "source": "domain:client-portal.internal-outpost.net",
+        "target": "provider:dns:domain:client-portal.internal-outpost.net:dns",
+        "relationship": "observed_by",
+        "providers": [
+          "dns"
+        ],
+        "evidence": [
+          "dns"
+        ],
+        "confidence": "high",
+        "properties": {
+          "kind": "dns"
+        }
+      },
+      {
+        "source": "domain:client-portal.internal-outpost.net",
+        "target": "provider:virustotal:domain:client-portal.internal-outpost.net:reputation",
+        "relationship": "observed_by",
+        "providers": [
+          "virustotal"
+        ],
+        "evidence": [
+          "client-portal.internal-outpost.net"
+        ],
+        "confidence": "high",
+        "properties": {
+          "kind": "reputation"
+        }
+      },
+      {
+        "source": "domain:enterprise-finance.example",
+        "target": "provider:dns:domain:enterprise-finance.example:dns",
+        "relationship": "observed_by",
+        "providers": [
+          "dns"
+        ],
+        "evidence": [
+          "dns"
+        ],
+        "confidence": "high",
+        "properties": {
+          "kind": "dns"
+        }
+      },
+      {
+        "source": "domain:mail-relay-gw42.example-net.test",
+        "target": "provider:dns:domain:mail-relay-gw42.example-net.test:dns",
+        "relationship": "observed_by",
+        "providers": [
+          "dns"
+        ],
+        "evidence": [
+          "dns"
+        ],
+        "confidence": "high",
+        "properties": {
+          "kind": "dns"
+        }
+      },
+      {
+        "source": "domain:mail.enterprise-finance.example",
+        "target": "provider:dns:domain:mail.enterprise-finance.example:dns",
+        "relationship": "observed_by",
+        "providers": [
+          "dns"
+        ],
+        "evidence": [
+          "dns"
+        ],
+        "confidence": "high",
+        "properties": {
+          "kind": "dns"
+        }
+      },
+      {
+        "source": "domain:mx1.enterprise-finance.example",
+        "target": "provider:dns:domain:mx1.enterprise-finance.example:dns",
+        "relationship": "observed_by",
+        "providers": [
+          "dns"
+        ],
+        "evidence": [
+          "dns"
+        ],
+        "confidence": "high",
+        "properties": {
+          "kind": "dns"
+        }
+      },
+      {
+        "source": "email:message",
+        "target": "identity:dmarc:apex-innovations.example",
+        "relationship": "has_identity",
+        "providers": [
+          "dmarc"
+        ],
+        "evidence": [
+          "apex-innovations.example"
+        ],
+        "confidence": "high",
+        "properties": {
+          "field": "dmarc"
+        }
+      },
+      {
+        "source": "email:message",
+        "target": "identity:from:apex-innovations.example",
+        "relationship": "has_identity",
+        "providers": [
+          "from"
+        ],
+        "evidence": [
+          "apex-innovations.example"
+        ],
+        "confidence": "high",
+        "properties": {
+          "field": "from"
+        }
+      },
+      {
+        "source": "email:message",
+        "target": "identity:reply_to:apex-innovations.example",
+        "relationship": "has_identity",
+        "providers": [
+          "reply_to"
+        ],
+        "evidence": [
+          "apex-innovations.example"
+        ],
+        "confidence": "high",
+        "properties": {
+          "field": "reply_to"
+        }
+      },
+      {
+        "source": "email:message",
+        "target": "identity:return_path:mail-relay-gw42.example-net.test",
+        "relationship": "has_identity",
+        "providers": [
+          "return_path"
+        ],
+        "evidence": [
+          "mail-relay-gw42.example-net.test"
+        ],
+        "confidence": "high",
+        "properties": {
+          "field": "return_path"
+        }
+      },
+      {
+        "source": "identity:dmarc:apex-innovations.example",
+        "target": "domain:apex-innovations.example",
+        "relationship": "uses_domain",
+        "providers": [
+          "dmarc"
+        ],
+        "evidence": [
+          "apex-innovations.example"
+        ],
+        "confidence": "high",
+        "properties": {}
+      },
+      {
+        "source": "identity:from:apex-innovations.example",
+        "target": "domain:apex-innovations.example",
+        "relationship": "uses_domain",
+        "providers": [
+          "from"
+        ],
+        "evidence": [
+          "apex-innovations.example"
+        ],
+        "confidence": "high",
+        "properties": {}
+      },
+      {
+        "source": "identity:reply_to:apex-innovations.example",
+        "target": "domain:apex-innovations.example",
+        "relationship": "uses_domain",
+        "providers": [
+          "reply_to"
+        ],
+        "evidence": [
+          "apex-innovations.example"
+        ],
+        "confidence": "high",
+        "properties": {}
+      },
+      {
+        "source": "identity:return_path:mail-relay-gw42.example-net.test",
+        "target": "domain:mail-relay-gw42.example-net.test",
+        "relationship": "uses_domain",
+        "providers": [
+          "return_path"
+        ],
+        "evidence": [
+          "mail-relay-gw42.example-net.test"
+        ],
+        "confidence": "high",
+        "properties": {}
+      },
+      {
+        "source": "indicator:content_callback_or_contact_change",
+        "target": "email:message",
+        "relationship": "observed_in",
+        "providers": [
+          "security_analysis"
+        ],
+        "evidence": [
+          "new bank details"
+        ],
+        "confidence": "medium",
+        "properties": {}
+      },
+      {
+        "source": "indicator:content_payment_request",
+        "target": "email:message",
+        "relationship": "observed_in",
+        "providers": [
+          "security_analysis"
+        ],
+        "evidence": [
+          "bank details",
+          "invoice",
+          "payment"
+        ],
+        "confidence": "high",
+        "properties": {}
+      },
+      {
+        "source": "indicator:content_urgent_action",
+        "target": "email:message",
+        "relationship": "observed_in",
+        "providers": [
+          "security_analysis"
+        ],
+        "evidence": [
+          "urgent"
+        ],
+        "confidence": "high",
+        "properties": {}
+      },
+      {
+        "source": "indicator:return_path_mismatch",
+        "target": "domain:apex-innovations.example",
+        "relationship": "supported_by",
+        "providers": [
+          "security_analysis"
+        ],
+        "evidence": [
+          "From: apex-innovations.example",
+          "Return-Path: mail-relay-gw42.example-net.test"
+        ],
+        "confidence": "low",
+        "properties": {}
+      },
+      {
+        "source": "indicator:return_path_mismatch",
+        "target": "domain:mail-relay-gw42.example-net.test",
+        "relationship": "supported_by",
+        "providers": [
+          "security_analysis"
+        ],
+        "evidence": [
+          "From: apex-innovations.example",
+          "Return-Path: mail-relay-gw42.example-net.test"
+        ],
+        "confidence": "low",
+        "properties": {}
+      },
+      {
+        "source": "indicator:spf_fail",
+        "target": "domain:mail-relay-gw42.example-net.test",
+        "relationship": "supported_by",
+        "providers": [
+          "security_analysis"
+        ],
+        "evidence": [
+          "spf=fail smtp.mailfrom=bounce-handler@mail-relay-gw42.example-net.test"
+        ],
+        "confidence": "high",
+        "properties": {}
+      },
+      {
+        "source": "indicator:url_ip_literal",
+        "target": "ip:198.51.100.42",
+        "relationship": "supported_by",
+        "providers": [
+          "security_analysis"
+        ],
+        "evidence": [
+          "https://198.51.100.42/vendor-verification/portal"
+        ],
+        "confidence": "high",
+        "properties": {}
+      },
+      {
+        "source": "indicator:url_ip_literal",
+        "target": "url:https://198.51.100.42/vendor-verification/portal",
+        "relationship": "supported_by",
+        "providers": [
+          "security_analysis"
+        ],
+        "evidence": [
+          "https://198.51.100.42/vendor-verification/portal"
+        ],
+        "confidence": "high",
+        "properties": {}
+      },
+      {
+        "source": "indicator:url_sender_domain_mismatch",
+        "target": "domain:apex-innovations.example",
+        "relationship": "supported_by",
+        "providers": [
+          "security_analysis"
+        ],
+        "evidence": [
+          "Sender: apex-innovations.example",
+          "URL host: 198.51.100.42",
+          "URL host: billing-update.example-test.invalid"
+        ],
+        "confidence": "medium",
+        "properties": {}
+      },
+      {
+        "source": "indicator:url_sender_domain_mismatch",
+        "target": "domain:billing-update.example-test.invalid",
+        "relationship": "supported_by",
+        "providers": [
+          "security_analysis"
+        ],
+        "evidence": [
+          "Sender: apex-innovations.example",
+          "URL host: billing-update.example-test.invalid"
+        ],
+        "confidence": "medium",
+        "properties": {}
+      },
+      {
+        "source": "indicator:url_sender_domain_mismatch",
+        "target": "ip:198.51.100.42",
+        "relationship": "supported_by",
+        "providers": [
+          "security_analysis"
+        ],
+        "evidence": [
+          "Sender: apex-innovations.example",
+          "URL host: 198.51.100.42"
+        ],
+        "confidence": "medium",
+        "properties": {}
+      },
+      {
+        "source": "ip:10.20.1.10",
+        "target": "provider:local_ip_classification:ip:10.20.1.10:classification",
+        "relationship": "observed_by",
+        "providers": [
+          "local_ip_classification"
+        ],
+        "evidence": [
+          "10.20.1.10"
+        ],
+        "confidence": "high",
+        "properties": {
+          "kind": "classification"
+        }
+      },
+      {
+        "source": "ip:198.51.100.25",
+        "target": "provider:local_ip_classification:ip:198.51.100.25:classification",
+        "relationship": "observed_by",
+        "providers": [
+          "local_ip_classification"
+        ],
+        "evidence": [
+          "198.51.100.25"
+        ],
+        "confidence": "high",
+        "properties": {
+          "kind": "classification"
+        }
+      },
+      {
+        "source": "ip:198.51.100.42",
+        "target": "provider:local_ip_classification:ip:198.51.100.42:classification",
+        "relationship": "observed_by",
+        "providers": [
+          "local_ip_classification"
+        ],
+        "evidence": [
+          "198.51.100.42"
+        ],
+        "confidence": "high",
+        "properties": {
+          "kind": "classification"
+        }
+      },
+      {
+        "source": "url:https://198.51.100.42/vendor-verification/portal",
+        "target": "ip:198.51.100.42",
+        "relationship": "hosted_by",
+        "providers": [
+          "url_extractor"
+        ],
+        "evidence": [
+          "198.51.100.42",
+          "https://198.51.100.42/vendor-verification/portal"
+        ],
+        "confidence": "high",
+        "properties": {}
+      },
+      {
+        "source": "url:https://billing-update.example-test.invalid/verify",
+        "target": "domain:billing-update.example-test.invalid",
+        "relationship": "hosted_by",
+        "providers": [
+          "local_correlation",
+          "url_extractor"
+        ],
+        "evidence": [
+          "billing-update.example-test.invalid",
+          "https://billing-update.example-test.invalid/verify"
+        ],
+        "confidence": "high",
+        "properties": {}
+      }
+    ],
+    "correlations": [
+      {
+        "code": "auth_infrastructure_correlation",
+        "relationship": "authentication_context_has_infrastructure",
+        "explanation": "Authentication results are evaluated alongside observable infrastructure.",
+        "evidence": [
+          "dkim=pass",
+          "dmarc=none",
+          "spf=fail"
+        ],
+        "entities": [
+          "10.20.1.10",
+          "198.51.100.25",
+          "198.51.100.42",
+          "authentication"
+        ],
+        "confidence": "medium",
+        "sources": [
+          "authentication",
+          "structured_intelligence"
+        ]
+      },
+      {
+        "code": "content_callback_or_contact_change",
+        "relationship": "indicator_supported_by_evidence",
+        "explanation": "The message asks the recipient to use a new phone number, address, or reply channel.",
+        "evidence": [
+          "new bank details"
+        ],
+        "entities": [
+          "message"
+        ],
+        "confidence": "medium",
+        "sources": [
+          "security_analysis"
+        ]
+      },
+      {
+        "code": "content_payment_request",
+        "relationship": "indicator_supported_by_evidence",
+        "explanation": "The message requests a transfer, invoice payment, gift card, or change to payment details.",
+        "evidence": [
+          "bank details",
+          "invoice",
+          "payment"
+        ],
+        "entities": [
+          "message"
+        ],
+        "confidence": "high",
+        "sources": [
+          "security_analysis"
+        ]
+      },
+      {
+        "code": "content_urgent_action",
+        "relationship": "indicator_supported_by_evidence",
+        "explanation": "The message uses urgency or a deadline to pressure the recipient into acting quickly.",
+        "evidence": [
+          "urgent"
+        ],
+        "entities": [
+          "message"
+        ],
+        "confidence": "high",
+        "sources": [
+          "security_analysis"
+        ]
+      },
+      {
+        "code": "content_url_correlation",
+        "relationship": "content_signal_targets_url",
+        "explanation": "Content signals and extracted URLs occur in the same structured message evidence.",
+        "evidence": [
+          "callback_or_contact_change",
+          "https://198.51.100.42/vendor-verification/portal",
+          "https://billing-update.example-test.invalid/verify",
+          "payment_request",
+          "urgent_action"
+        ],
+        "entities": [
+          "content",
+          "https://198.51.100.42/vendor-verification/portal",
+          "https://billing-update.example-test.invalid/verify"
+        ],
+        "confidence": "medium",
+        "sources": [
+          "content_signals",
+          "url_extractor"
+        ]
+      },
+      {
+        "code": "domain_ip_correlation",
+        "relationship": "hosted_by",
+        "explanation": "Structured DNS or hosting evidence links a domain and an IP.",
+        "evidence": [
+          "billing-update.example-test.invalid",
+          "https://billing-update.example-test.invalid/verify"
+        ],
+        "entities": [
+          "billing-update.example-test.invalid",
+          "https://billing-update.example-test.invalid/verify"
+        ],
+        "confidence": "high",
+        "sources": [
+          "local_correlation"
+        ]
+      },
+      {
+        "code": "domain_reputation_correlation",
+        "relationship": "has_reputation_observation",
+        "explanation": "A provider supplied a reputation observation for the infrastructure.",
+        "evidence": [
+          "client-portal.internal-outpost.net"
+        ],
+        "entities": [
+          "client-portal.internal-outpost.net"
+        ],
+        "confidence": "high",
+        "sources": [
+          "virustotal"
+        ]
+      },
+      {
+        "code": "registration_dns_correlation",
+        "relationship": "has_registration_or_dns_observation",
+        "explanation": "A provider supplied registration or DNS evidence for the observable.",
+        "evidence": [
+          "accounts.payable",
+          "apex-innovations.example",
+          "apex-partners-portal.example",
+          "billing-update.example-test.invalid",
+          "client-portal.internal-outpost.net",
+          "enterprise-finance.example",
+          "mail-relay-gw42.example-net.test",
+          "mail.enterprise-finance.example",
+          "mx1.enterprise-finance.example"
+        ],
+        "entities": [
+          "accounts.payable",
+          "apex-innovations.example",
+          "apex-partners-portal.example",
+          "billing-update.example-test.invalid",
+          "client-portal.internal-outpost.net",
+          "enterprise-finance.example",
+          "mail-relay-gw42.example-net.test",
+          "mail.enterprise-finance.example",
+          "mx1.enterprise-finance.example"
+        ],
+        "confidence": "high",
+        "sources": [
+          "dns"
+        ]
+      },
+      {
+        "code": "return_path_mismatch",
+        "relationship": "indicator_supported_by_evidence",
+        "explanation": "The envelope return domain differs from the visible sender domain; this can be legitimate but is worth review.",
+        "evidence": [
+          "From: apex-innovations.example",
+          "Return-Path: mail-relay-gw42.example-net.test"
+        ],
+        "entities": [
+          "apex-innovations.example",
+          "mail-relay-gw42.example-net.test"
+        ],
+        "confidence": "low",
+        "sources": [
+          "security_analysis"
+        ]
+      },
+      {
+        "code": "sender_ip_correlation",
+        "relationship": "sender_domain_observed_from_ip",
+        "explanation": "The sender domain and a relay/source IP are present in the structured message evidence.",
+        "evidence": [
+          "10.20.1.10",
+          "198.51.100.25",
+          "198.51.100.42",
+          "apex-innovations.example"
+        ],
+        "entities": [
+          "10.20.1.10",
+          "198.51.100.25",
+          "198.51.100.42",
+          "apex-innovations.example"
+        ],
+        "confidence": "medium",
+        "sources": [
+          "from",
+          "received"
+        ]
+      },
+      {
+        "code": "sender_reply_correlation",
+        "relationship": "sender_reply_aligned",
+        "explanation": "Reply-To is aligned with the authenticated sender domain.",
+        "evidence": [
+          "apex-innovations.example"
+        ],
+        "entities": [
+          "apex-innovations.example"
+        ],
+        "confidence": "high",
+        "sources": [
+          "authentication",
+          "security_analysis"
+        ]
+      },
+      {
+        "code": "sender_return_correlation",
+        "relationship": "sender_return_mismatch",
+        "explanation": "Return-Path uses a different domain from the authenticated sender.",
+        "evidence": [
+          "apex-innovations.example",
+          "mail-relay-gw42.example-net.test"
+        ],
+        "entities": [
+          "apex-innovations.example",
+          "mail-relay-gw42.example-net.test"
+        ],
+        "confidence": "high",
+        "sources": [
+          "authentication",
+          "security_analysis"
+        ]
+      },
+      {
+        "code": "spf_fail",
+        "relationship": "indicator_supported_by_evidence",
+        "explanation": "The Authentication-Results header reports SPF=fail. This is a signal from the receiving mail system, not a new DNS or cryptographic check.",
+        "evidence": [
+          "spf=fail smtp.mailfrom=bounce-handler@mail-relay-gw42.example-net.test"
+        ],
+        "entities": [
+          "mail-relay-gw42.example-net.test"
+        ],
+        "confidence": "high",
+        "sources": [
+          "security_analysis"
+        ]
+      },
+      {
+        "code": "url_domain_correlation",
+        "relationship": "url_hosted_by_domain",
+        "explanation": "The extracted URL hostname matches a normalized domain observable.",
+        "evidence": [
+          "https://billing-update.example-test.invalid/verify",
+          "billing-update.example-test.invalid"
+        ],
+        "entities": [
+          "https://billing-update.example-test.invalid/verify",
+          "billing-update.example-test.invalid"
+        ],
+        "confidence": "high",
+        "sources": [
+          "local_correlation"
+        ]
+      },
+      {
+        "code": "url_ip_literal",
+        "relationship": "indicator_supported_by_evidence",
+        "explanation": "The link points directly to an IP address instead of a named domain.",
+        "evidence": [
+          "https://198.51.100.42/vendor-verification/portal"
+        ],
+        "entities": [
+          "198.51.100.42",
+          "https://198.51.100.42/vendor-verification/portal"
+        ],
+        "confidence": "high",
+        "sources": [
+          "security_analysis"
+        ]
+      },
+      {
+        "code": "url_sender_domain_mismatch",
+        "relationship": "indicator_supported_by_evidence",
+        "explanation": "The message links to a hostname that is not the sender's domain or a subdomain of it.",
+        "evidence": [
+          "Sender: apex-innovations.example",
+          "URL host: 198.51.100.42",
+          "URL host: billing-update.example-test.invalid"
+        ],
+        "entities": [
+          "198.51.100.42",
+          "apex-innovations.example",
+          "billing-update.example-test.invalid"
+        ],
+        "confidence": "medium",
+        "sources": [
+          "security_analysis"
+        ]
+      }
+    ]
+  },
+  "risk_assessment": {
+    "score": 82,
+    "level": "critical",
+    "classification": "mixed",
+    "threat_types": [
+      "phishing",
+      "bec"
+    ],
+    "factors": [
+      {
+        "code": "spf_fail",
+        "title": "SPF authentication fail",
+        "contribution": 20,
+        "severity": "high",
+        "explanation": "The Authentication-Results header reports SPF=fail. This is a signal from the receiving mail system, not a new DNS or cryptographic check.",
+        "evidence": [
+          "spf=fail smtp.mailfrom=bounce-handler@mail-relay-gw42.example-net.test"
+        ],
+        "source": "security_analysis",
+        "sources": [
+          "security_analysis"
+        ],
+        "category": "authentication"
+      },
+      {
+        "code": "content_urgent_action",
+        "title": "Urgent Action",
+        "contribution": 20,
+        "severity": "high",
+        "explanation": "The message uses urgency or a deadline to pressure the recipient into acting quickly.",
+        "evidence": [
+          "urgent"
+        ],
+        "source": "security_analysis",
+        "sources": [
+          "security_analysis"
+        ],
+        "category": "content"
+      },
+      {
+        "code": "content_payment_request",
+        "title": "Payment Request",
+        "contribution": 10,
+        "severity": "high",
+        "explanation": "The message requests a transfer, invoice payment, gift card, or change to payment details.",
+        "evidence": [
+          "bank details",
+          "invoice",
+          "payment"
+        ],
+        "source": "security_analysis",
+        "sources": [
+          "security_analysis"
+        ],
+        "category": "content"
+      },
+      {
+        "code": "url_ip_literal",
+        "title": "Link uses an IP address",
+        "contribution": 20,
+        "severity": "high",
+        "explanation": "The link points directly to an IP address instead of a named domain.",
+        "evidence": [
+          "https://198.51.100.42/vendor-verification/portal"
+        ],
+        "source": "security_analysis",
+        "sources": [
+          "security_analysis"
+        ],
+        "category": "url"
+      },
+      {
+        "code": "url_sender_domain_mismatch",
+        "title": "URL hostname differs from sender domain",
+        "contribution": 12,
+        "severity": "medium",
+        "explanation": "The message links to a hostname that is not the sender's domain or a subdomain of it.",
+        "evidence": [
+          "Sender: apex-innovations.example",
+          "URL host: 198.51.100.42",
+          "URL host: billing-update.example-test.invalid"
+        ],
+        "source": "security_analysis",
+        "sources": [
+          "security_analysis"
+        ],
+        "category": "identity"
+      },
+      {
+        "code": "return_path_mismatch",
+        "title": "Return-Path domain differs from sender",
+        "contribution": 6,
+        "severity": "low",
+        "explanation": "The envelope return domain differs from the visible sender domain; this can be legitimate but is worth review.",
+        "evidence": [
+          "From: apex-innovations.example",
+          "Return-Path: mail-relay-gw42.example-net.test"
+        ],
+        "source": "security_analysis",
+        "sources": [
+          "security_analysis"
+        ],
+        "category": "identity"
+      }
+    ],
+    "rationale": "Critical risk level (82/100) supported by: spf_fail, content_urgent_action, content_payment_request, url_ip_literal. Additional factors were bounded by category and score limits.",
+    "confidence": {
+      "level": "low",
+      "explanation": "Confidence reflects evidence quality and coverage, not the risk score.",
+      "evidence_count": 6,
+      "limitations": [
+        "One or more threat-intelligence providers failed; coverage is incomplete.",
+        "One or more threat-intelligence providers returned partial results; confidence is limited."
+      ],
+      "factors": [
+        {
+          "category": "authentication",
+          "level": "medium",
+          "explanation": "Parsed SPF, DKIM, and DMARC results provide authentication coverage.",
+          "evidence_count": 3,
+          "evidence": [
+            "dkim=pass",
+            "dmarc=none",
+            "spf=fail"
+          ],
+          "sources": [
+            "authentication"
+          ]
+        },
+        {
+          "category": "content",
+          "level": "medium",
+          "explanation": "Normalized content signals provide explainable content coverage.",
+          "evidence_count": 3,
+          "evidence": [
+            "callback_or_contact_change",
+            "payment_request",
+            "urgent_action"
+          ],
+          "sources": [
+            "content_signals"
+          ]
+        },
+        {
+          "category": "url",
+          "level": "medium",
+          "explanation": "Normalized URLs and metadata provide URL coverage.",
+          "evidence_count": 2,
+          "evidence": [
+            "https://198.51.100.42/vendor-verification/portal",
+            "https://billing-update.example-test.invalid/verify"
+          ],
+          "sources": [
+            "body_text"
+          ]
+        },
+        {
+          "category": "infrastructure",
+          "level": "medium",
+          "explanation": "Observable domains and IPs provide infrastructure coverage.",
+          "evidence_count": 12,
+          "evidence": [
+            "10.20.1.10",
+            "198.51.100.25",
+            "198.51.100.42",
+            "accounts.payable",
+            "apex-innovations.example",
+            "apex-partners-portal.example",
+            "billing-update.example-test.invalid",
+            "client-portal.internal-outpost.net",
+            "enterprise-finance.example",
+            "mail-relay-gw42.example-net.test",
+            "mail.enterprise-finance.example",
+            "mx1.enterprise-finance.example"
+          ],
+          "sources": [
+            "authentication",
+            "body_text",
+            "dmarc",
+            "from",
+            "header",
+            "received",
+            "reply_to",
+            "return_path",
+            "url"
+          ]
+        },
+        {
+          "category": "reputation",
+          "level": "high",
+          "explanation": "Provider reputation observations provide reputation coverage.",
+          "evidence_count": 1,
+          "evidence": [
+            "client-portal.internal-outpost.net"
+          ],
+          "sources": [
+            "virustotal"
+          ]
+        },
+        {
+          "category": "registration/DNS",
+          "level": "high",
+          "explanation": "Provider registration and DNS observations provide registration coverage.",
+          "evidence_count": 9,
+          "evidence": [
+            "accounts.payable",
+            "apex-innovations.example",
+            "apex-partners-portal.example",
+            "billing-update.example-test.invalid",
+            "client-portal.internal-outpost.net",
+            "enterprise-finance.example",
+            "mail-relay-gw42.example-net.test",
+            "mail.enterprise-finance.example",
+            "mx1.enterprise-finance.example"
+          ],
+          "sources": [
+            "dns"
+          ]
+        },
+        {
+          "category": "correlation",
+          "level": "medium",
+          "explanation": "Deduplicated structured relationships provide correlation coverage.",
+          "evidence_count": 16,
+          "evidence": [
+            "auth_infrastructure_correlation",
+            "content_callback_or_contact_change",
+            "content_payment_request",
+            "content_urgent_action",
+            "content_url_correlation",
+            "domain_ip_correlation",
+            "domain_reputation_correlation",
+            "registration_dns_correlation",
+            "return_path_mismatch",
+            "sender_ip_correlation",
+            "sender_reply_correlation",
+            "sender_return_correlation",
+            "spf_fail",
+            "url_domain_correlation",
+            "url_ip_literal",
+            "url_sender_domain_mismatch"
+          ],
+          "sources": [
+            "authentication",
+            "content_signals",
+            "dns",
+            "from",
+            "local_correlation",
+            "received",
+            "security_analysis",
+            "structured_intelligence",
+            "url_extractor",
+            "virustotal"
+          ]
+        }
+      ]
+    }
+  },
+  "confidence": {
+    "level": "low",
+    "explanation": "Confidence reflects evidence quality and coverage, not the risk score.",
+    "evidence_count": 6,
+    "limitations": [
+      "One or more threat-intelligence providers failed; coverage is incomplete.",
+      "One or more threat-intelligence providers returned partial results; confidence is limited."
+    ],
+    "factors": [
+      {
+        "category": "authentication",
+        "level": "medium",
+        "explanation": "Parsed SPF, DKIM, and DMARC results provide authentication coverage.",
+        "evidence_count": 3,
+        "evidence": [
+          "dkim=pass",
+          "dmarc=none",
+          "spf=fail"
+        ],
+        "sources": [
+          "authentication"
+        ]
+      },
+      {
+        "category": "content",
+        "level": "medium",
+        "explanation": "Normalized content signals provide explainable content coverage.",
+        "evidence_count": 3,
+        "evidence": [
+          "callback_or_contact_change",
+          "payment_request",
+          "urgent_action"
+        ],
+        "sources": [
+          "content_signals"
+        ]
+      },
+      {
+        "category": "url",
+        "level": "medium",
+        "explanation": "Normalized URLs and metadata provide URL coverage.",
+        "evidence_count": 2,
+        "evidence": [
+          "https://198.51.100.42/vendor-verification/portal",
+          "https://billing-update.example-test.invalid/verify"
+        ],
+        "sources": [
+          "body_text"
+        ]
+      },
+      {
+        "category": "infrastructure",
+        "level": "medium",
+        "explanation": "Observable domains and IPs provide infrastructure coverage.",
+        "evidence_count": 12,
+        "evidence": [
+          "10.20.1.10",
+          "198.51.100.25",
+          "198.51.100.42",
+          "accounts.payable",
+          "apex-innovations.example",
+          "apex-partners-portal.example",
+          "billing-update.example-test.invalid",
+          "client-portal.internal-outpost.net",
+          "enterprise-finance.example",
+          "mail-relay-gw42.example-net.test",
+          "mail.enterprise-finance.example",
+          "mx1.enterprise-finance.example"
+        ],
+        "sources": [
+          "authentication",
+          "body_text",
+          "dmarc",
+          "from",
+          "header",
+          "received",
+          "reply_to",
+          "return_path",
+          "url"
+        ]
+      },
+      {
+        "category": "reputation",
+        "level": "high",
+        "explanation": "Provider reputation observations provide reputation coverage.",
+        "evidence_count": 1,
+        "evidence": [
+          "client-portal.internal-outpost.net"
+        ],
+        "sources": [
+          "virustotal"
+        ]
+      },
+      {
+        "category": "registration/DNS",
+        "level": "high",
+        "explanation": "Provider registration and DNS observations provide registration coverage.",
+        "evidence_count": 9,
+        "evidence": [
+          "accounts.payable",
+          "apex-innovations.example",
+          "apex-partners-portal.example",
+          "billing-update.example-test.invalid",
+          "client-portal.internal-outpost.net",
+          "enterprise-finance.example",
+          "mail-relay-gw42.example-net.test",
+          "mail.enterprise-finance.example",
+          "mx1.enterprise-finance.example"
+        ],
+        "sources": [
+          "dns"
+        ]
+      },
+      {
+        "category": "correlation",
+        "level": "medium",
+        "explanation": "Deduplicated structured relationships provide correlation coverage.",
+        "evidence_count": 16,
+        "evidence": [
+          "auth_infrastructure_correlation",
+          "content_callback_or_contact_change",
+          "content_payment_request",
+          "content_urgent_action",
+          "content_url_correlation",
+          "domain_ip_correlation",
+          "domain_reputation_correlation",
+          "registration_dns_correlation",
+          "return_path_mismatch",
+          "sender_ip_correlation",
+          "sender_reply_correlation",
+          "sender_return_correlation",
+          "spf_fail",
+          "url_domain_correlation",
+          "url_ip_literal",
+          "url_sender_domain_mismatch"
+        ],
+        "sources": [
+          "authentication",
+          "content_signals",
+          "dns",
+          "from",
+          "local_correlation",
+          "received",
+          "security_analysis",
+          "structured_intelligence",
+          "url_extractor",
+          "virustotal"
+        ]
+      }
+    ]
+  },
+  "attribution": {
+    "status": "infrastructure_only",
+    "assessment": "Evidence links observables to infrastructure only; it does not attribute an actor.",
+    "confidence": "low",
+    "supporting_evidence": [
+      "accounts.payable",
+      "apex-innovations.example",
+      "apex-partners-portal.example",
+      "billing-update.example-test.invalid",
+      "client-portal.internal-outpost.net",
+      "enterprise-finance.example",
+      "mail-relay-gw42.example-net.test",
+      "mail.enterprise-finance.example",
+      "mx1.enterprise-finance.example",
+      "10.20.1.10",
+      "198.51.100.25",
+      "198.51.100.42",
+      "https://198.51.100.42/vendor-verification/portal",
+      "https://billing-update.example-test.invalid/verify"
+    ],
+    "limitations": [
+      "Observable infrastructure does not establish the identity of an actor, operator, or organization.",
+      "Relay headers and provider records can be incomplete, spoofed, stale, or shared.",
+      "Attribution coverage is further limited by provider failures: rdap."
+    ]
+  },
+  "attribution_limitations": [
+    "Observable infrastructure does not establish the identity of an actor, operator, or organization.",
+    "Relay headers and provider records can be incomplete, spoofed, stale, or shared.",
+    "Attribution coverage is further limited by provider failures: rdap."
+  ],
+  "recommended_actions": [
+    {
+      "code": "contain_message",
+      "priority": "urgent",
+      "action": "Quarantine or hold the message and verify the request out of band.",
+      "rationale": "The bounded risk assessment is high or critical.",
+      "evidence": [
+        "content_callback_or_contact_change",
+        "content_payment_request",
+        "content_urgent_action",
+        "return_path_mismatch",
+        "spf_fail",
+        "url_ip_literal",
+        "url_sender_domain_mismatch"
+      ],
+      "title": "Contain and verify the message",
+      "reason": "High-severity structured indicators require independent verification.",
+      "source": "risk_assessment"
+    },
+    {
+      "code": "inspect_identity_alignment",
+      "priority": "recommended",
+      "action": "Confirm From, Reply-To, Return-Path, and linked domains before trusting the message.",
+      "rationale": "Identity or sender-domain alignment evidence is inconsistent.",
+      "evidence": [
+        "return_path_mismatch",
+        "url_sender_domain_mismatch"
+      ],
+      "title": "Inspect identity alignment",
+      "reason": "Sender identity fields or linked domains are inconsistent.",
+      "source": "security_analysis"
+    },
+    {
+      "code": "do_not_treat_as_attribution",
+      "priority": "routine",
+      "action": "Treat infrastructure links as investigative leads, not proof of actor identity.",
+      "rationale": "Attribution is intentionally limited to observable infrastructure.",
+      "evidence": [
+        "accounts.payable",
+        "apex-innovations.example",
+        "apex-partners-portal.example",
+        "billing-update.example-test.invalid",
+        "client-portal.internal-outpost.net"
+      ],
+      "title": "Do not treat infrastructure as attribution",
+      "reason": "Infrastructure links are investigative leads, not proof of actor identity.",
+      "source": "correlation"
+    },
+    {
+      "code": "verify_authentication",
+      "priority": "recommended",
+      "action": "Validate authentication results with the sending domain administrator.",
+      "rationale": "One or more authentication methods failed.",
+      "evidence": [
+        "spf_fail"
+      ],
+      "title": "Validate authentication results",
+      "reason": "SPF, DKIM, or DMARC evidence is inconsistent or failed.",
+      "source": "authentication"
+    },
+    {
+      "code": "verify_content_request",
+      "priority": "recommended",
+      "action": "Confirm payment, credential, or secrecy requests through a trusted channel.",
+      "rationale": "Normalized content signals identify a potentially manipulative request.",
+      "evidence": [
+        "content_callback_or_contact_change",
+        "content_payment_request",
+        "content_urgent_action"
+      ],
+      "title": "Verify the request out of band",
+      "reason": "Content evidence indicates urgency, credential, payment, or secrecy language.",
+      "source": "content_signals"
+    },
+    {
+      "code": "investigate_suspicious_url",
+      "priority": "urgent",
+      "action": "Do not open the link; investigate the destination in a safe environment and verify it through a trusted channel.",
+      "rationale": "URL evidence indicates that a linked destination requires investigation before it is trusted.",
+      "evidence": [
+        "Sender: apex-innovations.example",
+        "URL host: 198.51.100.42",
+        "URL host: billing-update.example-test.invalid",
+        "https://198.51.100.42/vendor-verification/portal"
+      ],
+      "title": "Investigate suspicious URL",
+      "reason": "A suspicious URL indicator is supported by extracted message evidence.",
+      "source": "url_analysis"
+    },
+    {
+      "code": "verify_financial_request",
+      "priority": "urgent",
+      "action": "Verify financial requests and payment-detail changes with the sender using a known, independent contact method.",
+      "rationale": "Payment or financial-request evidence should be independently verified before any transfer or change.",
+      "evidence": [
+        "bank details",
+        "invoice",
+        "payment"
+      ],
+      "title": "Verify financial request",
+      "reason": "Content evidence indicates a financial or payment request.",
+      "source": "content_signals"
+    }
+  ],
+  "investigation_summary": {
+    "title": "Critical-risk message",
+    "summary": "Risk factors: spf_fail, content_urgent_action, content_payment_request, url_ip_literal, url_sender_domain_mismatch, return_path_mismatch. Evidence graph contains 34 supported relationship(s). Infrastructure links are investigative leads, not actor attribution.",
+    "risk_level": "critical",
+    "confidence": "low",
+    "key_findings": [
+      "Risk factors: spf_fail, content_urgent_action, content_payment_request, url_ip_literal, url_sender_domain_mismatch, return_path_mismatch.",
+      "Evidence graph contains 34 supported relationship(s).",
+      "Infrastructure links are investigative leads, not actor attribution."
+    ],
+    "limitations": [
+      "One or more threat-intelligence providers failed; coverage is incomplete.",
+      "One or more threat-intelligence providers returned partial results; confidence is limited.",
+      "Observable infrastructure does not establish the identity of an actor, operator, or organization.",
+      "Relay headers and provider records can be incomplete, spoofed, stale, or shared.",
+      "Attribution coverage is further limited by provider failures: rdap."
+    ],
+    "source": "deterministic"
+  },
+  "investigation": {
+    "correlations": [
+      {
+        "code": "auth_infrastructure_correlation",
+        "relationship": "authentication_context_has_infrastructure",
+        "explanation": "Authentication results are evaluated alongside observable infrastructure.",
+        "evidence": [
+          "dkim=pass",
+          "dmarc=none",
+          "spf=fail"
+        ],
+        "entities": [
+          "10.20.1.10",
+          "198.51.100.25",
+          "198.51.100.42",
+          "authentication"
+        ],
+        "confidence": "medium",
+        "sources": [
+          "authentication",
+          "structured_intelligence"
+        ]
+      },
+      {
+        "code": "content_callback_or_contact_change",
+        "relationship": "indicator_supported_by_evidence",
+        "explanation": "The message asks the recipient to use a new phone number, address, or reply channel.",
+        "evidence": [
+          "new bank details"
+        ],
+        "entities": [
+          "message"
+        ],
+        "confidence": "medium",
+        "sources": [
+          "security_analysis"
+        ]
+      },
+      {
+        "code": "content_payment_request",
+        "relationship": "indicator_supported_by_evidence",
+        "explanation": "The message requests a transfer, invoice payment, gift card, or change to payment details.",
+        "evidence": [
+          "bank details",
+          "invoice",
+          "payment"
+        ],
+        "entities": [
+          "message"
+        ],
+        "confidence": "high",
+        "sources": [
+          "security_analysis"
+        ]
+      },
+      {
+        "code": "content_urgent_action",
+        "relationship": "indicator_supported_by_evidence",
+        "explanation": "The message uses urgency or a deadline to pressure the recipient into acting quickly.",
+        "evidence": [
+          "urgent"
+        ],
+        "entities": [
+          "message"
+        ],
+        "confidence": "high",
+        "sources": [
+          "security_analysis"
+        ]
+      },
+      {
+        "code": "content_url_correlation",
+        "relationship": "content_signal_targets_url",
+        "explanation": "Content signals and extracted URLs occur in the same structured message evidence.",
+        "evidence": [
+          "callback_or_contact_change",
+          "https://198.51.100.42/vendor-verification/portal",
+          "https://billing-update.example-test.invalid/verify",
+          "payment_request",
+          "urgent_action"
+        ],
+        "entities": [
+          "content",
+          "https://198.51.100.42/vendor-verification/portal",
+          "https://billing-update.example-test.invalid/verify"
+        ],
+        "confidence": "medium",
+        "sources": [
+          "content_signals",
+          "url_extractor"
+        ]
+      },
+      {
+        "code": "domain_ip_correlation",
+        "relationship": "hosted_by",
+        "explanation": "Structured DNS or hosting evidence links a domain and an IP.",
+        "evidence": [
+          "billing-update.example-test.invalid",
+          "https://billing-update.example-test.invalid/verify"
+        ],
+        "entities": [
+          "billing-update.example-test.invalid",
+          "https://billing-update.example-test.invalid/verify"
+        ],
+        "confidence": "high",
+        "sources": [
+          "local_correlation"
+        ]
+      },
+      {
+        "code": "domain_reputation_correlation",
+        "relationship": "has_reputation_observation",
+        "explanation": "A provider supplied a reputation observation for the infrastructure.",
+        "evidence": [
+          "client-portal.internal-outpost.net"
+        ],
+        "entities": [
+          "client-portal.internal-outpost.net"
+        ],
+        "confidence": "high",
+        "sources": [
+          "virustotal"
+        ]
+      },
+      {
+        "code": "registration_dns_correlation",
+        "relationship": "has_registration_or_dns_observation",
+        "explanation": "A provider supplied registration or DNS evidence for the observable.",
+        "evidence": [
+          "accounts.payable",
+          "apex-innovations.example",
+          "apex-partners-portal.example",
+          "billing-update.example-test.invalid",
+          "client-portal.internal-outpost.net",
+          "enterprise-finance.example",
+          "mail-relay-gw42.example-net.test",
+          "mail.enterprise-finance.example",
+          "mx1.enterprise-finance.example"
+        ],
+        "entities": [
+          "accounts.payable",
+          "apex-innovations.example",
+          "apex-partners-portal.example",
+          "billing-update.example-test.invalid",
+          "client-portal.internal-outpost.net",
+          "enterprise-finance.example",
+          "mail-relay-gw42.example-net.test",
+          "mail.enterprise-finance.example",
+          "mx1.enterprise-finance.example"
+        ],
+        "confidence": "high",
+        "sources": [
+          "dns"
+        ]
+      },
+      {
+        "code": "return_path_mismatch",
+        "relationship": "indicator_supported_by_evidence",
+        "explanation": "The envelope return domain differs from the visible sender domain; this can be legitimate but is worth review.",
+        "evidence": [
+          "From: apex-innovations.example",
+          "Return-Path: mail-relay-gw42.example-net.test"
+        ],
+        "entities": [
+          "apex-innovations.example",
+          "mail-relay-gw42.example-net.test"
+        ],
+        "confidence": "low",
+        "sources": [
+          "security_analysis"
+        ]
+      },
+      {
+        "code": "sender_ip_correlation",
+        "relationship": "sender_domain_observed_from_ip",
+        "explanation": "The sender domain and a relay/source IP are present in the structured message evidence.",
+        "evidence": [
+          "10.20.1.10",
+          "198.51.100.25",
+          "198.51.100.42",
+          "apex-innovations.example"
+        ],
+        "entities": [
+          "10.20.1.10",
+          "198.51.100.25",
+          "198.51.100.42",
+          "apex-innovations.example"
+        ],
+        "confidence": "medium",
+        "sources": [
+          "from",
+          "received"
+        ]
+      },
+      {
+        "code": "sender_reply_correlation",
+        "relationship": "sender_reply_aligned",
+        "explanation": "Reply-To is aligned with the authenticated sender domain.",
+        "evidence": [
+          "apex-innovations.example"
+        ],
+        "entities": [
+          "apex-innovations.example"
+        ],
+        "confidence": "high",
+        "sources": [
+          "authentication",
+          "security_analysis"
+        ]
+      },
+      {
+        "code": "sender_return_correlation",
+        "relationship": "sender_return_mismatch",
+        "explanation": "Return-Path uses a different domain from the authenticated sender.",
+        "evidence": [
+          "apex-innovations.example",
+          "mail-relay-gw42.example-net.test"
+        ],
+        "entities": [
+          "apex-innovations.example",
+          "mail-relay-gw42.example-net.test"
+        ],
+        "confidence": "high",
+        "sources": [
+          "authentication",
+          "security_analysis"
+        ]
+      },
+      {
+        "code": "spf_fail",
+        "relationship": "indicator_supported_by_evidence",
+        "explanation": "The Authentication-Results header reports SPF=fail. This is a signal from the receiving mail system, not a new DNS or cryptographic check.",
+        "evidence": [
+          "spf=fail smtp.mailfrom=bounce-handler@mail-relay-gw42.example-net.test"
+        ],
+        "entities": [
+          "mail-relay-gw42.example-net.test"
+        ],
+        "confidence": "high",
+        "sources": [
+          "security_analysis"
+        ]
+      },
+      {
+        "code": "url_domain_correlation",
+        "relationship": "url_hosted_by_domain",
+        "explanation": "The extracted URL hostname matches a normalized domain observable.",
+        "evidence": [
+          "https://billing-update.example-test.invalid/verify",
+          "billing-update.example-test.invalid"
+        ],
+        "entities": [
+          "https://billing-update.example-test.invalid/verify",
+          "billing-update.example-test.invalid"
+        ],
+        "confidence": "high",
+        "sources": [
+          "local_correlation"
+        ]
+      },
+      {
+        "code": "url_ip_literal",
+        "relationship": "indicator_supported_by_evidence",
+        "explanation": "The link points directly to an IP address instead of a named domain.",
+        "evidence": [
+          "https://198.51.100.42/vendor-verification/portal"
+        ],
+        "entities": [
+          "198.51.100.42",
+          "https://198.51.100.42/vendor-verification/portal"
+        ],
+        "confidence": "high",
+        "sources": [
+          "security_analysis"
+        ]
+      },
+      {
+        "code": "url_sender_domain_mismatch",
+        "relationship": "indicator_supported_by_evidence",
+        "explanation": "The message links to a hostname that is not the sender's domain or a subdomain of it.",
+        "evidence": [
+          "Sender: apex-innovations.example",
+          "URL host: 198.51.100.42",
+          "URL host: billing-update.example-test.invalid"
+        ],
+        "entities": [
+          "198.51.100.42",
+          "apex-innovations.example",
+          "billing-update.example-test.invalid"
+        ],
+        "confidence": "medium",
+        "sources": [
+          "security_analysis"
+        ]
+      }
+    ],
+    "evidence_graph": {
+      "nodes": [
+        {
+          "id": "domain:accounts.payable",
+          "type": "domain",
+          "value": "accounts.payable",
+          "sources": [
+            "dns",
+            "header",
+            "received"
+          ],
+          "properties": {
+            "observable": true,
+            "provider": "dns",
+            "source": "dns",
+            "confidence": "high",
+            "observation_kind": "dns",
+            "observation_status": "success",
+            "addresses": "[]",
+            "mx": "[]",
+            "ns": "[]",
+            "txt": "[]",
+            "spf": "[]",
+            "dmarc": "[]",
+            "record_errors": "[\"A/AAAA\"]"
+          }
+        },
+        {
+          "id": "domain:apex-innovations.example",
+          "type": "domain",
+          "value": "apex-innovations.example",
+          "sources": [
+            "authentication",
+            "dmarc",
+            "dns",
+            "from",
+            "header",
+            "reply_to"
+          ],
+          "properties": {
+            "observable": true,
+            "identity_field": "dmarc",
+            "provider": "dns",
+            "source": "dns",
+            "confidence": "high",
+            "observation_kind": "dns",
+            "observation_status": "success",
+            "addresses": "[]",
+            "mx": "[]",
+            "ns": "[]",
+            "txt": "[]",
+            "spf": "[]",
+            "dmarc": "[]",
+            "record_errors": "[\"A/AAAA\"]"
+          }
+        },
+        {
+          "id": "domain:apex-partners-portal.example",
+          "type": "domain",
+          "value": "apex-partners-portal.example",
+          "sources": [
+            "body_text",
+            "dns"
+          ],
+          "properties": {
+            "observable": true,
+            "provider": "dns",
+            "source": "dns",
+            "confidence": "high",
+            "observation_kind": "dns",
+            "observation_status": "success",
+            "addresses": "[]",
+            "mx": "[]",
+            "ns": "[]",
+            "txt": "[]",
+            "spf": "[]",
+            "dmarc": "[]",
+            "record_errors": "[\"A/AAAA\"]"
+          }
+        },
+        {
+          "id": "domain:billing-update.example-test.invalid",
+          "type": "domain",
+          "value": "billing-update.example-test.invalid",
+          "sources": [
+            "body_text",
+            "dns",
+            "url"
+          ],
+          "properties": {
+            "observable": true,
+            "provider": "dns",
+            "source": "dns",
+            "confidence": "high",
+            "observation_kind": "dns",
+            "observation_status": "success",
+            "addresses": "[]",
+            "mx": "[]",
+            "ns": "[]",
+            "txt": "[]",
+            "spf": "[]",
+            "dmarc": "[]",
+            "record_errors": "[\"A/AAAA\"]"
+          }
+        },
+        {
+          "id": "domain:client-portal.internal-outpost.net",
+          "type": "domain",
+          "value": "client-portal.internal-outpost.net",
+          "sources": [
+            "dns",
+            "header",
+            "received",
+            "virustotal"
+          ],
+          "properties": {
+            "observable": true,
+            "provider": "dns",
+            "source": "dns",
+            "confidence": "high",
+            "observation_kind": "dns",
+            "observation_status": "success",
+            "last_analysis_stats": "{\"harmless\":0,\"malicious\":0,\"suspicious\":0,\"timeout\":0,\"undetected\":89}",
+            "reputation": 0,
+            "last_analysis_date": 1789220791,
+            "addresses": "[]",
+            "mx": "[]",
+            "ns": "[]",
+            "txt": "[]",
+            "spf": "[]",
+            "dmarc": "[]",
+            "record_errors": "[\"A/AAAA\"]"
+          }
+        },
+        {
+          "id": "domain:enterprise-finance.example",
+          "type": "domain",
+          "value": "enterprise-finance.example",
+          "sources": [
+            "dns",
+            "header",
+            "received"
+          ],
+          "properties": {
+            "observable": true,
+            "provider": "dns",
+            "source": "dns",
+            "confidence": "high",
+            "observation_kind": "dns",
+            "observation_status": "success",
+            "addresses": "[]",
+            "mx": "[]",
+            "ns": "[]",
+            "txt": "[]",
+            "spf": "[]",
+            "dmarc": "[]",
+            "record_errors": "[\"A/AAAA\"]"
+          }
+        },
+        {
+          "id": "domain:mail-relay-gw42.example-net.test",
+          "type": "domain",
+          "value": "mail-relay-gw42.example-net.test",
+          "sources": [
+            "authentication",
+            "dns",
+            "header",
+            "received",
+            "return_path"
+          ],
+          "properties": {
+            "observable": true,
+            "identity_field": "return_path",
+            "provider": "dns",
+            "source": "dns",
+            "confidence": "high",
+            "observation_kind": "dns",
+            "observation_status": "success",
+            "addresses": "[]",
+            "mx": "[]",
+            "ns": "[]",
+            "txt": "[]",
+            "spf": "[]",
+            "dmarc": "[]",
+            "record_errors": "[\"A/AAAA\"]"
+          }
+        },
+        {
+          "id": "domain:mail.enterprise-finance.example",
+          "type": "domain",
+          "value": "mail.enterprise-finance.example",
+          "sources": [
+            "dns",
+            "header",
+            "received"
+          ],
+          "properties": {
+            "observable": true,
+            "provider": "dns",
+            "source": "dns",
+            "confidence": "high",
+            "observation_kind": "dns",
+            "observation_status": "success",
+            "addresses": "[]",
+            "mx": "[]",
+            "ns": "[]",
+            "txt": "[]",
+            "spf": "[]",
+            "dmarc": "[]",
+            "record_errors": "[\"A/AAAA\"]"
+          }
+        },
+        {
+          "id": "domain:mx1.enterprise-finance.example",
+          "type": "domain",
+          "value": "mx1.enterprise-finance.example",
+          "sources": [
+            "dns",
+            "header",
+            "received"
+          ],
+          "properties": {
+            "observable": true,
+            "provider": "dns",
+            "source": "dns",
+            "confidence": "high",
+            "observation_kind": "dns",
+            "observation_status": "success",
+            "addresses": "[]",
+            "mx": "[]",
+            "ns": "[]",
+            "txt": "[]",
+            "spf": "[]",
+            "dmarc": "[]",
+            "record_errors": "[\"A/AAAA\"]"
+          }
+        },
+        {
+          "id": "email:message",
+          "type": "email",
+          "value": "message",
+          "sources": [
+            "structured_analysis"
+          ],
+          "properties": {
+            "kind": "analyzed_message"
+          }
+        },
+        {
+          "id": "identity:dmarc:apex-innovations.example",
+          "type": "identity",
+          "value": "dmarc:apex-innovations.example",
+          "sources": [
+            "dmarc"
+          ],
+          "properties": {
+            "field": "dmarc",
+            "domain": "apex-innovations.example"
+          }
+        },
+        {
+          "id": "identity:from:apex-innovations.example",
+          "type": "identity",
+          "value": "from:apex-innovations.example",
+          "sources": [
+            "from"
+          ],
+          "properties": {
+            "field": "from",
+            "domain": "apex-innovations.example"
+          }
+        },
+        {
+          "id": "identity:reply_to:apex-innovations.example",
+          "type": "identity",
+          "value": "reply_to:apex-innovations.example",
+          "sources": [
+            "reply_to"
+          ],
+          "properties": {
+            "field": "reply_to",
+            "domain": "apex-innovations.example"
+          }
+        },
+        {
+          "id": "identity:return_path:mail-relay-gw42.example-net.test",
+          "type": "identity",
+          "value": "return_path:mail-relay-gw42.example-net.test",
+          "sources": [
+            "return_path"
+          ],
+          "properties": {
+            "field": "return_path",
+            "domain": "mail-relay-gw42.example-net.test"
+          }
+        },
+        {
+          "id": "indicator:content_callback_or_contact_change",
+          "type": "indicator",
+          "value": "content_callback_or_contact_change",
+          "sources": [
+            "security_analysis"
+          ],
+          "properties": {}
+        },
+        {
+          "id": "indicator:content_payment_request",
+          "type": "indicator",
+          "value": "content_payment_request",
+          "sources": [
+            "security_analysis"
+          ],
+          "properties": {}
+        },
+        {
+          "id": "indicator:content_urgent_action",
+          "type": "indicator",
+          "value": "content_urgent_action",
+          "sources": [
+            "security_analysis"
+          ],
+          "properties": {}
+        },
+        {
+          "id": "indicator:return_path_mismatch",
+          "type": "indicator",
+          "value": "return_path_mismatch",
+          "sources": [
+            "security_analysis"
+          ],
+          "properties": {}
+        },
+        {
+          "id": "indicator:spf_fail",
+          "type": "indicator",
+          "value": "spf_fail",
+          "sources": [
+            "security_analysis"
+          ],
+          "properties": {}
+        },
+        {
+          "id": "indicator:url_ip_literal",
+          "type": "indicator",
+          "value": "url_ip_literal",
+          "sources": [
+            "security_analysis"
+          ],
+          "properties": {}
+        },
+        {
+          "id": "indicator:url_sender_domain_mismatch",
+          "type": "indicator",
+          "value": "url_sender_domain_mismatch",
+          "sources": [
+            "security_analysis"
+          ],
+          "properties": {}
+        },
+        {
+          "id": "ip:10.20.1.10",
+          "type": "ip",
+          "value": "10.20.1.10",
+          "sources": [
+            "local_ip_classification",
+            "received"
+          ],
+          "properties": {
+            "observable": true,
+            "provider": "local_ip_classification",
+            "source": "local_ip_classification",
+            "confidence": "high",
+            "observation_kind": "classification",
+            "observation_status": "success"
+          }
+        },
+        {
+          "id": "ip:198.51.100.25",
+          "type": "ip",
+          "value": "198.51.100.25",
+          "sources": [
+            "local_ip_classification",
+            "received"
+          ],
+          "properties": {
+            "observable": true,
+            "provider": "local_ip_classification",
+            "source": "local_ip_classification",
+            "confidence": "high",
+            "observation_kind": "classification",
+            "observation_status": "success"
+          }
+        },
+        {
+          "id": "ip:198.51.100.42",
+          "type": "ip",
+          "value": "198.51.100.42",
+          "sources": [
+            "body_text",
+            "local_ip_classification",
+            "received",
+            "url"
+          ],
+          "properties": {
+            "observable": true,
+            "provider": "local_ip_classification",
+            "source": "local_ip_classification",
+            "confidence": "high",
+            "observation_kind": "classification",
+            "observation_status": "success"
+          }
+        },
+        {
+          "id": "provider:dns:domain:accounts.payable:dns",
+          "type": "provider",
+          "value": "dns:domain:accounts.payable:dns",
+          "sources": [
+            "dns"
+          ],
+          "properties": {
+            "kind": "dns",
+            "status": "success"
+          }
+        },
+        {
+          "id": "provider:dns:domain:apex-innovations.example:dns",
+          "type": "provider",
+          "value": "dns:domain:apex-innovations.example:dns",
+          "sources": [
+            "dns"
+          ],
+          "properties": {
+            "kind": "dns",
+            "status": "success"
+          }
+        },
+        {
+          "id": "provider:dns:domain:apex-partners-portal.example:dns",
+          "type": "provider",
+          "value": "dns:domain:apex-partners-portal.example:dns",
+          "sources": [
+            "dns"
+          ],
+          "properties": {
+            "kind": "dns",
+            "status": "success"
+          }
+        },
+        {
+          "id": "provider:dns:domain:billing-update.example-test.invalid:dns",
+          "type": "provider",
+          "value": "dns:domain:billing-update.example-test.invalid:dns",
+          "sources": [
+            "dns"
+          ],
+          "properties": {
+            "kind": "dns",
+            "status": "success"
+          }
+        },
+        {
+          "id": "provider:dns:domain:client-portal.internal-outpost.net:dns",
+          "type": "provider",
+          "value": "dns:domain:client-portal.internal-outpost.net:dns",
+          "sources": [
+            "dns"
+          ],
+          "properties": {
+            "kind": "dns",
+            "status": "success"
+          }
+        },
+        {
+          "id": "provider:dns:domain:enterprise-finance.example:dns",
+          "type": "provider",
+          "value": "dns:domain:enterprise-finance.example:dns",
+          "sources": [
+            "dns"
+          ],
+          "properties": {
+            "kind": "dns",
+            "status": "success"
+          }
+        },
+        {
+          "id": "provider:dns:domain:mail-relay-gw42.example-net.test:dns",
+          "type": "provider",
+          "value": "dns:domain:mail-relay-gw42.example-net.test:dns",
+          "sources": [
+            "dns"
+          ],
+          "properties": {
+            "kind": "dns",
+            "status": "success"
+          }
+        },
+        {
+          "id": "provider:dns:domain:mail.enterprise-finance.example:dns",
+          "type": "provider",
+          "value": "dns:domain:mail.enterprise-finance.example:dns",
+          "sources": [
+            "dns"
+          ],
+          "properties": {
+            "kind": "dns",
+            "status": "success"
+          }
+        },
+        {
+          "id": "provider:dns:domain:mx1.enterprise-finance.example:dns",
+          "type": "provider",
+          "value": "dns:domain:mx1.enterprise-finance.example:dns",
+          "sources": [
+            "dns"
+          ],
+          "properties": {
+            "kind": "dns",
+            "status": "success"
+          }
+        },
+        {
+          "id": "provider:local_ip_classification:ip:10.20.1.10:classification",
+          "type": "provider",
+          "value": "local_ip_classification:ip:10.20.1.10:classification",
+          "sources": [
+            "local_ip_classification"
+          ],
+          "properties": {
+            "kind": "classification",
+            "status": "success"
+          }
+        },
+        {
+          "id": "provider:local_ip_classification:ip:198.51.100.25:classification",
+          "type": "provider",
+          "value": "local_ip_classification:ip:198.51.100.25:classification",
+          "sources": [
+            "local_ip_classification"
+          ],
+          "properties": {
+            "kind": "classification",
+            "status": "success"
+          }
+        },
+        {
+          "id": "provider:local_ip_classification:ip:198.51.100.42:classification",
+          "type": "provider",
+          "value": "local_ip_classification:ip:198.51.100.42:classification",
+          "sources": [
+            "local_ip_classification"
+          ],
+          "properties": {
+            "kind": "classification",
+            "status": "success"
+          }
+        },
+        {
+          "id": "provider:virustotal:domain:client-portal.internal-outpost.net:reputation",
+          "type": "provider",
+          "value": "virustotal:domain:client-portal.internal-outpost.net:reputation",
+          "sources": [
+            "virustotal"
+          ],
+          "properties": {
+            "kind": "reputation",
+            "status": "success"
+          }
+        },
+        {
+          "id": "url:https://198.51.100.42/vendor-verification/portal",
+          "type": "url",
+          "value": "https://198.51.100.42/vendor-verification/portal",
+          "sources": [
+            "body_text"
+          ],
+          "properties": {
+            "observable": true,
+            "scheme": "https",
+            "path": "/vendor-verification/portal",
+            "https": true
+          }
+        },
+        {
+          "id": "url:https://billing-update.example-test.invalid/verify",
+          "type": "url",
+          "value": "https://billing-update.example-test.invalid/verify",
+          "sources": [
+            "body_text"
+          ],
+          "properties": {
+            "observable": true,
+            "scheme": "https",
+            "path": "/verify",
+            "https": true
+          }
+        }
+      ],
+      "edges": [
+        {
+          "source": "domain:accounts.payable",
+          "target": "provider:dns:domain:accounts.payable:dns",
+          "relationship": "observed_by",
+          "providers": [
+            "dns"
+          ],
+          "evidence": [
+            "dns"
+          ],
+          "confidence": "high",
+          "properties": {
+            "kind": "dns"
+          }
+        },
+        {
+          "source": "domain:apex-innovations.example",
+          "target": "provider:dns:domain:apex-innovations.example:dns",
+          "relationship": "observed_by",
+          "providers": [
+            "dns"
+          ],
+          "evidence": [
+            "dns"
+          ],
+          "confidence": "high",
+          "properties": {
+            "kind": "dns"
+          }
+        },
+        {
+          "source": "domain:apex-partners-portal.example",
+          "target": "provider:dns:domain:apex-partners-portal.example:dns",
+          "relationship": "observed_by",
+          "providers": [
+            "dns"
+          ],
+          "evidence": [
+            "dns"
+          ],
+          "confidence": "high",
+          "properties": {
+            "kind": "dns"
+          }
+        },
+        {
+          "source": "domain:billing-update.example-test.invalid",
+          "target": "provider:dns:domain:billing-update.example-test.invalid:dns",
+          "relationship": "observed_by",
+          "providers": [
+            "dns"
+          ],
+          "evidence": [
+            "dns"
+          ],
+          "confidence": "high",
+          "properties": {
+            "kind": "dns"
+          }
+        },
+        {
+          "source": "domain:client-portal.internal-outpost.net",
+          "target": "provider:dns:domain:client-portal.internal-outpost.net:dns",
+          "relationship": "observed_by",
+          "providers": [
+            "dns"
+          ],
+          "evidence": [
+            "dns"
+          ],
+          "confidence": "high",
+          "properties": {
+            "kind": "dns"
+          }
+        },
+        {
+          "source": "domain:client-portal.internal-outpost.net",
+          "target": "provider:virustotal:domain:client-portal.internal-outpost.net:reputation",
+          "relationship": "observed_by",
+          "providers": [
+            "virustotal"
+          ],
+          "evidence": [
+            "client-portal.internal-outpost.net"
+          ],
+          "confidence": "high",
+          "properties": {
+            "kind": "reputation"
+          }
+        },
+        {
+          "source": "domain:enterprise-finance.example",
+          "target": "provider:dns:domain:enterprise-finance.example:dns",
+          "relationship": "observed_by",
+          "providers": [
+            "dns"
+          ],
+          "evidence": [
+            "dns"
+          ],
+          "confidence": "high",
+          "properties": {
+            "kind": "dns"
+          }
+        },
+        {
+          "source": "domain:mail-relay-gw42.example-net.test",
+          "target": "provider:dns:domain:mail-relay-gw42.example-net.test:dns",
+          "relationship": "observed_by",
+          "providers": [
+            "dns"
+          ],
+          "evidence": [
+            "dns"
+          ],
+          "confidence": "high",
+          "properties": {
+            "kind": "dns"
+          }
+        },
+        {
+          "source": "domain:mail.enterprise-finance.example",
+          "target": "provider:dns:domain:mail.enterprise-finance.example:dns",
+          "relationship": "observed_by",
+          "providers": [
+            "dns"
+          ],
+          "evidence": [
+            "dns"
+          ],
+          "confidence": "high",
+          "properties": {
+            "kind": "dns"
+          }
+        },
+        {
+          "source": "domain:mx1.enterprise-finance.example",
+          "target": "provider:dns:domain:mx1.enterprise-finance.example:dns",
+          "relationship": "observed_by",
+          "providers": [
+            "dns"
+          ],
+          "evidence": [
+            "dns"
+          ],
+          "confidence": "high",
+          "properties": {
+            "kind": "dns"
+          }
+        },
+        {
+          "source": "email:message",
+          "target": "identity:dmarc:apex-innovations.example",
+          "relationship": "has_identity",
+          "providers": [
+            "dmarc"
+          ],
+          "evidence": [
+            "apex-innovations.example"
+          ],
+          "confidence": "high",
+          "properties": {
+            "field": "dmarc"
+          }
+        },
+        {
+          "source": "email:message",
+          "target": "identity:from:apex-innovations.example",
+          "relationship": "has_identity",
+          "providers": [
+            "from"
+          ],
+          "evidence": [
+            "apex-innovations.example"
+          ],
+          "confidence": "high",
+          "properties": {
+            "field": "from"
+          }
+        },
+        {
+          "source": "email:message",
+          "target": "identity:reply_to:apex-innovations.example",
+          "relationship": "has_identity",
+          "providers": [
+            "reply_to"
+          ],
+          "evidence": [
+            "apex-innovations.example"
+          ],
+          "confidence": "high",
+          "properties": {
+            "field": "reply_to"
+          }
+        },
+        {
+          "source": "email:message",
+          "target": "identity:return_path:mail-relay-gw42.example-net.test",
+          "relationship": "has_identity",
+          "providers": [
+            "return_path"
+          ],
+          "evidence": [
+            "mail-relay-gw42.example-net.test"
+          ],
+          "confidence": "high",
+          "properties": {
+            "field": "return_path"
+          }
+        },
+        {
+          "source": "identity:dmarc:apex-innovations.example",
+          "target": "domain:apex-innovations.example",
+          "relationship": "uses_domain",
+          "providers": [
+            "dmarc"
+          ],
+          "evidence": [
+            "apex-innovations.example"
+          ],
+          "confidence": "high",
+          "properties": {}
+        },
+        {
+          "source": "identity:from:apex-innovations.example",
+          "target": "domain:apex-innovations.example",
+          "relationship": "uses_domain",
+          "providers": [
+            "from"
+          ],
+          "evidence": [
+            "apex-innovations.example"
+          ],
+          "confidence": "high",
+          "properties": {}
+        },
+        {
+          "source": "identity:reply_to:apex-innovations.example",
+          "target": "domain:apex-innovations.example",
+          "relationship": "uses_domain",
+          "providers": [
+            "reply_to"
+          ],
+          "evidence": [
+            "apex-innovations.example"
+          ],
+          "confidence": "high",
+          "properties": {}
+        },
+        {
+          "source": "identity:return_path:mail-relay-gw42.example-net.test",
+          "target": "domain:mail-relay-gw42.example-net.test",
+          "relationship": "uses_domain",
+          "providers": [
+            "return_path"
+          ],
+          "evidence": [
+            "mail-relay-gw42.example-net.test"
+          ],
+          "confidence": "high",
+          "properties": {}
+        },
+        {
+          "source": "indicator:content_callback_or_contact_change",
+          "target": "email:message",
+          "relationship": "observed_in",
+          "providers": [
+            "security_analysis"
+          ],
+          "evidence": [
+            "new bank details"
+          ],
+          "confidence": "medium",
+          "properties": {}
+        },
+        {
+          "source": "indicator:content_payment_request",
+          "target": "email:message",
+          "relationship": "observed_in",
+          "providers": [
+            "security_analysis"
+          ],
+          "evidence": [
+            "bank details",
+            "invoice",
+            "payment"
+          ],
+          "confidence": "high",
+          "properties": {}
+        },
+        {
+          "source": "indicator:content_urgent_action",
+          "target": "email:message",
+          "relationship": "observed_in",
+          "providers": [
+            "security_analysis"
+          ],
+          "evidence": [
+            "urgent"
+          ],
+          "confidence": "high",
+          "properties": {}
+        },
+        {
+          "source": "indicator:return_path_mismatch",
+          "target": "domain:apex-innovations.example",
+          "relationship": "supported_by",
+          "providers": [
+            "security_analysis"
+          ],
+          "evidence": [
+            "From: apex-innovations.example",
+            "Return-Path: mail-relay-gw42.example-net.test"
+          ],
+          "confidence": "low",
+          "properties": {}
+        },
+        {
+          "source": "indicator:return_path_mismatch",
+          "target": "domain:mail-relay-gw42.example-net.test",
+          "relationship": "supported_by",
+          "providers": [
+            "security_analysis"
+          ],
+          "evidence": [
+            "From: apex-innovations.example",
+            "Return-Path: mail-relay-gw42.example-net.test"
+          ],
+          "confidence": "low",
+          "properties": {}
+        },
+        {
+          "source": "indicator:spf_fail",
+          "target": "domain:mail-relay-gw42.example-net.test",
+          "relationship": "supported_by",
+          "providers": [
+            "security_analysis"
+          ],
+          "evidence": [
+            "spf=fail smtp.mailfrom=bounce-handler@mail-relay-gw42.example-net.test"
+          ],
+          "confidence": "high",
+          "properties": {}
+        },
+        {
+          "source": "indicator:url_ip_literal",
+          "target": "ip:198.51.100.42",
+          "relationship": "supported_by",
+          "providers": [
+            "security_analysis"
+          ],
+          "evidence": [
+            "https://198.51.100.42/vendor-verification/portal"
+          ],
+          "confidence": "high",
+          "properties": {}
+        },
+        {
+          "source": "indicator:url_ip_literal",
+          "target": "url:https://198.51.100.42/vendor-verification/portal",
+          "relationship": "supported_by",
+          "providers": [
+            "security_analysis"
+          ],
+          "evidence": [
+            "https://198.51.100.42/vendor-verification/portal"
+          ],
+          "confidence": "high",
+          "properties": {}
+        },
+        {
+          "source": "indicator:url_sender_domain_mismatch",
+          "target": "domain:apex-innovations.example",
+          "relationship": "supported_by",
+          "providers": [
+            "security_analysis"
+          ],
+          "evidence": [
+            "Sender: apex-innovations.example",
+            "URL host: 198.51.100.42",
+            "URL host: billing-update.example-test.invalid"
+          ],
+          "confidence": "medium",
+          "properties": {}
+        },
+        {
+          "source": "indicator:url_sender_domain_mismatch",
+          "target": "domain:billing-update.example-test.invalid",
+          "relationship": "supported_by",
+          "providers": [
+            "security_analysis"
+          ],
+          "evidence": [
+            "Sender: apex-innovations.example",
+            "URL host: billing-update.example-test.invalid"
+          ],
+          "confidence": "medium",
+          "properties": {}
+        },
+        {
+          "source": "indicator:url_sender_domain_mismatch",
+          "target": "ip:198.51.100.42",
+          "relationship": "supported_by",
+          "providers": [
+            "security_analysis"
+          ],
+          "evidence": [
+            "Sender: apex-innovations.example",
+            "URL host: 198.51.100.42"
+          ],
+          "confidence": "medium",
+          "properties": {}
+        },
+        {
+          "source": "ip:10.20.1.10",
+          "target": "provider:local_ip_classification:ip:10.20.1.10:classification",
+          "relationship": "observed_by",
+          "providers": [
+            "local_ip_classification"
+          ],
+          "evidence": [
+            "10.20.1.10"
+          ],
+          "confidence": "high",
+          "properties": {
+            "kind": "classification"
+          }
+        },
+        {
+          "source": "ip:198.51.100.25",
+          "target": "provider:local_ip_classification:ip:198.51.100.25:classification",
+          "relationship": "observed_by",
+          "providers": [
+            "local_ip_classification"
+          ],
+          "evidence": [
+            "198.51.100.25"
+          ],
+          "confidence": "high",
+          "properties": {
+            "kind": "classification"
+          }
+        },
+        {
+          "source": "ip:198.51.100.42",
+          "target": "provider:local_ip_classification:ip:198.51.100.42:classification",
+          "relationship": "observed_by",
+          "providers": [
+            "local_ip_classification"
+          ],
+          "evidence": [
+            "198.51.100.42"
+          ],
+          "confidence": "high",
+          "properties": {
+            "kind": "classification"
+          }
+        },
+        {
+          "source": "url:https://198.51.100.42/vendor-verification/portal",
+          "target": "ip:198.51.100.42",
+          "relationship": "hosted_by",
+          "providers": [
+            "url_extractor"
+          ],
+          "evidence": [
+            "198.51.100.42",
+            "https://198.51.100.42/vendor-verification/portal"
+          ],
+          "confidence": "high",
+          "properties": {}
+        },
+        {
+          "source": "url:https://billing-update.example-test.invalid/verify",
+          "target": "domain:billing-update.example-test.invalid",
+          "relationship": "hosted_by",
+          "providers": [
+            "local_correlation",
+            "url_extractor"
+          ],
+          "evidence": [
+            "billing-update.example-test.invalid",
+            "https://billing-update.example-test.invalid/verify"
+          ],
+          "confidence": "high",
+          "properties": {}
+        }
+      ],
+      "correlations": [
+        {
+          "code": "auth_infrastructure_correlation",
+          "relationship": "authentication_context_has_infrastructure",
+          "explanation": "Authentication results are evaluated alongside observable infrastructure.",
+          "evidence": [
+            "dkim=pass",
+            "dmarc=none",
+            "spf=fail"
+          ],
+          "entities": [
+            "10.20.1.10",
+            "198.51.100.25",
+            "198.51.100.42",
+            "authentication"
+          ],
+          "confidence": "medium",
+          "sources": [
+            "authentication",
+            "structured_intelligence"
+          ]
+        },
+        {
+          "code": "content_callback_or_contact_change",
+          "relationship": "indicator_supported_by_evidence",
+          "explanation": "The message asks the recipient to use a new phone number, address, or reply channel.",
+          "evidence": [
+            "new bank details"
+          ],
+          "entities": [
+            "message"
+          ],
+          "confidence": "medium",
+          "sources": [
+            "security_analysis"
+          ]
+        },
+        {
+          "code": "content_payment_request",
+          "relationship": "indicator_supported_by_evidence",
+          "explanation": "The message requests a transfer, invoice payment, gift card, or change to payment details.",
+          "evidence": [
+            "bank details",
+            "invoice",
+            "payment"
+          ],
+          "entities": [
+            "message"
+          ],
+          "confidence": "high",
+          "sources": [
+            "security_analysis"
+          ]
+        },
+        {
+          "code": "content_urgent_action",
+          "relationship": "indicator_supported_by_evidence",
+          "explanation": "The message uses urgency or a deadline to pressure the recipient into acting quickly.",
+          "evidence": [
+            "urgent"
+          ],
+          "entities": [
+            "message"
+          ],
+          "confidence": "high",
+          "sources": [
+            "security_analysis"
+          ]
+        },
+        {
+          "code": "content_url_correlation",
+          "relationship": "content_signal_targets_url",
+          "explanation": "Content signals and extracted URLs occur in the same structured message evidence.",
+          "evidence": [
+            "callback_or_contact_change",
+            "https://198.51.100.42/vendor-verification/portal",
+            "https://billing-update.example-test.invalid/verify",
+            "payment_request",
+            "urgent_action"
+          ],
+          "entities": [
+            "content",
+            "https://198.51.100.42/vendor-verification/portal",
+            "https://billing-update.example-test.invalid/verify"
+          ],
+          "confidence": "medium",
+          "sources": [
+            "content_signals",
+            "url_extractor"
+          ]
+        },
+        {
+          "code": "domain_ip_correlation",
+          "relationship": "hosted_by",
+          "explanation": "Structured DNS or hosting evidence links a domain and an IP.",
+          "evidence": [
+            "billing-update.example-test.invalid",
+            "https://billing-update.example-test.invalid/verify"
+          ],
+          "entities": [
+            "billing-update.example-test.invalid",
+            "https://billing-update.example-test.invalid/verify"
+          ],
+          "confidence": "high",
+          "sources": [
+            "local_correlation"
+          ]
+        },
+        {
+          "code": "domain_reputation_correlation",
+          "relationship": "has_reputation_observation",
+          "explanation": "A provider supplied a reputation observation for the infrastructure.",
+          "evidence": [
+            "client-portal.internal-outpost.net"
+          ],
+          "entities": [
+            "client-portal.internal-outpost.net"
+          ],
+          "confidence": "high",
+          "sources": [
+            "virustotal"
+          ]
+        },
+        {
+          "code": "registration_dns_correlation",
+          "relationship": "has_registration_or_dns_observation",
+          "explanation": "A provider supplied registration or DNS evidence for the observable.",
+          "evidence": [
+            "accounts.payable",
+            "apex-innovations.example",
+            "apex-partners-portal.example",
+            "billing-update.example-test.invalid",
+            "client-portal.internal-outpost.net",
+            "enterprise-finance.example",
+            "mail-relay-gw42.example-net.test",
+            "mail.enterprise-finance.example",
+            "mx1.enterprise-finance.example"
+          ],
+          "entities": [
+            "accounts.payable",
+            "apex-innovations.example",
+            "apex-partners-portal.example",
+            "billing-update.example-test.invalid",
+            "client-portal.internal-outpost.net",
+            "enterprise-finance.example",
+            "mail-relay-gw42.example-net.test",
+            "mail.enterprise-finance.example",
+            "mx1.enterprise-finance.example"
+          ],
+          "confidence": "high",
+          "sources": [
+            "dns"
+          ]
+        },
+        {
+          "code": "return_path_mismatch",
+          "relationship": "indicator_supported_by_evidence",
+          "explanation": "The envelope return domain differs from the visible sender domain; this can be legitimate but is worth review.",
+          "evidence": [
+            "From: apex-innovations.example",
+            "Return-Path: mail-relay-gw42.example-net.test"
+          ],
+          "entities": [
+            "apex-innovations.example",
+            "mail-relay-gw42.example-net.test"
+          ],
+          "confidence": "low",
+          "sources": [
+            "security_analysis"
+          ]
+        },
+        {
+          "code": "sender_ip_correlation",
+          "relationship": "sender_domain_observed_from_ip",
+          "explanation": "The sender domain and a relay/source IP are present in the structured message evidence.",
+          "evidence": [
+            "10.20.1.10",
+            "198.51.100.25",
+            "198.51.100.42",
+            "apex-innovations.example"
+          ],
+          "entities": [
+            "10.20.1.10",
+            "198.51.100.25",
+            "198.51.100.42",
+            "apex-innovations.example"
+          ],
+          "confidence": "medium",
+          "sources": [
+            "from",
+            "received"
+          ]
+        },
+        {
+          "code": "sender_reply_correlation",
+          "relationship": "sender_reply_aligned",
+          "explanation": "Reply-To is aligned with the authenticated sender domain.",
+          "evidence": [
+            "apex-innovations.example"
+          ],
+          "entities": [
+            "apex-innovations.example"
+          ],
+          "confidence": "high",
+          "sources": [
+            "authentication",
+            "security_analysis"
+          ]
+        },
+        {
+          "code": "sender_return_correlation",
+          "relationship": "sender_return_mismatch",
+          "explanation": "Return-Path uses a different domain from the authenticated sender.",
+          "evidence": [
+            "apex-innovations.example",
+            "mail-relay-gw42.example-net.test"
+          ],
+          "entities": [
+            "apex-innovations.example",
+            "mail-relay-gw42.example-net.test"
+          ],
+          "confidence": "high",
+          "sources": [
+            "authentication",
+            "security_analysis"
+          ]
+        },
+        {
+          "code": "spf_fail",
+          "relationship": "indicator_supported_by_evidence",
+          "explanation": "The Authentication-Results header reports SPF=fail. This is a signal from the receiving mail system, not a new DNS or cryptographic check.",
+          "evidence": [
+            "spf=fail smtp.mailfrom=bounce-handler@mail-relay-gw42.example-net.test"
+          ],
+          "entities": [
+            "mail-relay-gw42.example-net.test"
+          ],
+          "confidence": "high",
+          "sources": [
+            "security_analysis"
+          ]
+        },
+        {
+          "code": "url_domain_correlation",
+          "relationship": "url_hosted_by_domain",
+          "explanation": "The extracted URL hostname matches a normalized domain observable.",
+          "evidence": [
+            "https://billing-update.example-test.invalid/verify",
+            "billing-update.example-test.invalid"
+          ],
+          "entities": [
+            "https://billing-update.example-test.invalid/verify",
+            "billing-update.example-test.invalid"
+          ],
+          "confidence": "high",
+          "sources": [
+            "local_correlation"
+          ]
+        },
+        {
+          "code": "url_ip_literal",
+          "relationship": "indicator_supported_by_evidence",
+          "explanation": "The link points directly to an IP address instead of a named domain.",
+          "evidence": [
+            "https://198.51.100.42/vendor-verification/portal"
+          ],
+          "entities": [
+            "198.51.100.42",
+            "https://198.51.100.42/vendor-verification/portal"
+          ],
+          "confidence": "high",
+          "sources": [
+            "security_analysis"
+          ]
+        },
+        {
+          "code": "url_sender_domain_mismatch",
+          "relationship": "indicator_supported_by_evidence",
+          "explanation": "The message links to a hostname that is not the sender's domain or a subdomain of it.",
+          "evidence": [
+            "Sender: apex-innovations.example",
+            "URL host: 198.51.100.42",
+            "URL host: billing-update.example-test.invalid"
+          ],
+          "entities": [
+            "198.51.100.42",
+            "apex-innovations.example",
+            "billing-update.example-test.invalid"
+          ],
+          "confidence": "medium",
+          "sources": [
+            "security_analysis"
+          ]
+        }
+      ]
+    },
+    "risk_assessment": {
+      "score": 82,
+      "level": "critical",
+      "classification": "mixed",
+      "threat_types": [
+        "phishing",
+        "bec"
+      ],
+      "factors": [
+        {
+          "code": "spf_fail",
+          "title": "SPF authentication fail",
+          "contribution": 20,
+          "severity": "high",
+          "explanation": "The Authentication-Results header reports SPF=fail. This is a signal from the receiving mail system, not a new DNS or cryptographic check.",
+          "evidence": [
+            "spf=fail smtp.mailfrom=bounce-handler@mail-relay-gw42.example-net.test"
+          ],
+          "source": "security_analysis",
+          "sources": [
+            "security_analysis"
+          ],
+          "category": "authentication"
+        },
+        {
+          "code": "content_urgent_action",
+          "title": "Urgent Action",
+          "contribution": 20,
+          "severity": "high",
+          "explanation": "The message uses urgency or a deadline to pressure the recipient into acting quickly.",
+          "evidence": [
+            "urgent"
+          ],
+          "source": "security_analysis",
+          "sources": [
+            "security_analysis"
+          ],
+          "category": "content"
+        },
+        {
+          "code": "content_payment_request",
+          "title": "Payment Request",
+          "contribution": 10,
+          "severity": "high",
+          "explanation": "The message requests a transfer, invoice payment, gift card, or change to payment details.",
+          "evidence": [
+            "bank details",
+            "invoice",
+            "payment"
+          ],
+          "source": "security_analysis",
+          "sources": [
+            "security_analysis"
+          ],
+          "category": "content"
+        },
+        {
+          "code": "url_ip_literal",
+          "title": "Link uses an IP address",
+          "contribution": 20,
+          "severity": "high",
+          "explanation": "The link points directly to an IP address instead of a named domain.",
+          "evidence": [
+            "https://198.51.100.42/vendor-verification/portal"
+          ],
+          "source": "security_analysis",
+          "sources": [
+            "security_analysis"
+          ],
+          "category": "url"
+        },
+        {
+          "code": "url_sender_domain_mismatch",
+          "title": "URL hostname differs from sender domain",
+          "contribution": 12,
+          "severity": "medium",
+          "explanation": "The message links to a hostname that is not the sender's domain or a subdomain of it.",
+          "evidence": [
+            "Sender: apex-innovations.example",
+            "URL host: 198.51.100.42",
+            "URL host: billing-update.example-test.invalid"
+          ],
+          "source": "security_analysis",
+          "sources": [
+            "security_analysis"
+          ],
+          "category": "identity"
+        },
+        {
+          "code": "return_path_mismatch",
+          "title": "Return-Path domain differs from sender",
+          "contribution": 6,
+          "severity": "low",
+          "explanation": "The envelope return domain differs from the visible sender domain; this can be legitimate but is worth review.",
+          "evidence": [
+            "From: apex-innovations.example",
+            "Return-Path: mail-relay-gw42.example-net.test"
+          ],
+          "source": "security_analysis",
+          "sources": [
+            "security_analysis"
+          ],
+          "category": "identity"
+        }
+      ],
+      "rationale": "Critical risk level (82/100) supported by: spf_fail, content_urgent_action, content_payment_request, url_ip_literal. Additional factors were bounded by category and score limits.",
+      "confidence": {
+        "level": "low",
+        "explanation": "Confidence reflects evidence quality and coverage, not the risk score.",
+        "evidence_count": 6,
+        "limitations": [
+          "One or more threat-intelligence providers failed; coverage is incomplete.",
+          "One or more threat-intelligence providers returned partial results; confidence is limited."
+        ],
+        "factors": [
+          {
+            "category": "authentication",
+            "level": "medium",
+            "explanation": "Parsed SPF, DKIM, and DMARC results provide authentication coverage.",
+            "evidence_count": 3,
+            "evidence": [
+              "dkim=pass",
+              "dmarc=none",
+              "spf=fail"
+            ],
+            "sources": [
+              "authentication"
+            ]
+          },
+          {
+            "category": "content",
+            "level": "medium",
+            "explanation": "Normalized content signals provide explainable content coverage.",
+            "evidence_count": 3,
+            "evidence": [
+              "callback_or_contact_change",
+              "payment_request",
+              "urgent_action"
+            ],
+            "sources": [
+              "content_signals"
+            ]
+          },
+          {
+            "category": "url",
+            "level": "medium",
+            "explanation": "Normalized URLs and metadata provide URL coverage.",
+            "evidence_count": 2,
+            "evidence": [
+              "https://198.51.100.42/vendor-verification/portal",
+              "https://billing-update.example-test.invalid/verify"
+            ],
+            "sources": [
+              "body_text"
+            ]
+          },
+          {
+            "category": "infrastructure",
+            "level": "medium",
+            "explanation": "Observable domains and IPs provide infrastructure coverage.",
+            "evidence_count": 12,
+            "evidence": [
+              "10.20.1.10",
+              "198.51.100.25",
+              "198.51.100.42",
+              "accounts.payable",
+              "apex-innovations.example",
+              "apex-partners-portal.example",
+              "billing-update.example-test.invalid",
+              "client-portal.internal-outpost.net",
+              "enterprise-finance.example",
+              "mail-relay-gw42.example-net.test",
+              "mail.enterprise-finance.example",
+              "mx1.enterprise-finance.example"
+            ],
+            "sources": [
+              "authentication",
+              "body_text",
+              "dmarc",
+              "from",
+              "header",
+              "received",
+              "reply_to",
+              "return_path",
+              "url"
+            ]
+          },
+          {
+            "category": "reputation",
+            "level": "high",
+            "explanation": "Provider reputation observations provide reputation coverage.",
+            "evidence_count": 1,
+            "evidence": [
+              "client-portal.internal-outpost.net"
+            ],
+            "sources": [
+              "virustotal"
+            ]
+          },
+          {
+            "category": "registration/DNS",
+            "level": "high",
+            "explanation": "Provider registration and DNS observations provide registration coverage.",
+            "evidence_count": 9,
+            "evidence": [
+              "accounts.payable",
+              "apex-innovations.example",
+              "apex-partners-portal.example",
+              "billing-update.example-test.invalid",
+              "client-portal.internal-outpost.net",
+              "enterprise-finance.example",
+              "mail-relay-gw42.example-net.test",
+              "mail.enterprise-finance.example",
+              "mx1.enterprise-finance.example"
+            ],
+            "sources": [
+              "dns"
+            ]
+          },
+          {
+            "category": "correlation",
+            "level": "medium",
+            "explanation": "Deduplicated structured relationships provide correlation coverage.",
+            "evidence_count": 16,
+            "evidence": [
+              "auth_infrastructure_correlation",
+              "content_callback_or_contact_change",
+              "content_payment_request",
+              "content_urgent_action",
+              "content_url_correlation",
+              "domain_ip_correlation",
+              "domain_reputation_correlation",
+              "registration_dns_correlation",
+              "return_path_mismatch",
+              "sender_ip_correlation",
+              "sender_reply_correlation",
+              "sender_return_correlation",
+              "spf_fail",
+              "url_domain_correlation",
+              "url_ip_literal",
+              "url_sender_domain_mismatch"
+            ],
+            "sources": [
+              "authentication",
+              "content_signals",
+              "dns",
+              "from",
+              "local_correlation",
+              "received",
+              "security_analysis",
+              "structured_intelligence",
+              "url_extractor",
+              "virustotal"
+            ]
+          }
+        ]
+      }
+    },
+    "attribution": {
+      "status": "infrastructure_only",
+      "assessment": "Evidence links observables to infrastructure only; it does not attribute an actor.",
+      "confidence": "low",
+      "supporting_evidence": [
+        "accounts.payable",
+        "apex-innovations.example",
+        "apex-partners-portal.example",
+        "billing-update.example-test.invalid",
+        "client-portal.internal-outpost.net",
+        "enterprise-finance.example",
+        "mail-relay-gw42.example-net.test",
+        "mail.enterprise-finance.example",
+        "mx1.enterprise-finance.example",
+        "10.20.1.10",
+        "198.51.100.25",
+        "198.51.100.42",
+        "https://198.51.100.42/vendor-verification/portal",
+        "https://billing-update.example-test.invalid/verify"
+      ],
+      "limitations": [
+        "Observable infrastructure does not establish the identity of an actor, operator, or organization.",
+        "Relay headers and provider records can be incomplete, spoofed, stale, or shared.",
+        "Attribution coverage is further limited by provider failures: rdap."
+      ]
+    },
+    "recommended_actions": [
+      {
+        "code": "contain_message",
+        "priority": "urgent",
+        "action": "Quarantine or hold the message and verify the request out of band.",
+        "rationale": "The bounded risk assessment is high or critical.",
+        "evidence": [
+          "content_callback_or_contact_change",
+          "content_payment_request",
+          "content_urgent_action",
+          "return_path_mismatch",
+          "spf_fail",
+          "url_ip_literal",
+          "url_sender_domain_mismatch"
+        ],
+        "title": "Contain and verify the message",
+        "reason": "High-severity structured indicators require independent verification.",
+        "source": "risk_assessment"
+      },
+      {
+        "code": "inspect_identity_alignment",
+        "priority": "recommended",
+        "action": "Confirm From, Reply-To, Return-Path, and linked domains before trusting the message.",
+        "rationale": "Identity or sender-domain alignment evidence is inconsistent.",
+        "evidence": [
+          "return_path_mismatch",
+          "url_sender_domain_mismatch"
+        ],
+        "title": "Inspect identity alignment",
+        "reason": "Sender identity fields or linked domains are inconsistent.",
+        "source": "security_analysis"
+      },
+      {
+        "code": "do_not_treat_as_attribution",
+        "priority": "routine",
+        "action": "Treat infrastructure links as investigative leads, not proof of actor identity.",
+        "rationale": "Attribution is intentionally limited to observable infrastructure.",
+        "evidence": [
+          "accounts.payable",
+          "apex-innovations.example",
+          "apex-partners-portal.example",
+          "billing-update.example-test.invalid",
+          "client-portal.internal-outpost.net"
+        ],
+        "title": "Do not treat infrastructure as attribution",
+        "reason": "Infrastructure links are investigative leads, not proof of actor identity.",
+        "source": "correlation"
+      },
+      {
+        "code": "verify_authentication",
+        "priority": "recommended",
+        "action": "Validate authentication results with the sending domain administrator.",
+        "rationale": "One or more authentication methods failed.",
+        "evidence": [
+          "spf_fail"
+        ],
+        "title": "Validate authentication results",
+        "reason": "SPF, DKIM, or DMARC evidence is inconsistent or failed.",
+        "source": "authentication"
+      },
+      {
+        "code": "verify_content_request",
+        "priority": "recommended",
+        "action": "Confirm payment, credential, or secrecy requests through a trusted channel.",
+        "rationale": "Normalized content signals identify a potentially manipulative request.",
+        "evidence": [
+          "content_callback_or_contact_change",
+          "content_payment_request",
+          "content_urgent_action"
+        ],
+        "title": "Verify the request out of band",
+        "reason": "Content evidence indicates urgency, credential, payment, or secrecy language.",
+        "source": "content_signals"
+      },
+      {
+        "code": "investigate_suspicious_url",
+        "priority": "urgent",
+        "action": "Do not open the link; investigate the destination in a safe environment and verify it through a trusted channel.",
+        "rationale": "URL evidence indicates that a linked destination requires investigation before it is trusted.",
+        "evidence": [
+          "Sender: apex-innovations.example",
+          "URL host: 198.51.100.42",
+          "URL host: billing-update.example-test.invalid",
+          "https://198.51.100.42/vendor-verification/portal"
+        ],
+        "title": "Investigate suspicious URL",
+        "reason": "A suspicious URL indicator is supported by extracted message evidence.",
+        "source": "url_analysis"
+      },
+      {
+        "code": "verify_financial_request",
+        "priority": "urgent",
+        "action": "Verify financial requests and payment-detail changes with the sender using a known, independent contact method.",
+        "rationale": "Payment or financial-request evidence should be independently verified before any transfer or change.",
+        "evidence": [
+          "bank details",
+          "invoice",
+          "payment"
+        ],
+        "title": "Verify financial request",
+        "reason": "Content evidence indicates a financial or payment request.",
+        "source": "content_signals"
+      }
+    ],
+    "investigation_summary": {
+      "title": "Critical-risk message",
+      "summary": "Risk factors: spf_fail, content_urgent_action, content_payment_request, url_ip_literal, url_sender_domain_mismatch, return_path_mismatch. Evidence graph contains 34 supported relationship(s). Infrastructure links are investigative leads, not actor attribution.",
+      "risk_level": "critical",
+      "confidence": "low",
+      "key_findings": [
+        "Risk factors: spf_fail, content_urgent_action, content_payment_request, url_ip_literal, url_sender_domain_mismatch, return_path_mismatch.",
+        "Evidence graph contains 34 supported relationship(s).",
+        "Infrastructure links are investigative leads, not actor attribution."
+      ],
+      "limitations": [
+        "One or more threat-intelligence providers failed; coverage is incomplete.",
+        "One or more threat-intelligence providers returned partial results; confidence is limited.",
+        "Observable infrastructure does not establish the identity of an actor, operator, or organization.",
+        "Relay headers and provider records can be incomplete, spoofed, stale, or shared.",
+        "Attribution coverage is further limited by provider failures: rdap."
+      ],
+      "source": "deterministic"
+    }
+  },
+  "ai_investigation": null,
+  "ai_status": "failed",
+  "ai_error": "AI analysis failed \u2014 investigation could not be completed."
+}
