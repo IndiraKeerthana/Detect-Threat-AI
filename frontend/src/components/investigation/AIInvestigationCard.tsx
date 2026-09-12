@@ -22,7 +22,7 @@ interface TimelineStage {
 export const AIInvestigationCard: React.FC<AIInvestigationCardProps> = ({ aiData, aiError }) => {
   const [isTraceExpanded, setIsTraceExpanded] = useState<boolean>(false);
 
-  if (!aiData) {
+  if (!aiData || aiData.source !== 'ai_agent' || !aiData.provider || aiData.provider.toLowerCase() === 'deterministic_fallback') {
     return (
       <div className="surface-card p-5 border border-[var(--border-subtle)] space-y-4">
         <SectionHeader

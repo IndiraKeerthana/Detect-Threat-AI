@@ -553,7 +553,6 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
                         className="hover:bg-[var(--surface-hover)] cursor-pointer transition-colors group"
                       >
                         <td className="py-3.5 px-4 whitespace-nowrap font-mono">
-                          <span className="text-[var(--text-muted)] font-bold mr-2.5">{c.caseNumber || '#001'}</span>
                           <span className="font-bold text-[var(--identifier)]">{c.id}</span>
                         </td>
                         <td className="py-3.5 px-4 max-w-xs">
@@ -633,7 +632,6 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <span className="text-xs text-[var(--text-muted)] font-bold">{c.caseNumber || '#001'}</span>
                         <span className="font-bold text-[var(--identifier)]">{c.id}</span>
                       </div>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase ${getSeverityBadge(c.severity)}`}>

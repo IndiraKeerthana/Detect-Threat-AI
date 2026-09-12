@@ -12,11 +12,10 @@ import { MOCK_INVESTIGATION_DATA } from '../data/mockInvestigation.ts';
 import { fetchCases, updateCaseStatusApi } from './api.ts';
 
 export type CaseStatus = 'OPEN' | 'IN REVIEW' | 'CONTAINED' | 'CLOSED' | 'INCOMPLETE' | 'FAILED';
-export type CaseSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type CaseSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'BENIGN' | 'INFORMATIONAL';
 
 export interface CaseRecord {
   id: string;
-  caseNumber?: string;
   title: string;
   subject: string;
   sender: string;
@@ -266,7 +265,12 @@ class CaseStore {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           this.cases = parsed.map((c: CaseRecord) => {
-            if (c.investigationData?.ai_investigation && (c.investigationData.ai_investigation as any).source !== 'ai_agent') {
+            const aiInv = c.investigationData?.ai_investigation;
+            if (
+              aiInv &&
+              ((aiInv as any).source !== 'ai_agent' ||
+                (aiInv as any).provider === 'deterministic_fallback')
+            ) {
               return {
                 ...c,
                 status: (c.status === 'OPEN' ? 'INCOMPLETE' : c.status) as CaseStatus,
@@ -294,20 +298,6 @@ class CaseStore {
     this.syncWithBackend();
   }
 
-  private assignCaseNumbers(cases: CaseRecord[]): CaseRecord[] {
-    const sorted = [...cases].sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
-    const map = new Map<string, string>();
-    sorted.forEach((c, idx) => {
-      map.set(c.id.toLowerCase(), `#${(idx + 1).toString().padStart(3, '0')}`);
-    });
-    return cases.map((c) => ({
-      ...c,
-      caseNumber: c.caseNumber || map.get(c.id.toLowerCase()) || '#001',
-    }));
-  }
-
   public async syncWithBackend() {
     try {
       const backendCases = await fetchCases();
@@ -320,9 +310,25 @@ class CaseStore {
           mergedMap.set(c.id.toLowerCase(), c);
         }
         for (const bc of backendCases) {
+          const aiInv = bc.investigationData?.ai_investigation;
+          if (
+            aiInv &&
+            ((aiInv as any).source !== 'ai_agent' ||
+              (aiInv as any).provider === 'deterministic_fallback')
+          ) {
+            bc.investigationData.ai_investigation = null;
+            bc.investigationData.ai_status = 'unavailable';
+            bc.investigationData.ai_error = 'AI analysis unavailable — no valid autonomous AI record.';
+            if (bc.status === 'OPEN') {
+              bc.status = 'INCOMPLETE';
+            }
+          }
           mergedMap.set(bc.id.toLowerCase(), bc);
         }
-        this.cases = this.assignCaseNumbers(Array.from(mergedMap.values()));
+        const sorted = Array.from(mergedMap.values()).sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        this.cases = sorted;
         if (this.cases.length > 0 && !this.getCaseById(this.activeCaseId)) {
           this.activeCaseId = this.cases[0].id;
         }
@@ -407,7 +413,6 @@ class CaseStore {
 
   public addCase(record: CaseRecord) {
     this.cases.unshift(record);
-    this.cases = this.assignCaseNumbers(this.cases);
     this.activeCaseId = record.id;
     this.persist();
     this.notify();
@@ -700,6 +705,8 @@ export function getCampaignClusters(cases: CaseRecord[]): CampaignCluster[] {
       HIGH: 3,
       MEDIUM: 2,
       LOW: 1,
+      BENIGN: 0,
+      INFORMATIONAL: 0,
     };
     let highestSeverity: CaseSeverity = 'LOW';
     let maxSevScore = 0;

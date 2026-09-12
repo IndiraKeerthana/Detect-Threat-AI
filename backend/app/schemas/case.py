@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from app.schemas.email import EmailAnalysisResponse
 
 CaseStatus = Literal["OPEN", "IN REVIEW", "CONTAINED", "CLOSED", "INCOMPLETE", "FAILED"]
-CaseSeverity = Literal["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+CaseSeverity = Literal["CRITICAL", "HIGH", "MEDIUM", "LOW", "BENIGN", "INFORMATIONAL"]
 
 
 class CaseRecordSchema(BaseModel):
