@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 
 from app.config import Settings, get_settings
@@ -89,20 +90,20 @@ Keep the response concise and evidence-backed. Set source to ai_agent and
 iterations to 1. Do not include chain-of-thought."""
 
 
-def _safe_value(value: Any, depth: int = 0) -> Any:
+def _safe_value(value: Any, depth: int = 0, max_str_len: int = 500) -> Any:
     """Bound provider context and remove common credential/raw-content keys."""
-    if depth > 3:
+    if depth > 4:
         return None
     if isinstance(value, dict):
         return {
-            str(key): _safe_value(item, depth + 1)
+            str(key): _safe_value(item, depth + 1, max_str_len)
             for key, item in value.items()
             if str(key).lower() not in _SECRET_KEYS
         }
     if isinstance(value, list):
-        return [_safe_value(item, depth + 1) for item in value[:50]]
+        return [_safe_value(item, depth + 1, max_str_len) for item in value[:50]]
     if isinstance(value, (str, int, float, bool)) or value is None:
-        return value if not isinstance(value, str) else value[:500]
+        return value if not isinstance(value, str) else value[:max_str_len]
     return str(value)[:200]
 
 
@@ -112,14 +113,25 @@ def build_investigation_context(
     threat_intelligence: ThreatIntelligence,
     investigation: InvestigationAnalysis,
 ) -> dict[str, Any]:
-    body_raw = getattr(email, "body_text", None) or getattr(email, "body_html", None) or ""
+    body_text = getattr(email, "body_text", None) or ""
+    body_html = getattr(email, "body_html", None) or ""
+
+    extracted_html_text = ""
+    if body_html:
+        extracted_html_text = re.sub(r"<[^>]+>", " ", body_html)
+        extracted_html_text = re.sub(r"\s+", " ", extracted_html_text).strip()
+
     email_content = {
         "subject": getattr(email, "subject", None),
         "from": getattr(email, "from_", None),
         "to": getattr(email, "to", None),
+        "cc": getattr(email, "cc", None),
         "reply_to": getattr(email, "reply_to", None),
         "return_path": getattr(email, "return_path", None),
-        "body_preview": _safe_value(body_raw[:1500]) if body_raw else None,
+        "date": getattr(email, "date", None),
+        "message_id": getattr(email, "message_id", None),
+        "body_preview": (body_text or extracted_html_text or "")[:5000] if (body_text or extracted_html_text) else None,
+        "html_preview": extracted_html_text[:5000] if extracted_html_text else None,
         "attachment_files": [
             {
                 "filename": getattr(a, "filename", None),
@@ -141,10 +153,22 @@ def build_investigation_context(
         ):
             entities.append(item)
 
+    # Register email headers and observables into entities
+    from_val = getattr(email, "from_", None)
+    if from_val:
+        add_entity("email", from_val, ["from_header"])
+    reply_to_val = getattr(email, "reply_to", None)
+    if reply_to_val:
+        add_entity("email", reply_to_val, ["reply_to_header"])
+    return_path_val = getattr(email, "return_path", None)
+    if return_path_val:
+        add_entity("email", return_path_val, ["return_path_header"])
+
     for entity in threat_intelligence.entities:
         add_entity(entity.type, entity.value, entity.sources)
     for item in security_analysis.url_analysis.urls:
         add_entity("url", item.normalized_url, [item.source])
+        add_entity("url", item.url, [item.source])
         add_entity("domain", item.domain, [item.source])
     for item in security_analysis.url_analysis.domains:
         add_entity("domain", item.domain, [item.source])
@@ -152,10 +176,14 @@ def build_investigation_context(
         add_entity("domain", item.domain, [item.source])
     if security_analysis.authentication_results.from_domain:
         add_entity("domain", security_analysis.authentication_results.from_domain, ["authentication"])
+    if security_analysis.authentication_results.reply_to_domain:
+        add_entity("domain", security_analysis.authentication_results.reply_to_domain, ["authentication"])
+    if security_analysis.authentication_results.return_path_domain:
+        add_entity("domain", security_analysis.authentication_results.return_path_domain, ["authentication"])
     relay = getattr(investigation, "evidence_graph", None)
     if relay:
         for node in relay.nodes:
-            if node.type in {"ip", "domain", "url"}:
+            if node.type in {"ip", "domain", "url", "email"}:
                 add_entity(node.type, node.value, node.sources)
 
     observations = []
@@ -207,9 +235,22 @@ def build_investigation_context(
             ),
             None,
         ),
+        "extracted_urls": [
+            {
+                "url": item.url,
+                "normalized_url": item.normalized_url,
+                "domain": item.domain,
+                "scheme": item.scheme,
+                "source": item.source,
+            }
+            for item in security_analysis.url_analysis.urls[:10]
+        ],
         "key_urls": [item.normalized_url for item in security_analysis.url_analysis.urls[:8]],
         "authentication": _safe_value(
             {
+                "from_domain": security_analysis.authentication_results.from_domain,
+                "reply_to_domain": security_analysis.authentication_results.reply_to_domain,
+                "return_path_domain": security_analysis.authentication_results.return_path_domain,
                 "spf": security_analysis.authentication_results.spf.model_dump()
                 if security_analysis.authentication_results.spf
                 else None,
@@ -219,6 +260,7 @@ def build_investigation_context(
                 "dmarc": security_analysis.authentication_results.dmarc.model_dump()
                 if security_analysis.authentication_results.dmarc
                 else None,
+                "alignment_notes": security_analysis.authentication_results.alignment_notes,
             }
         ),
         "provider_findings": [
@@ -433,6 +475,216 @@ def _coerce_decision(value: Any) -> ProviderDecision:
     raise ProviderError("malformed provider decision")
 
 
+def _normalize_final_data(
+    final_data: dict[str, Any],
+    calls: list[AIToolCall],
+    provider: Any,
+    iteration: int,
+) -> dict[str, Any]:
+    data = dict(final_data)
+    data["source"] = "ai_agent"
+    data["iterations"] = iteration
+    data["tool_calls"] = calls
+    data["provider"] = getattr(provider, "name", "groq")
+    data["model"] = getattr(provider, "model", None)
+
+    # 1. Normalize risk_level / threat_level
+    raw_risk = str(data.get("risk_level") or data.get("threat_level") or "medium").lower()
+    valid_risk_levels = {"benign", "low", "medium", "high", "critical"}
+    if raw_risk in valid_risk_levels:
+        data["risk_level"] = raw_risk
+    elif raw_risk in {"severe", "urgent", "critical_threat"}:
+        data["risk_level"] = "critical"
+    elif raw_risk in {"malicious", "phishing", "bec", "elevated"}:
+        data["risk_level"] = "high"
+    elif raw_risk in {"informational", "clean", "safe"}:
+        data["risk_level"] = "benign"
+    else:
+        data["risk_level"] = "medium"
+
+    # 2. Normalize classification
+    raw_class = str(data.get("classification") or "suspicious").lower()
+    valid_classifications = {"benign", "phishing", "bec", "mixed", "suspicious", "malware", "spoofing", "spam"}
+    if raw_class in valid_classifications:
+        data["classification"] = raw_class
+    elif "phish" in raw_class:
+        data["classification"] = "phishing"
+    elif "bec" in raw_class or "wire" in raw_class or "transfer" in raw_class:
+        data["classification"] = "bec"
+    elif "spoof" in raw_class or "impersonat" in raw_class:
+        data["classification"] = "spoofing"
+    elif "mal" in raw_class:
+        data["classification"] = "malware"
+    elif "spam" in raw_class:
+        data["classification"] = "spam"
+    elif "benign" in raw_class or "clean" in raw_class or "legit" in raw_class:
+        data["classification"] = "benign"
+    else:
+        data["classification"] = "suspicious"
+
+    # 3. Normalize confidence
+    raw_conf = str(data.get("confidence") or "medium").lower()
+    valid_confidences = {"high", "medium", "low", "unknown"}
+    data["confidence"] = raw_conf if raw_conf in valid_confidences else "medium"
+
+    # 4. Summary and reasoning
+    if "summary" not in data or not str(data["summary"]).strip():
+        raise ProviderError("malformed provider decision: missing summary")
+    data["summary"] = str(data["summary"])
+    data["reasoning"] = str(data.get("reasoning") or "")
+
+    # 5. Recommended actions / recommendations
+    actions_raw = data.get("recommended_actions") or data.get("recommendations") or []
+    if isinstance(actions_raw, str):
+        data["recommended_actions"] = [actions_raw]
+    elif isinstance(actions_raw, list):
+        data["recommended_actions"] = [str(x) for x in actions_raw if x]
+    else:
+        data["recommended_actions"] = []
+
+    # 6. Categorized string lists
+    for field in (
+        "suspicious_content_findings",
+        "authentication_findings",
+        "url_findings",
+        "attachment_findings",
+        "infrastructure_findings",
+        "historical_findings",
+    ):
+        val = data.get(field)
+        if isinstance(val, str):
+            data[field] = [val]
+        elif isinstance(val, list):
+            items: list[str] = []
+            for item in val:
+                if isinstance(item, str):
+                    items.append(item)
+                elif isinstance(item, dict):
+                    title = item.get("title", "Observation")
+                    exp = item.get("explanation", item.get("detail", str(item)))
+                    items.append(f"{title}: {exp}")
+                elif item is not None:
+                    items.append(str(item))
+            data[field] = items
+        else:
+            data[field] = []
+
+    # 7. Intent and claimed identity
+    if data.get("email_intent") is not None:
+        data["email_intent"] = str(data["email_intent"])
+    if data.get("claimed_identity") is not None:
+        data["claimed_identity"] = str(data["claimed_identity"])
+    if data.get("requested_action") is not None:
+        data["requested_action"] = str(data["requested_action"])
+
+    # 8. Key findings normalization
+    raw_findings = data.get("key_findings") or []
+    normalized_findings = []
+    if isinstance(raw_findings, list):
+        for f in raw_findings:
+            if isinstance(f, dict):
+                sev = str(f.get("severity", "medium")).lower()
+                if sev not in {"info", "low", "medium", "high", "critical"}:
+                    sev = "high" if sev in {"urgent", "severe"} else "medium"
+                ev = f.get("evidence", [])
+                if isinstance(ev, str):
+                    ev = [ev]
+                elif not isinstance(ev, list):
+                    ev = []
+                normalized_findings.append({
+                    "title": str(f.get("title") or "Observation"),
+                    "severity": sev,
+                    "explanation": str(f.get("explanation") or f.get("description") or ""),
+                    "evidence": [str(e) for e in ev],
+                })
+            elif isinstance(f, str):
+                normalized_findings.append({
+                    "title": "Observation",
+                    "severity": "medium",
+                    "explanation": f,
+                    "evidence": [],
+                })
+    data["key_findings"] = normalized_findings
+
+    # 9. Evidence
+    evidence_raw = data.get("evidence")
+    if isinstance(evidence_raw, dict):
+        data["evidence"] = [
+            f"{k}: {v}" if not isinstance(v, (dict, list)) else f"{k}: {json.dumps(v)}"
+            for k, v in evidence_raw.items()
+        ]
+    elif isinstance(evidence_raw, list):
+        data["evidence"] = [str(x) for x in evidence_raw]
+    else:
+        data["evidence"] = []
+
+    # 10. Attribution
+    attr_raw = data.get("attribution")
+    if isinstance(attr_raw, str):
+        data["attribution"] = {
+            "status": "infrastructure_only",
+            "assessment": attr_raw,
+            "confidence": "low",
+            "supporting_evidence": [],
+            "limitations": ["Infrastructure evidence does not identify or attribute a human actor."],
+        }
+    elif isinstance(attr_raw, dict):
+        status = attr_raw.get("status", "infrastructure_only")
+        if status not in {"not_attributed", "infrastructure_only", "limited_attribution"}:
+            status = "infrastructure_only"
+        conf = str(attr_raw.get("confidence", "low")).lower()
+        if conf not in {"high", "medium", "low", "unknown"}:
+            conf = "low"
+        limits = attr_raw.get("limitations", [])
+        if not isinstance(limits, list):
+            limits = [str(limits)]
+        if not any("identity" in str(item).lower() or "actor" in str(item).lower() for item in limits):
+            limits.append("Infrastructure evidence does not identify or attribute a human actor.")
+        data["attribution"] = {
+            "status": status,
+            "assessment": str(attr_raw.get("assessment") or CONSERVATIVE_ATTRIBUTION),
+            "confidence": conf,
+            "supporting_evidence": [str(e) for e in attr_raw.get("supporting_evidence", [])] if isinstance(attr_raw.get("supporting_evidence"), list) else [],
+            "limitations": [str(l) for l in limits],
+        }
+    else:
+        data["attribution"] = {
+            "status": "infrastructure_only",
+            "assessment": CONSERVATIVE_ATTRIBUTION,
+            "confidence": "low",
+            "supporting_evidence": [],
+            "limitations": ["Infrastructure evidence does not identify or attribute a human actor."],
+        }
+
+    # 11. Strictly filter to allowed schema fields for ConfigDict(extra="forbid")
+    allowed_keys = {
+        "summary",
+        "risk_level",
+        "classification",
+        "confidence",
+        "reasoning",
+        "key_findings",
+        "recommended_actions",
+        "attribution",
+        "evidence",
+        "tool_calls",
+        "iterations",
+        "source",
+        "provider",
+        "model",
+        "email_intent",
+        "claimed_identity",
+        "requested_action",
+        "suspicious_content_findings",
+        "authentication_findings",
+        "url_findings",
+        "attachment_findings",
+        "infrastructure_findings",
+        "historical_findings",
+    }
+    return {k: v for k, v in data.items() if k in allowed_keys}
+
+
 class AIInvestigationAgent:
     """Execute provider decisions with strict registry and iteration bounds."""
 
@@ -620,49 +872,8 @@ class AIInvestigationAgent:
                 ) from exc
 
         try:
-            final_data["source"] = "ai_agent"
-            final_data["iterations"] = max(1, len(calls) + 1)
-            final_data["tool_calls"] = calls
-            final_data["provider"] = getattr(self.provider, "name", "groq")
-            final_data["model"] = getattr(self.provider, "model", None)
-
-            evidence_raw = final_data.get("evidence")
-            if isinstance(evidence_raw, dict):
-                final_data["evidence"] = [
-                    f"{k}: {v}" if not isinstance(v, (dict, list)) else f"{k}: {json.dumps(v)}"
-                    for k, v in evidence_raw.items()
-                ]
-            elif not isinstance(evidence_raw, list):
-                final_data["evidence"] = []
-
-            attr_raw = final_data.get("attribution")
-            if isinstance(attr_raw, str):
-                final_data["attribution"] = {
-                    "status": "infrastructure_only",
-                    "assessment": attr_raw,
-                    "confidence": "low",
-                    "supporting_evidence": [],
-                    "limitations": ["Infrastructure evidence does not identify or attribute a human actor."],
-                }
-            elif isinstance(attr_raw, dict):
-                attr_raw.setdefault("limitations", ["Infrastructure evidence does not identify or attribute a human actor."])
-                attr_raw.setdefault("supporting_evidence", [])
-                attr_raw.setdefault("confidence", "low")
-                attr_raw.setdefault("status", "infrastructure_only")
-            else:
-                final_data["attribution"] = {
-                    "status": "infrastructure_only",
-                    "assessment": CONSERVATIVE_ATTRIBUTION,
-                    "confidence": "low",
-                    "supporting_evidence": [],
-                    "limitations": ["Infrastructure evidence does not identify or attribute a human actor."],
-                }
-
-            result = AIInvestigationResult.model_validate(final_data)
-            result.iterations = max(1, len(calls) + 1)
-            result.source = "ai_agent"
-            result.provider = getattr(self.provider, "name", "groq")
-            result.model = getattr(self.provider, "model", None)
+            normalized = _normalize_final_data(final_data, calls, self.provider, max(1, len(calls) + 1))
+            result = AIInvestigationResult.model_validate(normalized)
             self._validate_result(result, context)
             result.tool_calls = calls
             return result
@@ -700,37 +911,8 @@ class AIInvestigationAgent:
                             },
                         })
                         continue
-                    final_data = dict(decision.result)
-                    final_data["source"] = "ai_agent"
-                    final_data["iterations"] = iteration
-                    final_data["tool_calls"] = calls
-                    final_data["provider"] = getattr(self.provider, "name", "groq")
-                    final_data["model"] = getattr(self.provider, "model", None)
-                    evidence_raw = final_data.get("evidence")
-                    if isinstance(evidence_raw, dict):
-                        final_data["evidence"] = [
-                            f"{k}: {v}" if not isinstance(v, (dict, list)) else f"{k}: {json.dumps(v)}"
-                            for k, v in evidence_raw.items()
-                        ]
-                    attr_raw = final_data.get("attribution")
-                    if isinstance(attr_raw, str):
-                        final_data["attribution"] = {
-                            "status": "infrastructure_only",
-                            "assessment": attr_raw,
-                            "confidence": "low",
-                            "supporting_evidence": [],
-                            "limitations": ["Infrastructure evidence does not identify or attribute a human actor."],
-                        }
-                    elif isinstance(attr_raw, dict):
-                        attr_raw.setdefault("limitations", ["Infrastructure evidence does not identify or attribute a human actor."])
-                        attr_raw.setdefault("supporting_evidence", [])
-                        attr_raw.setdefault("confidence", "low")
-                        attr_raw.setdefault("status", "infrastructure_only")
-                    result = AIInvestigationResult.model_validate(final_data)
-                    result.iterations = iteration
-                    result.source = "ai_agent"
-                    result.provider = getattr(self.provider, "name", "groq")
-                    result.model = getattr(self.provider, "model", None)
+                    normalized = _normalize_final_data(dict(decision.result), calls, self.provider, iteration)
+                    result = AIInvestigationResult.model_validate(normalized)
                     self._validate_result(result, context)
                     result.tool_calls = calls
                     return result

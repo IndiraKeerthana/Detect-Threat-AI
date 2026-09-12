@@ -344,6 +344,17 @@ export interface AIInvestigationResult {
   source: 'ai_agent';
   provider?: string | null;
   model?: string | null;
+
+  // Content & Intent Investigation Breakdown
+  email_intent?: string | null;
+  claimed_identity?: string | null;
+  requested_action?: string | null;
+  suspicious_content_findings?: string[];
+  authentication_findings?: string[];
+  url_findings?: string[];
+  attachment_findings?: string[];
+  infrastructure_findings?: string[];
+  historical_findings?: string[];
 }
 
 // --- Full API Response Contract ---

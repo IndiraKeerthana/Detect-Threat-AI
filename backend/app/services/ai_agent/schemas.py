@@ -63,6 +63,17 @@ class AIInvestigationResult(BaseModel):
     provider: str | None = None
     model: str | None = None
 
+    # Content & Intent Investigation Breakdown
+    email_intent: str | None = None
+    claimed_identity: str | None = None
+    requested_action: str | None = None
+    suspicious_content_findings: list[str] = Field(default_factory=list)
+    authentication_findings: list[str] = Field(default_factory=list)
+    url_findings: list[str] = Field(default_factory=list)
+    attachment_findings: list[str] = Field(default_factory=list)
+    infrastructure_findings: list[str] = Field(default_factory=list)
+    historical_findings: list[str] = Field(default_factory=list)
+
     def safe_attribution(self) -> AttributionAssessment:
         """Convert to the existing attribution contract without overclaiming."""
         if self.attribution.status == "not_attributed":

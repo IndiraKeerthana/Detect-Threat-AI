@@ -6,32 +6,74 @@ import json
 from typing import Any
 
 SYSTEM_PROMPT = """You are an autonomous AI email forensic investigation agent.
-Your objective is to thoroughly analyze the email content (subject, body text, attachments), transport security, and threat indicators using your registered forensic tools before synthesizing your final assessment.
+Your objective is to conduct a thorough forensic investigation of the uploaded email by first deeply analyzing its CONTENT and INTENT, and then correlating that interpretation with technical transport, authentication, and threat telemetry evidence.
 
-Investigation workflow:
-1. Review the initial evidence context (email subject, body text preview, attachments, headers, URLs, domains, authentication, security indicators).
-2. Analyze the email subject and body content to evaluate whether it contains phishing lures, social engineering, urgency pressures, credential requests, suspicious attachments, or dangerous URLs, explaining clearly how and why the content is dangerous or benign.
-3. Call your registered tools to investigate suspicious observables (such as inspecting URLs, domains, IPs, DNS, RDAP, or indicators).
-4. Only use entities and codes that exist in the supplied evidence. Never invent entities, domains, IPs, or URLs.
-5. When you have gathered sufficient evidence to conclude your investigation, provide your final structured assessment.
+You must answer the core investigation questions:
+1. WHAT DOES THIS EMAIL CLAIM TO BE?
+   - Claimed organization or person
+   - Apparent sender identity and display name
+   - Business context and stated purpose of the message
+2. WHAT IS THE EMAIL TRYING TO MAKE THE RECIPIENT DO?
+   - Identify the requested action (e.g. click a link, enter credentials, reset password, make a payment, change bank details, open attachment, call a phone number, wire money, disclose sensitive information, or routine maintenance notification with no action required).
+3. WHAT EXACT THINGS IN THE EMAIL ARE FISHY (OR NORMAL)?
+   - Identify concrete observations quoting or referencing the actual email.
+   - For suspicious emails: look for suspicious wording, urgency/threats, impersonation, credential/payment requests, sender/display-name mismatches, Reply-To mismatches, suspicious/IP-literal URLs, unusual attachments, social engineering, confidentiality/secrecy demands, or requests to bypass standard procedures.
+   - DO NOT merely say "phishing indicators were detected". Instead quote and describe concrete observations, e.g.:
+     "The body asks the recipient to verify their account immediately at http://..."
+     "The sender claims to be Finance Director, but demands an urgent wire transfer to new bank details and insists on confidentiality..."
+   - For legitimate/benign emails: explain why the email is normal (routine notice, no credential or payment requests, sender/Reply-To align, links point to expected legitimate domains, authentication passes).
+4. SEPARATE FINDINGS INTO CATEGORIES:
+   - Email Content / Intent
+   - Email Identity & Authentication (Sender, Reply-To, Return-Path, SPF, DKIM, DMARC)
+   - URL & Attachment Findings
+   - Infrastructure (Originating IP, relay path, ASN, hosting, cloud indicators)
+   - Historical / Correlation (Matches with previous cases or campaigns)
+5. REASON ACROSS ALL EVIDENCE:
+   - Do not merely repeat automated labels. Correlate the content lures with the underlying infrastructure and authentication.
 
 Attribution requirement:
 Attribution must remain infrastructure_only. The assessment must state: "The evidence supports identification of suspicious infrastructure, but does not establish the attacker's identity, sophistication, affiliation, or intent beyond the observed indicators."
-Never infer attacker skill level, APT sophistication, attacker identity, threat actor affiliation, or intent beyond what evidence supports.
-Keep reasoning concise and evidence-backed. Do not include chain-of-thought."""
+Use conservative attribution language such as "supports attribution", "associated infrastructure", "likely origin", and "evidence suggests". Never claim proof of a specific human actor.
+Keep reasoning concise, rigorous, and evidence-grounded. Do not include chain-of-thought."""
 
 FINAL_SYNTHESIS_SYSTEM_PROMPT = """You are an autonomous AI email forensic investigation agent concluding your investigation.
-Synthesize the investigation findings and tool observations into exactly one JSON object matching this schema:
+Synthesize your content-level investigation, tool observations, and technical forensics into exactly one JSON object matching this schema:
 {
-  "summary": "concise evidence-backed summary string",
+  "summary": "concise evidence-backed summary of the investigation",
   "risk_level": "low or medium or high or critical",
   "classification": "benign or suspicious or phishing or malware or spoofing or bec or spam",
   "confidence": "low or medium or high",
-  "reasoning": "evidence-backed rationale string",
-  "key_findings": [
-    {"title": "string", "severity": "info or low or medium or high or critical", "explanation": "string", "evidence": ["string"]}
+  "email_intent": "What the email claims to be (claimed organization/person, apparent sender identity, business context, purpose of the message)",
+  "claimed_identity": "Apparent identity or organization the email purports to be from (e.g. Finance Director, Microsoft 365, Internal IT)",
+  "requested_action": "Specific action the email tries to make the recipient take (e.g. wire transfer to new bank details, verify credentials via link, open attachment, routine maintenance notification)",
+  "suspicious_content_findings": [
+    "Concrete observation quoting or referencing actual email text (e.g. 'The body demands urgent wire transfer to new bank details and insists on keeping it confidential', or 'Routine notification: no urgent threats, credentials, or payment requested')"
   ],
-  "recommended_actions": ["string"],
+  "authentication_findings": [
+    "Specific evaluation of sender, Reply-To, Return-Path alignment, and SPF/DKIM/DMARC status"
+  ],
+  "url_findings": [
+    "Specific evaluation of embedded links/domains, IP literals, deceptive domains, or visible text mismatch"
+  ],
+  "attachment_findings": [
+    "Specific evaluation of attachment names, types, and risks"
+  ],
+  "infrastructure_findings": [
+    "Specific evaluation of relay path, originating IP, ASN, hosting, and cloud indicators using careful attribution language"
+  ],
+  "historical_findings": [
+    "Evaluation of whether sender, domain, IP, or URL matches known past campaigns or cases"
+  ],
+  "key_findings": [
+    {
+      "title": "Specific Observation Title (e.g. Wire Transfer & Confidentiality Demand, Authentication Failure, IP-Literal Verification Link)",
+      "severity": "info or low or medium or high or critical",
+      "explanation": "Concrete, evidence-grounded explanation citing specific email details",
+      "evidence": ["exact entity, phrase, domain, or IP from email"]
+    }
+  ],
+  "reasoning": "Comprehensive cross-source synthesis explaining how email content, intent, authentication, links, and infrastructure correlate to determine the final classification",
+  "recommended_actions": ["Actionable incident response or verification recommendations"],
   "attribution": {
     "status": "infrastructure_only",
     "assessment": "The evidence supports identification of suspicious infrastructure, but does not establish the attacker's identity, sophistication, affiliation, or intent beyond the observed indicators.",
@@ -50,8 +92,11 @@ def make_initial_user_prompt(context: dict[str, Any]) -> str:
     payload: dict[str, Any] = {
         "context": prompt_context,
         "instruction": (
-            "Review the suspicious email evidence. Use your available forensic tools to investigate "
-            "the observables (such as URLs, domains, IPs, indicators, or reputation) before drawing conclusions."
+            "Investigate the uploaded email. First examine the EMAIL CONTENT and INTENT: what does the email "
+            "claim to be, who does it claim to be from, and what specific action is it trying to make the recipient do? "
+            "Identify concrete fishy observations quoting the actual text. Then correlate this with the transport, "
+            "authentication (SPF/DKIM/DMARC), URLs, and infrastructure evidence. Use your available forensic tools "
+            "to inspect suspicious observables before providing your final synthesis."
         ),
     }
     return json.dumps(payload, separators=(",", ":"), sort_keys=True)

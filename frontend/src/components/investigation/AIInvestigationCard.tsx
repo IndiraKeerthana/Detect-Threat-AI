@@ -1,5 +1,20 @@
 import React, { useState } from 'react';
-import { Sparkles, Terminal, CheckCircle2, Wrench, AlertOctagon, ChevronDown, ChevronRight } from 'lucide-react';
+import {
+  Sparkles,
+  Terminal,
+  CheckCircle2,
+  Wrench,
+  AlertOctagon,
+  ChevronDown,
+  ChevronRight,
+  Mail,
+  Target,
+  ShieldAlert,
+  Link2,
+  FileText,
+  Network,
+  CheckSquare,
+} from 'lucide-react';
 import type { AIInvestigationResult } from '../../types/investigation';
 import { SectionHeader } from './SectionHeader';
 
@@ -28,7 +43,7 @@ export const AIInvestigationCard: React.FC<AIInvestigationCardProps> = ({ aiData
         <SectionHeader
           index="03"
           title="AI forensic assessment"
-          subtitle="Autonomous agent synthesis, evidence-grounded rationale, and tool activity trace."
+          subtitle="Autonomous agent synthesis, content intent investigation, and forensic correlation."
           action={
             <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[var(--surface-elevated)] border border-[var(--severity-high)] text-[var(--severity-high)] font-bold">
@@ -63,16 +78,16 @@ export const AIInvestigationCard: React.FC<AIInvestigationCardProps> = ({ aiData
   const timelineStages: TimelineStage[] = [
     {
       step: '01',
-      title: 'Email Ingested & Parsed',
-      badge: 'PARSER',
-      description: 'MIME RFC 822 structure decoded; transport headers and payload observables extracted.',
+      title: 'Email Content & Intent Examined',
+      badge: 'CONTENT ANALYSIS',
+      description: 'Examined message context, claimed sender identity, and attempted recipient actions.',
       status: 'VERIFIED',
     },
     {
       step: '02',
-      title: 'Authentication Evaluated',
+      title: 'Authentication & Transport Evaluated',
       badge: 'RFC 8601',
-      description: 'Cryptographic authentication (SPF, DKIM, DMARC) and domain alignment evaluated.',
+      description: 'Evaluated SPF/DKIM/DMARC alignment against From and Return-Path domains.',
       status: 'VERIFIED',
     },
     // Dynamically insert tool calls
@@ -89,7 +104,7 @@ export const AIInvestigationCard: React.FC<AIInvestigationCardProps> = ({ aiData
       step: `0${aiData.tool_calls.length + 3}`,
       title: 'Cross-Signal Correlation',
       badge: 'CORRELATOR',
-      description: 'Correlated transport infrastructure, observables, and threat telemetry.',
+      description: 'Correlated email lures, transport infrastructure, and threat telemetry.',
       status: 'VERIFIED',
     },
     {
@@ -107,7 +122,7 @@ export const AIInvestigationCard: React.FC<AIInvestigationCardProps> = ({ aiData
       <SectionHeader
         index="03"
         title="AI forensic assessment"
-        subtitle="Autonomous agent synthesis, evidence-grounded rationale, and tool activity trace."
+        subtitle="Autonomous agent synthesis, content intent investigation, and forensic correlation."
         action={
           <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded badge-ai font-bold">
@@ -125,15 +140,175 @@ export const AIInvestigationCard: React.FC<AIInvestigationCardProps> = ({ aiData
         }
       />
 
-      {/* Intelligence Briefing: Assessment & Evidence-Grounded Rationale */}
+      {/* 1. EMAIL INTENT & CLAIMED IDENTITY (Content Investigation Hero) */}
+      {(aiData.email_intent || aiData.claimed_identity || aiData.requested_action) && (
+        <div className="border border-[var(--border-subtle)] rounded-lg p-4 bg-[var(--surface-subtle)] space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] pb-2 text-xs font-mono">
+            <span className="text-[var(--ai)] font-semibold tracking-wider uppercase flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5" />
+              Email Intent & Claimed Identity
+            </span>
+            {aiData.claimed_identity && (
+              <span className="px-2 py-0.5 rounded bg-[var(--surface-elevated)] border border-[var(--border-subtle)] text-[10px] font-mono text-[var(--identifier)]">
+                CLAIMED: <strong>{aiData.claimed_identity}</strong>
+              </span>
+            )}
+          </div>
+
+          {aiData.email_intent && (
+            <div className="space-y-1">
+              <span className="text-[10px] font-mono uppercase text-[var(--text-dim)] tracking-wider block">
+                What this email claims to be
+              </span>
+              <p className="text-xs text-[var(--text)] leading-relaxed font-sans font-medium">
+                {aiData.email_intent}
+              </p>
+            </div>
+          )}
+
+          {aiData.requested_action && (
+            <div className="p-2.5 rounded bg-[var(--surface)] border border-[var(--border-subtle)] flex items-start gap-2.5">
+              <Target className="w-4 h-4 text-[var(--severity-high)] shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-mono uppercase text-[var(--severity-high)] font-bold tracking-wider block">
+                  Action Attempted on Recipient
+                </span>
+                <p className="text-xs text-[var(--text)] font-sans leading-relaxed">
+                  {aiData.requested_action}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 2. WHAT THE AI FOUND FISHY (Concrete Content Observations) */}
+      {aiData.suspicious_content_findings && aiData.suspicious_content_findings.length > 0 && (
+        <div className="border border-[var(--border-subtle)] rounded-lg p-4 bg-[var(--surface-subtle)] space-y-3">
+          <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2 text-xs font-mono">
+            <span className="text-[var(--severity-high)] font-semibold tracking-wider uppercase flex items-center gap-1.5">
+              <AlertOctagon className="w-3.5 h-3.5" />
+              What The AI Found Fishy (Content Observations)
+            </span>
+            <span className="text-[10px] font-mono text-[var(--text-dim)]">
+              {aiData.suspicious_content_findings.length} OBSERVATION{aiData.suspicious_content_findings.length > 1 ? 'S' : ''}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {aiData.suspicious_content_findings.map((finding, idx) => (
+              <div
+                key={`content-fishy-${idx}`}
+                className="p-3 rounded bg-[var(--surface)] border border-[var(--border-subtle)] text-xs text-[var(--text)] font-sans leading-relaxed flex items-start gap-2.5"
+              >
+                <span className="w-5 h-5 rounded bg-[var(--surface-elevated)] border border-[var(--border-subtle)] text-[10px] font-mono font-bold text-[var(--ai)] flex items-center justify-center shrink-0 mt-0.5">
+                  {idx + 1}
+                </span>
+                <p className="flex-1">{finding}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 3. CATEGORIZED FINDINGS: AUTHENTICATION, URLS/ATTACHMENTS, INFRASTRUCTURE */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Authentication & Identity Findings */}
+        {aiData.authentication_findings && aiData.authentication_findings.length > 0 && (
+          <div className="border border-[var(--border-subtle)] rounded-lg p-4 bg-[var(--surface-subtle)] space-y-2.5">
+            <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2 text-xs font-mono">
+              <span className="text-[var(--identifier)] font-semibold tracking-wider uppercase flex items-center gap-1.5">
+                <ShieldAlert className="w-3.5 h-3.5" />
+                Authentication & Identity
+              </span>
+            </div>
+            <ul className="space-y-2">
+              {aiData.authentication_findings.map((finding, idx) => (
+                <li
+                  key={`auth-f-${idx}`}
+                  className="text-xs text-[var(--text-muted)] font-sans flex items-start gap-2 leading-relaxed"
+                >
+                  <span className="text-[var(--identifier)] font-bold font-mono text-sm leading-none">•</span>
+                  <span>{finding}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* URLs & Attachments Findings */}
+        {((aiData.url_findings && aiData.url_findings.length > 0) || (aiData.attachment_findings && aiData.attachment_findings.length > 0)) && (
+          <div className="border border-[var(--border-subtle)] rounded-lg p-4 bg-[var(--surface-subtle)] space-y-2.5">
+            <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2 text-xs font-mono">
+              <span className="text-[var(--state-warn)] font-semibold tracking-wider uppercase flex items-center gap-1.5">
+                <Link2 className="w-3.5 h-3.5" />
+                URLs & Attachments
+              </span>
+            </div>
+            <ul className="space-y-2">
+              {aiData.url_findings?.map((finding, idx) => (
+                <li
+                  key={`url-f-${idx}`}
+                  className="text-xs text-[var(--text-muted)] font-sans flex items-start gap-2 leading-relaxed"
+                >
+                  <Link2 className="w-3.5 h-3.5 text-[var(--state-warn)] shrink-0 mt-0.5" />
+                  <span>{finding}</span>
+                </li>
+              ))}
+              {aiData.attachment_findings?.map((finding, idx) => (
+                <li
+                  key={`att-f-${idx}`}
+                  className="text-xs text-[var(--text-muted)] font-sans flex items-start gap-2 leading-relaxed"
+                >
+                  <FileText className="w-3.5 h-3.5 text-[var(--identifier)] shrink-0 mt-0.5" />
+                  <span>{finding}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {/* Infrastructure & Historical Findings */}
+      {((aiData.infrastructure_findings && aiData.infrastructure_findings.length > 0) || (aiData.historical_findings && aiData.historical_findings.length > 0)) && (
+        <div className="border border-[var(--border-subtle)] rounded-lg p-4 bg-[var(--surface-subtle)] space-y-2.5">
+          <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2 text-xs font-mono">
+            <span className="text-[var(--text-dim)] font-semibold tracking-wider uppercase flex items-center gap-1.5">
+              <Network className="w-3.5 h-3.5" />
+              Infrastructure & Historical Correlation
+            </span>
+          </div>
+          <ul className="space-y-2">
+            {aiData.infrastructure_findings?.map((finding, idx) => (
+              <li
+                key={`infra-f-${idx}`}
+                className="text-xs text-[var(--text-muted)] font-sans flex items-start gap-2 leading-relaxed"
+              >
+                <span className="text-[var(--text-dim)] font-bold font-mono text-sm leading-none">•</span>
+                <span>{finding}</span>
+              </li>
+            ))}
+            {aiData.historical_findings?.map((finding, idx) => (
+              <li
+                key={`hist-f-${idx}`}
+                className="text-xs text-[var(--text-muted)] font-sans flex items-start gap-2 leading-relaxed"
+              >
+                <span className="text-[var(--ai)] font-bold font-mono text-sm leading-none">•</span>
+                <span>{finding}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* 4. INTELLIGENCE BRIEFING: ASSESSMENT & EVIDENCE-GROUNDED REASONING */}
       <div className="border border-[var(--border-subtle)] rounded-lg p-5 space-y-4 bg-[var(--surface-subtle)]">
         <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2 text-xs font-mono">
           <span className="text-[var(--ai)] font-semibold tracking-wider uppercase flex items-center gap-1.5">
             <Terminal className="w-3.5 h-3.5" />
-            Intelligence Briefing · Analyst Synthesis
+            AI Analyst Rationale & Synthesis
           </span>
           <span className="text-[var(--text-dim)] text-[10px]">
-            {`EXECUTION MODE: ${(aiData.provider || 'AI').toUpperCase()} AGENT (${aiData.model || 'BOUNDED'})`}
+            {`MODE: ${(aiData.provider || 'AI').toUpperCase()} AGENT (${aiData.model || 'BOUNDED'})`}
           </span>
         </div>
 
@@ -151,7 +326,7 @@ export const AIInvestigationCard: React.FC<AIInvestigationCardProps> = ({ aiData
           {/* Rationale */}
           <div className="space-y-1.5">
             <span className="text-[10px] font-mono uppercase text-[var(--text-dim)] tracking-wider block">
-              Evidence-Grounded Rationale
+              Cross-Source Reasoning
             </span>
             <p className="text-xs text-[var(--text-muted)] leading-relaxed font-sans">
               {aiData.reasoning}
@@ -159,7 +334,7 @@ export const AIInvestigationCard: React.FC<AIInvestigationCardProps> = ({ aiData
           </div>
         </div>
 
-        {/* AI Specific Findings (Reserved Purple Accent Area) */}
+        {/* AI Key Findings Cards */}
         {aiData.key_findings && aiData.key_findings.length > 0 && (
           <div className="pt-3 border-t border-[var(--border-subtle)] space-y-2">
             <span className="text-[10px] font-mono uppercase text-[var(--ai)] tracking-wider block">
@@ -169,7 +344,7 @@ export const AIInvestigationCard: React.FC<AIInvestigationCardProps> = ({ aiData
               {aiData.key_findings.map((finding, idx) => (
                 <div
                   key={`ai-finding-${idx}`}
-                  className="p-3 rounded border border-[var(--border-subtle)] bg-[var(--surface)] space-y-1"
+                  className="p-3 rounded border border-[var(--border-subtle)] bg-[var(--surface)] space-y-1.5"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-semibold text-xs text-[var(--text)] font-sans">
@@ -182,9 +357,42 @@ export const AIInvestigationCard: React.FC<AIInvestigationCardProps> = ({ aiData
                   <p className="text-[11px] text-[var(--text-muted)] font-sans leading-relaxed">
                     {finding.explanation}
                   </p>
+                  {finding.evidence && finding.evidence.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      {finding.evidence.map((ev, evIdx) => (
+                        <span
+                          key={`ev-${evIdx}`}
+                          className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--surface-elevated)] text-[var(--text-dim)] border border-[var(--border-subtle)]"
+                        >
+                          {ev}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Recommended Actions */}
+        {aiData.recommended_actions && aiData.recommended_actions.length > 0 && (
+          <div className="pt-3 border-t border-[var(--border-subtle)] space-y-2">
+            <span className="text-[10px] font-mono uppercase text-[var(--text-dim)] tracking-wider block flex items-center gap-1.5">
+              <CheckSquare className="w-3 h-3 text-[var(--state-pass)]" />
+              Recommended Security Actions
+            </span>
+            <ul className="space-y-1.5">
+              {aiData.recommended_actions.map((act, idx) => (
+                <li
+                  key={`rec-${idx}`}
+                  className="text-xs text-[var(--text-muted)] font-sans flex items-start gap-2"
+                >
+                  <span className="text-[var(--state-pass)] font-mono font-bold">•</span>
+                  <span>{act}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </div>
