@@ -22,7 +22,7 @@ Authentication-Results: mx1.enterprise-finance.example;
  spf=fail smtp.mailfrom=bounce-handler@mail-relay-gw42.example-net.test;
  dkim=pass header.i=@apex-innovations.example header.s=selector1;
  dmarc=none (p=none dis=none) header.from=apex-innovations.example
-Received-SPF: fail (mx1.enterprise-finance.example: domain of bounce-handler@mail-relay-gw42.example-net.test does not designate 198.51.100.42 as permitted sender) client-ip=198.51.100.42;
+Received-SPF: fail (mx1.enterprise-finance.example: domain of bounce-handler@mail-relay-gw42.example-net.test does not designate 198.199.90.42 as permitted sender) client-ip=198.199.90.42;
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=apex-innovations.example; s=selector1;
  h=from:to:cc:subject:date:message-id; bh=47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=;
  b=synthetic-signature-data-42==
@@ -32,7 +32,7 @@ Received: from mx1.enterprise-finance.example (mx1.enterprise-finance.example [1
 Received: from mail-relay-gw42.example-net.test (mail-relay-gw42.example-net.test [198.51.100.25])
  by mx1.enterprise-finance.example with ESMTP id 2pL899;
  Fri, 11 Sep 2026 14:22:25 +0000
-Received: from client-portal.internal-outpost.net (client-portal.internal-outpost.net [198.51.100.42])
+Received: from client-portal.internal-outpost.net (client-portal.internal-outpost.net [198.199.90.42])
  by mail-relay-gw42.example-net.test with ESMTP id 5mN011;
  Fri, 11 Sep 2026 14:22:18 +0000
 MIME-Version: 1.0
