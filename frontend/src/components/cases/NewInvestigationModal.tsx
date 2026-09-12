@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { analyzeEmail, ApiError } from '../../services/api';
 import { caseStore, type CaseRecord } from '../../services/caseStore';
-import { MOCK_INVESTIGATION_DATA } from '../../data/mockInvestigation';
+import { SAMPLE_INVESTIGATION_EML } from '../../data/sampleEml';
 
 interface NewInvestigationModalProps {
   isOpen: boolean;
@@ -209,23 +209,74 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
     }
   };
 
-  const handleLoadSample = () => {
+  const handleLoadSample = async () => {
+    const sampleFile = new File([SAMPLE_INVESTIGATION_EML], 'sample_bec_investigation.eml', {
+      type: 'message/rfc822',
+    });
+    setSelectedFile(sampleFile);
+
     setIsAnalyzing(true);
     setErrorTitle(null);
     setErrorMessage(null);
-    setAnalysisStep('LOADING VALIDATED FORENSIC SPECIMEN (security_signals.eml)...');
+    setAnalysisStep('LOADING SYNTHETIC BEC/PHISHING SPECIMEN (sample_bec_investigation.eml)...');
 
-    setTimeout(() => {
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    let stepTimer1: ReturnType<typeof setTimeout> | undefined;
+    let stepTimer2: ReturnType<typeof setTimeout> | undefined;
+
+    try {
+      stepTimer1 = setTimeout(() => {
+        setAnalysisStep('RECONSTRUCTING SMTP RELAYS & EVALUATING RFC 8601 SIGNALS...');
+      }, 700);
+
+      stepTimer2 = setTimeout(() => {
+        setAnalysisStep('INVOKING AUTONOMOUS FORENSIC AGENT & COMPUTING THREAT ARC...');
+      }, 1600);
+
+      const result = await analyzeEmail(sampleFile, { signal: controller.signal });
+
       const sampleCase = caseStore.createCaseFromAnalysis(
-        MOCK_INVESTIGATION_DATA,
-        undefined,
-        caseTitle.trim() || 'Verified Security Signals Specimen',
-        analystNotes.trim() || 'Loaded from offline verified test corpus (PS SIH26106).'
+        result,
+        sampleFile,
+        caseTitle.trim() || 'Synthetic BEC / Phishing Specimen',
+        analystNotes.trim() || 'Vendor banking details update required before today\'s payment run (SIH26106).'
       );
       setIsAnalyzing(false);
       onInvestigationCreated(sampleCase);
       onClose();
-    }, 600);
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        if (err.status === 408) {
+          setErrorTitle('INVESTIGATION TIMEOUT');
+          setErrorMessage(err.message);
+        } else if (err.status === 0) {
+          if (err.detail === 'ABORTED') {
+            setErrorTitle('INVESTIGATION CANCELLED');
+            setErrorMessage('The forensic investigation was cancelled.');
+          } else {
+            setErrorTitle('ANALYSIS SERVICE UNAVAILABLE');
+            setErrorMessage(
+              'The forensic analysis backend is unreachable. Please verify the backend service is running and try again.'
+            );
+          }
+        } else {
+          setErrorTitle(`FORENSIC EXTRACTION FAILED (HTTP ${err.status})`);
+          setErrorMessage(err.detail || err.message);
+        }
+      } else {
+        const msg = err instanceof Error ? err.message : 'Unknown parsing failure occurred.';
+        setErrorTitle('ANALYSIS PIPELINE FAILURE');
+        setErrorMessage(msg);
+      }
+    } finally {
+      if (stepTimer1 !== undefined) clearTimeout(stepTimer1);
+      if (stepTimer2 !== undefined) clearTimeout(stepTimer2);
+      abortControllerRef.current = null;
+      setIsAnalyzing(false);
+      setAnalysisStep('');
+    }
   };
 
   const formatFileSize = (bytes: number): string => {

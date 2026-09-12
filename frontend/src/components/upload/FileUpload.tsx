@@ -213,7 +213,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           className="inline-flex items-center gap-1.5 text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5 text-[var(--ai)]" />
-          Load Verified Forensic Sample (security_signals.eml)
+          Load a synthetic BEC/phishing investigation specimen (sample_bec_investigation.eml)
         </button>
       </div>
     </div>

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FileUpload } from '../components/upload/FileUpload';
 import { PipelineVisual } from '../components/upload/PipelineVisual';
 import { analyzeEmail } from '../services/api';
-import { MOCK_INVESTIGATION_DATA } from '../data/mockInvestigation';
+import { SAMPLE_INVESTIGATION_EML } from '../data/sampleEml';
 import type { EmailAnalysisResponse } from '../types/investigation';
 import { caseStore, type CaseRecord } from '../services/caseStore';
 import { Activity, ArrowUpRight } from 'lucide-react';
@@ -60,16 +60,11 @@ export const Home: React.FC<HomeProps> = ({
     }
   };
 
-  const handleLoadMock = () => {
-    setError(null);
-    setCompletedCaseId(null);
-    setIsAnalyzing(true);
-    setTimeout(() => {
-      setIsAnalyzing(false);
-      const newCase = caseStore.createCaseFromAnalysis(MOCK_INVESTIGATION_DATA);
-      setCompletedCaseId(newCase.id);
-      onInvestigationComplete(MOCK_INVESTIGATION_DATA);
-    }, 400);
+  const handleLoadMock = async () => {
+    const sampleFile = new File([SAMPLE_INVESTIGATION_EML], 'sample_bec_investigation.eml', {
+      type: 'message/rfc822',
+    });
+    await handleAnalyze(sampleFile);
   };
 
   // Build real-data sparkline metrics from caseStore
