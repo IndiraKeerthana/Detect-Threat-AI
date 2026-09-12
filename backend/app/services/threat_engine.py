@@ -14,13 +14,15 @@ from app.schemas.investigation import (
 from app.schemas.security import SecurityAnalysis
 from app.schemas.threat_intelligence import ThreatIntelligence
 
-_WEIGHTS = {"info": 1, "low": 5, "medium": 12, "high": 22, "critical": 35}
+import math
+
+_WEIGHTS = {"info": 2, "low": 6, "medium": 12, "high": 20, "critical": 30}
 _CATEGORY_CAPS = {
-    "authentication": 28,
-    "content": 32,
-    "url": 28,
+    "authentication": 25,
+    "content": 30,
+    "url": 25,
     "identity": 20,
-    "attachment": 18,
+    "attachment": 20,
     "intelligence": 30,
 }
 
@@ -31,16 +33,20 @@ def assess_threat(
     evidence_graph: EvidenceGraph,
 ) -> tuple[RiskAssessment, AttributionAssessment, list[RecommendedAction]]:
     factors: list[RiskFactor] = []
+    mitigating_factors: list[str] = []
     by_code: dict[str, RiskFactor] = {}
+
+    # 1. Deduplicate & process security indicators
     for indicator in security_analysis.indicators:
         factor = by_code.get(indicator.code)
         if factor is not None:
             factor.evidence = sorted(set(factor.evidence).union(indicator.evidence))
             continue
+        base_weight = _WEIGHTS.get(indicator.severity, 10)
         factor = RiskFactor(
             code=indicator.code,
             title=indicator.title,
-            contribution=_WEIGHTS[indicator.severity],
+            contribution=base_weight,
             severity=indicator.severity,
             explanation=indicator.explanation,
             evidence=list(indicator.evidence),
@@ -51,35 +57,82 @@ def assess_threat(
         by_code[indicator.code] = factor
         factors.append(factor)
 
-    # Provider observations corroborate local indicators.  At most one
-    # reputation increment is retained for each observable/kind.
-    seen_observations: set[tuple[str, str, str]] = set()
-    for observation in threat_intelligence.observations:
-        contribution = _observation_contribution(observation)
-        key = (observation.entity_type, observation.entity, observation.kind)
-        if contribution and key not in seen_observations:
-            seen_observations.add(key)
+    # 2. Check for mitigating factors (Positive evidence)
+    auth = security_analysis.authentication_results
+    if auth.spf and auth.spf.result == "pass":
+        if auth.dkim and auth.dkim.result == "pass":
+            if auth.dmarc and auth.dmarc.result == "pass":
+                mitigating_factors.append("Full SPF, DKIM, and DMARC authentication passed")
+            else:
+                mitigating_factors.append("SPF and DKIM authentication passed")
+        elif auth.spf.result == "pass":
+            mitigating_factors.append("SPF authentication passed")
+
+    # 3. Process Provider Intelligence observations with Entity-based Deduplication
+    entity_observations: dict[tuple[str, str], list[object]] = {}
+    for obs in threat_intelligence.observations:
+        if obs.status == "success" and (getattr(obs, "data", None) or getattr(obs, "evidence", None)):
+            key = (obs.entity_type, obs.entity.lower().rstrip("."))
+            entity_observations.setdefault(key, []).append(obs)
+
+    for (entity_type, entity_val), obs_group in entity_observations.items():
+        primary_contrib = 0
+        corroborating_count = 0
+        providers_list: list[str] = []
+        evidence_list: list[str] = []
+
+        for obs in obs_group:
+            contrib = _observation_contribution(obs)
+            if contrib > 0:
+                prov = getattr(obs, "provider", "intel_provider")
+                providers_list.append(prov)
+                ev = getattr(obs, "evidence", None)
+                if ev and isinstance(ev, list):
+                    evidence_list.extend(ev)
+                if contrib > primary_contrib:
+                    if primary_contrib > 0:
+                        corroborating_count += 1
+                    primary_contrib = contrib
+                else:
+                    corroborating_count += 1
+
+        if primary_contrib > 0:
+            total_obs_contrib = min(25, primary_contrib + (corroborating_count * 4))
+            prov_str = ", ".join(sorted(set(providers_list)))
             factors.append(
                 RiskFactor(
-                    code=f"intel_{observation.entity_type}_{observation.entity}_{observation.kind}",
-                    title=f"{observation.provider} {observation.kind}",
-                    contribution=contribution,
-                    severity="high" if contribution >= 20 else "medium",
-                    explanation="A normalized provider observation supports additional review.",
-                    evidence=observation.evidence or [observation.entity],
-                    source=observation.provider,
-                    sources=[observation.provider],
+                    code=f"intel_{entity_type}_{entity_val}",
+                    title=f"Threat Intelligence Observation ({prov_str})",
+                    contribution=total_obs_contrib,
+                    severity="high" if total_obs_contrib >= 18 else "medium",
+                    explanation=f"Provider telemetry ({prov_str}) reported suspicious activity for {entity_val}.",
+                    evidence=list(set(evidence_list)) or [entity_val],
+                    source=prov_str,
+                    sources=sorted(set(providers_list)),
                     category="intelligence",
                 )
             )
 
+    # 4. Classification & Category Caps
     classification, threat_types = _classification(factors)
     factors = _apply_category_caps(factors)
-    raw_score = sum(item.contribution for item in factors)
-    # A collection of merely suspicious indicators must not look like a
-    # definitive maximum-risk result. Phishing/BEC combinations retain 100.
-    score = min(95 if classification == "suspicious" else 100, raw_score)
+
+    # Calculate raw positive points
+    raw_positive = sum(item.contribution for item in factors)
+
+    # Calculate mitigating deduction
+    mitigation_deduction = 10 if "Full SPF, DKIM, and DMARC" in "".join(mitigating_factors) else 5 if mitigating_factors else 0
+    effective_raw = max(0, raw_positive - mitigation_deduction)
+
+    # 5. Continuous Smooth Risk Score Normalization (0-100)
+    if effective_raw <= 35:
+        score = effective_raw
+    else:
+        score = 35 + int(65 * (1.0 - math.exp(-(effective_raw - 35) / 40.0)))
+
+    score = min(100, max(0, score))
     level = _risk_level(score)
+
     confidence = _confidence(security_analysis, threat_intelligence, factors, evidence_graph)
     assessment = RiskAssessment(
         score=score,
@@ -87,7 +140,7 @@ def assess_threat(
         classification=classification,
         threat_types=threat_types,
         factors=factors,
-        rationale=_rationale(level, factors),
+        rationale=_rationale_with_mitigation(level, score, factors, mitigating_factors),
         confidence=confidence,
     )
     attribution = _attribution(threat_intelligence, evidence_graph)
@@ -144,25 +197,45 @@ def _observation_contribution(observation: object) -> int:
         return 0
     abuse = data.get("abuseConfidenceScore")
     if isinstance(abuse, (int, float)):
-        return 25 if abuse >= 80 else 15 if abuse >= 40 else 0
+        return 20 if abuse >= 80 else 12 if abuse >= 40 else 0
     stats = data.get("last_analysis_stats")
     if isinstance(stats, dict):
         malicious = stats.get("malicious")
         if isinstance(malicious, int):
-            return 25 if malicious >= 5 else 15 if malicious >= 1 else 0
+            return 20 if malicious >= 5 else 12 if malicious >= 1 else 0
     return 0
 
 
 def _risk_level(score: int) -> str:
-    if score >= 75:
+    if score >= 80:
         return "critical"
-    if score >= 50:
+    if score >= 60:
         return "high"
-    if score >= 25:
+    if score >= 40:
         return "medium"
-    if score > 0:
+    if score >= 20:
         return "low"
     return "benign"
+
+
+def _rationale_with_mitigation(
+    level: str,
+    score: int,
+    factors: list[RiskFactor],
+    mitigating_factors: list[str],
+) -> str:
+    parts = []
+    if not factors:
+        parts.append(f"Benign risk level ({score}/100). No evidence-backed risk factors were detected by local analysis.")
+    else:
+        names = ", ".join(item.code for item in factors[:4])
+        suffix = " Additional factors were bounded by category and score limits." if len(factors) > 4 else ""
+        parts.append(f"{level.title()} risk level ({score}/100) supported by: {names}.{suffix}")
+
+    if mitigating_factors:
+        parts.append(f"Mitigating factors: {'; '.join(mitigating_factors)}.")
+
+    return " ".join(parts)
 
 
 def _confidence(

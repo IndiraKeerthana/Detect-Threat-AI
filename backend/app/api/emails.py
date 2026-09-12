@@ -1,4 +1,7 @@
 import asyncio
+import logging
+import random
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, File, HTTPException, Response, UploadFile, status
 
@@ -11,11 +14,9 @@ from app.services.threat_intelligence import analyze_threat_intelligence
 from app.services.investigation import analyze_investigation
 from app.services.ai_agent.agent import run_ai_investigation
 from app.services.pdf_report_generator import generate_forensic_pdf
-
 from app.services.case_storage import save_case
-import random
-from datetime import datetime, timezone
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 

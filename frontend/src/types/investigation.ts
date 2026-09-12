@@ -349,6 +349,8 @@ export interface AIInvestigationResult {
 // --- Full API Response Contract ---
 
 export interface EmailAnalysisResponse {
+  case_id?: string | null;
+  caseId?: string | null;
   from: string | null;
   to: string | null;
   cc: string | null;

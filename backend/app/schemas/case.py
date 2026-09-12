@@ -11,6 +11,7 @@ CaseSeverity = Literal["CRITICAL", "HIGH", "MEDIUM", "LOW"]
 
 class CaseRecordSchema(BaseModel):
     id: str
+    caseNumber: str | None = None
     title: str
     subject: str
     sender: str
@@ -29,6 +30,7 @@ class CaseRecordSchema(BaseModel):
 
 class CaseSummarySchema(BaseModel):
     id: str
+    caseNumber: str | None = None
     title: str
     subject: str
     sender: str

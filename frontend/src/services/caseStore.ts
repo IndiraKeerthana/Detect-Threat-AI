@@ -16,6 +16,7 @@ export type CaseSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 
 export interface CaseRecord {
   id: string;
+  caseNumber?: string;
   title: string;
   subject: string;
   sender: string;
@@ -296,18 +297,35 @@ class CaseStore {
     this.syncWithBackend();
   }
 
+  private assignCaseNumbers(cases: CaseRecord[]): CaseRecord[] {
+    const sorted = [...cases].sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+    const map = new Map<string, string>();
+    sorted.forEach((c, idx) => {
+      map.set(c.id.toLowerCase(), `#${(idx + 1).toString().padStart(3, '0')}`);
+    });
+    return cases.map((c) => ({
+      ...c,
+      caseNumber: c.caseNumber || map.get(c.id.toLowerCase()) || '#001',
+    }));
+  }
+
   public async syncWithBackend() {
     try {
       const backendCases = await fetchCases();
       if (Array.isArray(backendCases) && backendCases.length > 0) {
+        const seedIds = new Set(SEED_CASES.map((s) => s.id.toLowerCase()));
+        const realLocalCases = this.cases.filter((c) => !seedIds.has(c.id.toLowerCase()));
+
         const mergedMap = new Map<string, CaseRecord>();
-        for (const c of this.cases) {
+        for (const c of realLocalCases) {
           mergedMap.set(c.id.toLowerCase(), c);
         }
         for (const bc of backendCases) {
           mergedMap.set(bc.id.toLowerCase(), bc);
         }
-        this.cases = Array.from(mergedMap.values());
+        this.cases = this.assignCaseNumbers(Array.from(mergedMap.values()));
         if (this.cases.length > 0 && !this.getCaseById(this.activeCaseId)) {
           this.activeCaseId = this.cases[0].id;
         }
@@ -392,6 +410,7 @@ class CaseStore {
 
   public addCase(record: CaseRecord) {
     this.cases.unshift(record);
+    this.cases = this.assignCaseNumbers(this.cases);
     this.activeCaseId = record.id;
     this.persist();
     this.notify();
@@ -406,8 +425,9 @@ class CaseStore {
     customTitle?: string,
     notes?: string
   ): CaseRecord {
+    const backendCaseId = analysisData.case_id || (analysisData as unknown as Record<string, unknown>).caseId as string | undefined;
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const newId = `CASE-2026-${randomSuffix}`;
+    const newId = backendCaseId || `CASE-2026-${randomSuffix}`;
     const now = `${new Date().toISOString().replace('T', ' ').slice(0, 19)} UTC`;
 
     const rawSev = (analysisData.risk_assessment?.level || 'high').toUpperCase();

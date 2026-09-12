@@ -180,7 +180,7 @@ def save_case(case_dict: dict[str, Any]) -> dict[str, Any]:
     status = case_dict.get("status", "OPEN")
     created_at = case_dict.get("createdAt", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"))
     updated_at = case_dict.get("updatedAt", created_at)
-    source_ip = case_dict.get("sourceIp", "Unavailable")
+    source_ip = case_dict.get("sourceIp") or "Unavailable"
     analyst_notes = case_dict.get("analystNotes")
     
     inv_data = case_dict.get("investigationData")
@@ -249,6 +249,37 @@ def save_case(case_dict: dict[str, Any]) -> dict[str, Any]:
     return get_case_by_id(case_id) or case_dict
 
 
+def _add_case_numbers(cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Assign chronological sequence numbers (#001, #002...) ordered by created_at ascending."""
+    if not cases:
+        return cases
+    try:
+        if is_postgres():
+            conn = _get_pg_connection()
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT id, created_at FROM completed_cases ORDER BY created_at ASC, id ASC;")
+                    all_rows = cursor.fetchall() or []
+                    all_ids = [dict(r)["id"].lower() for r in all_rows]
+            finally:
+                conn.close()
+        else:
+            conn = _get_sqlite_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, created_at FROM completed_cases ORDER BY created_at ASC, id ASC;")
+            all_rows = cursor.fetchall() or []
+            all_ids = [dict(r)["id"].lower() for r in all_rows]
+
+        id_to_num = {cid: f"#{idx + 1:03d}" for idx, cid in enumerate(all_ids)}
+        for c in cases:
+            cid = c["id"].lower()
+            c["caseNumber"] = id_to_num.get(cid, f"#{len(all_ids):03d}")
+    except Exception:
+        for idx, c in enumerate(cases):
+            c["caseNumber"] = f"#{idx + 1:03d}"
+    return cases
+
+
 def get_case_by_id(case_id: str) -> dict[str, Any] | None:
     """Retrieve a single completed case by ID."""
     if is_postgres():
@@ -286,7 +317,7 @@ def get_case_by_id(case_id: str) -> dict[str, Any] | None:
     else:
         inv_data = {}
 
-    return {
+    single_case = {
         "id": row_dict["id"],
         "title": row_dict["title"],
         "subject": row_dict["subject"],
@@ -303,6 +334,8 @@ def get_case_by_id(case_id: str) -> dict[str, Any] | None:
         "analystNotes": row_dict.get("analyst_notes"),
         "investigationData": inv_data,
     }
+    numbered = _add_case_numbers([single_case])
+    return numbered[0]
 
 
 def list_cases(
@@ -391,7 +424,7 @@ def list_cases(
             "analystNotes": r.get("analyst_notes"),
             "investigationData": inv_data,
         })
-    return result
+    return _add_case_numbers(result)
 
 
 def update_case_status(case_id: str, new_status: str) -> bool:
