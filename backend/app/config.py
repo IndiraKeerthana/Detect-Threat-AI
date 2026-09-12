@@ -1,7 +1,11 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_BACKEND_DIR = Path(__file__).resolve().parent.parent
+_ENV_FILE = _BACKEND_DIR / ".env"
 
 
 class Settings(BaseSettings):
@@ -23,7 +27,7 @@ class Settings(BaseSettings):
     max_email_size_mb: float = Field(
         default=10.0, validation_alias="MAX_EMAIL_SIZE_MB", gt=0, le=1024
     )
-    # Step 7 is deliberately disabled unless an operator opts in.  The
+    # Step 7 is deliberately disabled unless an operator opts in. The
     # provider key is never included in structured investigation context.
     ai_agent_enabled: bool = Field(default=False, validation_alias="AI_AGENT_ENABLED")
     ai_provider: str = Field(default="groq", validation_alias="AI_PROVIDER")
@@ -45,7 +49,7 @@ class Settings(BaseSettings):
         return self.groq_api_key or self.ai_api_key
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(_ENV_FILE, ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,

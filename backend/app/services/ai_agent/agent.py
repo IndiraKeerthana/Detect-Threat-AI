@@ -222,9 +222,42 @@ def build_investigation_context(
             ]
         ),
     }
+
+    try:
+        from app.services.case_storage import find_historical_matches
+        src_ip = next(
+            (
+                node.value
+                for node in investigation.evidence_graph.nodes
+                if node.type == "ip" and node.properties.get("probable_source") is True
+            ),
+            None,
+        )
+        url_vals = [item.normalized_url for item in security_analysis.url_analysis.urls]
+        dom_vals = [item.domain for item in security_analysis.url_analysis.domains]
+        att_hashes = [
+            getattr(a, "sha256", None)
+            for a in (getattr(email, "attachments", None) or [])
+            if getattr(a, "sha256", None)
+        ]
+
+        hist_matches = find_historical_matches(
+            email_from=getattr(email, "from_", None),
+            source_ip=src_ip,
+            urls=url_vals,
+            domains=dom_vals,
+            attachment_hashes=att_hashes,
+            limit=5,
+        )
+    except Exception:
+        hist_matches = []
+
+    compact["historical_cases"] = _safe_value(hist_matches)
+
     return {
         "compact": compact,
         "entities": entities[:100],
+        "historical_cases": _safe_value(hist_matches),
         "indicators": _safe_value([item.model_dump() for item in security_analysis.indicators]),
         "content_signals": _safe_value([item.model_dump() for item in security_analysis.content_signals.signals]),
         "authentication": _safe_value(

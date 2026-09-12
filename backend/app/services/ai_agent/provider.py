@@ -37,21 +37,23 @@ class ProviderTimeout(ProviderError):
 TRANSIENT_HTTP_CODES = {408, 429, 500, 502, 503, 504}
 AUTH_HTTP_CODES = {401, 403}
 
-# Single attempt per candidate model before evaluating fallbacks.
-MAX_RETRIES_PER_MODEL = 1
+# Up to 3 attempts per candidate model before evaluating fallbacks.
+MAX_RETRIES_PER_MODEL = 3
 
-DEFAULT_MAX_RETRY_DELAY = 5.0
+DEFAULT_MAX_RETRY_DELAY = 30.0
 DEFAULT_BASE_BACKOFF = 0.5
 
 
 MODEL_FALLBACKS: dict[str, list[str]] = {
-    "openai/gpt-oss-120b": ["openai/gpt-oss-20b"],
-    "openai/gpt-oss-20b": ["qwen/qwen3.8-27b"],
-    "qwen/qwen3.8-27b": [],
+    "openai/gpt-oss-120b": ["openai/gpt-oss-20b", "qwen/qwen3.8-27b"],
+    "openai/gpt-oss-20b": ["qwen/qwen3.8-27b", "qwen/qwen3.6-27b"],
+    "qwen/qwen3.8-27b": ["qwen/qwen3.6-27b", "openai/gpt-oss-20b"],
+    "qwen/qwen3.6-27b": ["openai/gpt-oss-20b"],
 
-    "llama-3.3-70b-versatile": ["llama-3.1-8b-instant"],
-    "llama-3.1-70b-versatile": ["llama-3.1-8b-instant"],
-    "llama3-70b-8192": ["llama-3.1-8b-instant"],
+    "llama-3.3-70b-versatile": ["openai/gpt-oss-20b", "qwen/qwen3.8-27b"],
+    "llama-3.1-70b-versatile": ["openai/gpt-oss-20b", "qwen/qwen3.8-27b"],
+    "llama3-70b-8192": ["openai/gpt-oss-20b"],
+    "llama-3.1-8b-instant": ["openai/gpt-oss-20b"],
 
     "gemini-3.5-flash": ["gemini-3.5-flash-lite"],
     "gemini-3.8-flash": ["gemini-3.5-flash-lite"],
@@ -288,7 +290,7 @@ class OpenAICompatibleProvider:
             "Authorization": "Bearer " + self.api_key,
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "User-Agent": "DetectThreatAI/1.0",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         }
 
     def _execute_request(
@@ -319,43 +321,21 @@ class OpenAICompatibleProvider:
             payload["model"] = model_name
 
             # Configure model-specific reasoning parameters.
-            if (
-                "gpt-oss" in model_name.lower()
-                or "qwen" in model_name.lower()
-            ):
-
+            if "gpt-oss" in model_name.lower():
                 payload["reasoning_effort"] = "low"
                 payload["reasoning_format"] = "parsed"
-
             elif (
                 self.endpoint == self.gemini_endpoint
                 or "gemini" in model_name.lower()
             ):
-
                 if _supports_reasoning_effort(model_name):
                     payload["reasoning_effort"] = "none"
                 else:
-                    payload.pop(
-                        "reasoning_effort",
-                        None,
-                    )
-
-                payload.pop(
-                    "reasoning_format",
-                    None,
-                )
-
+                    payload.pop("reasoning_effort", None)
+                payload.pop("reasoning_format", None)
             else:
-
-                payload.pop(
-                    "reasoning_effort",
-                    None,
-                )
-
-                payload.pop(
-                    "reasoning_format",
-                    None,
-                )
+                payload.pop("reasoning_effort", None)
+                payload.pop("reasoning_format", None)
 
             # Keep completion size small.
             if (
@@ -493,97 +473,19 @@ class OpenAICompatibleProvider:
                             f"status={exc.code}"
                         ) from exc
 
-                    # HTTP 400.
-                    if exc.code == 400:
-
-                        logger.warning(
-                            "AI provider HTTP 400 "
-                            "model=%s attempt=%d body=%s; "
-                            "evaluating fallback candidates",
-
-                            model_name,
-                            attempt + 1,
-                            err_body[:300],
-                        )
-
-                        break
-
-                    # HTTP 404.
-                    if exc.code == 404:
-
-                        logger.warning(
-                            "AI provider model not found "
-                            "status=404 model=%s; "
-                            "evaluating fallback candidates",
-
-                            model_name,
-                        )
-
-                        break
-
                     # ------------------------------------------------
-                    # IMPORTANT:
-                    # 429 = rate limited.
-                    #
-                    # Do NOT retry multiple times.
-                    # Move immediately to the fallback model.
+                    # HTTP errors (400, 404, 408, 429, 500, 502, 503, 504):
+                    # Do NOT sleep or repeatedly retry the same failing model.
+                    # Move immediately to the fallback candidate model.
                     # ------------------------------------------------
-
-                    if exc.code == 429:
+                    if exc.code in {400, 404, 408, 429, 500, 502, 503, 504}:
                         logger.warning(
-                            "AI provider rate limited model=%s; moving to fallback without retry. body=%s",
-                            model_name,
-                            err_body[:300],
-                        )
-                        break
-
-                    # Other transient errors can be retried.
-                    if exc.code in {
-                        408,
-                        500,
-                        502,
-                        503,
-                        504,
-                    }:
-
-                        logger.warning(
-                            "AI provider transient HTTP "
-                            "error status=%d model=%s "
-                            "attempt=%d/%d body=%s",
-
+                            "AI provider HTTP error status=%d model=%s attempt=%d body=%s; evaluating fallback candidates",
                             exc.code,
                             model_name,
                             attempt + 1,
-                            self.max_retries_per_model,
                             err_body[:300],
                         )
-
-                        if (
-                            attempt
-                            < self.max_retries_per_model - 1
-                        ):
-
-                            sleep_time = _safe_retry_delay(
-                                exc.headers,
-                                err_body,
-                                attempt,
-                                max_delay=self.max_retry_delay,
-                                base_backoff=self.base_backoff,
-                            )
-
-                            time.sleep(sleep_time)
-
-                            continue
-
-                        logger.warning(
-                            "Exhausted retries for "
-                            "model=%s on transient "
-                            "HTTP %d",
-
-                            model_name,
-                            exc.code,
-                        )
-
                         break
 
                     # Other HTTP errors.

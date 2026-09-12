@@ -443,6 +443,8 @@ export const MOCK_INVESTIGATION_DATA: EmailAnalysisResponse = {
     ],
     iterations: 2,
     source: 'ai_agent',
+    provider: 'groq',
+    model: 'openai/gpt-oss-20b',
   },
 };
 

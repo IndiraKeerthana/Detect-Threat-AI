@@ -418,3 +418,107 @@ def update_case_status(case_id: str, new_status: str) -> bool:
         )
         conn.commit()
         return cursor.rowcount > 0
+
+
+def find_historical_matches(
+    email_from: str | None = None,
+    source_ip: str | None = None,
+    urls: list[str] | None = None,
+    domains: list[str] | None = None,
+    attachment_hashes: list[str] | None = None,
+    current_case_id: str | None = None,
+    limit: int = 5,
+) -> list[dict[str, Any]]:
+    """
+    Search stored completed cases for historical indicator overlap:
+    - sender email / sender domain
+    - originating source IP
+    - shared URLs / domains
+    - shared attachment SHA-256 hashes
+    """
+    all_cases = list_cases()
+    if not all_cases:
+        return []
+
+    curr_sender = (email_from or "").strip().lower()
+    curr_domain = curr_sender.split("@")[-1] if "@" in curr_sender else ""
+    curr_ip = (source_ip or "").strip()
+    curr_urls = set(u.strip().lower() for u in (urls or []))
+    curr_domains = set(d.strip().lower() for d in (domains or []))
+    curr_hashes = set(h.strip().lower() for h in (attachment_hashes or []))
+    generic_domains = {"gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com"}
+
+    matches = []
+    for c in all_cases:
+        cid = c.get("id")
+        if current_case_id and cid and cid.lower() == current_case_id.lower():
+            continue
+
+        reasons = []
+        matching_indicators = []
+
+        # 1. Source IP match
+        c_ip = (c.get("sourceIp") or "").strip()
+        if curr_ip and c_ip and c_ip.lower() not in {"unavailable", "none", ""} and c_ip.lower() == curr_ip.lower():
+            matching_indicators.append("source_ip")
+            reasons.append(f"Shares originating source IP {curr_ip}")
+
+        # 2. Sender match
+        c_sender = (c.get("sender") or "").strip().lower()
+        if curr_sender and c_sender and c_sender == curr_sender:
+            matching_indicators.append("sender")
+            reasons.append(f"Shares exact sender email address {curr_sender}")
+
+        # 3. Sender domain match
+        c_domain = c_sender.split("@")[-1] if "@" in c_sender else ""
+        if curr_domain and c_domain and curr_domain not in generic_domains and curr_domain == c_domain and "sender" not in matching_indicators:
+            matching_indicators.append("sender_domain")
+            reasons.append(f"Shares sender domain {curr_domain}")
+
+        # 4. Shared URL/domain match in investigationData
+        inv_data = c.get("investigationData") or {}
+        c_inv_urls = set()
+        c_inv_domains = set()
+
+        if isinstance(inv_data, dict):
+            for obs in inv_data.get("observables", []):
+                val = (obs.get("value") or "").strip().lower()
+                otype = (obs.get("type") or "").lower()
+                if otype == "url" and val:
+                    c_inv_urls.add(val)
+                elif otype == "domain" and val:
+                    c_inv_domains.add(val)
+
+        shared_urls = curr_urls.intersection(c_inv_urls)
+        if shared_urls:
+            matching_indicators.append("shared_url")
+            reasons.append(f"Shares URL observable: {list(shared_urls)[0]}")
+
+        shared_domains = curr_domains.intersection(c_inv_domains) - generic_domains
+        if shared_domains and "sender_domain" not in matching_indicators:
+            matching_indicators.append("shared_domain")
+            reasons.append(f"Shares domain observable: {list(shared_domains)[0]}")
+
+        # 5. Shared attachment hash
+        if curr_hashes and isinstance(inv_data, dict):
+            for att in inv_data.get("attachments", []):
+                h = (att.get("sha256") or "").strip().lower()
+                if h and h in curr_hashes:
+                    matching_indicators.append("shared_attachment_hash")
+                    reasons.append(f"Shares matching attachment SHA-256 hash ({h[:12]}...)")
+
+        if matching_indicators:
+            matches.append({
+                "case_id": cid,
+                "title": c.get("title") or c.get("subject") or "Historical Investigation",
+                "classification": c.get("classification", "unknown"),
+                "severity": c.get("severity", "LOW"),
+                "date": c.get("createdAt"),
+                "matching_indicators": matching_indicators,
+                "explanation": "; ".join(reasons),
+            })
+
+        if len(matches) >= limit:
+            break
+
+    return matches

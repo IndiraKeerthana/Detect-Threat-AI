@@ -26,14 +26,18 @@ from app.services.security_analysis import analyze_security
 from app.schemas.threat_intelligence import ThreatIntelligence
 
 
+_PARTS_CACHE = None
+
+
 def _parts():
-    email = parse_email((Path(__file__).parent / "fixtures" / "sample.eml").read_bytes())
-    security = analyze_security(email)
-    # Provider calls are covered by Step 5 tests; keep these unit tests
-    # deterministic and offline.
-    intelligence = ThreatIntelligence()
-    investigation = analyze_investigation(email, security, intelligence)
-    return email, security, intelligence, investigation
+    global _PARTS_CACHE
+    if _PARTS_CACHE is None:
+        email = parse_email((Path(__file__).parent / "fixtures" / "sample.eml").read_bytes())
+        security = analyze_security(email)
+        intelligence = ThreatIntelligence()
+        investigation = analyze_investigation(email, security, intelligence)
+        _PARTS_CACHE = (email, security, intelligence, investigation)
+    return _PARTS_CACHE
 
 
 class _FinalProvider:
@@ -1050,7 +1054,7 @@ class AIAgentTest(unittest.TestCase):
         self.assertEqual(provider.model, "llama-3.3-70b-versatile")
         headers = provider._headers()
         self.assertEqual(headers["Authorization"], "Bearer gsk_test_secret_key")
-        self.assertEqual(headers["User-Agent"], "DetectThreatAI/1.0")
+        self.assertIn("Mozilla/5.0", headers["User-Agent"])
 
     def test_missing_groq_api_key_raises(self):
         with self.assertRaises(ProviderError):
@@ -1130,7 +1134,7 @@ class AIAgentTest(unittest.TestCase):
         )
         with self.assertRaises(ProviderError):
             provider.decide({}, [], ["inspect_url"])
-        self.assertEqual(mock_urlopen.call_count, 2)
+        self.assertEqual(mock_urlopen.call_count, 3)
 
     def test_attribution_sanitizes_unsupported_inferences(self):
         email, security, intelligence, investigation = _parts()

@@ -59,6 +59,7 @@ class RelayAnalysis(BaseModel):
 class EmailAnalysisResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
+    case_id: str | None = Field(default=None, alias="caseId")
     from_: str | None = Field(alias="from")
     to: str | None
     cc: str | None

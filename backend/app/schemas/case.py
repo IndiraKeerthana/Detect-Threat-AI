@@ -24,7 +24,7 @@ class CaseRecordSchema(BaseModel):
     updatedAt: str
     sourceIp: str
     analystNotes: str | None = None
-    investigationData: EmailAnalysisResponse
+    investigationData: EmailAnalysisResponse | dict[str, Any]
 
 
 class CaseSummarySchema(BaseModel):

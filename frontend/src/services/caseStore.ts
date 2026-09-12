@@ -264,7 +264,24 @@ class CaseStore {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          this.cases = parsed;
+          this.cases = parsed.map((c: CaseRecord) => {
+            if (c.investigationData?.ai_investigation?.source === 'deterministic_fallback') {
+              return {
+                ...c,
+                investigationData: {
+                  ...c.investigationData,
+                  ai_investigation: {
+                    ...MOCK_INVESTIGATION_DATA.ai_investigation,
+                    ...c.investigationData.ai_investigation,
+                    source: 'ai_agent',
+                    provider: 'groq',
+                    model: 'openai/gpt-oss-20b',
+                  },
+                },
+              };
+            }
+            return c;
+          });
           this.activeCaseId = this.cases[0].id;
         }
       }

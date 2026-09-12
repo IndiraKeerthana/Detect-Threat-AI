@@ -104,6 +104,7 @@ async def analyze_email(file: UploadFile = File(...)) -> EmailAnalysisResponse:
     try:
         random_suffix = random.randint(1000, 9999)
         case_id = f"CASE-2026-{random_suffix}"
+        response_obj.case_id = case_id
         now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
         raw_sev = (investigation.risk_assessment.level or "high").upper()
@@ -133,8 +134,8 @@ async def analyze_email(file: UploadFile = File(...)) -> EmailAnalysisResponse:
             "investigationData": response_obj.model_dump(by_alias=True),
         }
         save_case(case_record)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.error("Failed to save case record %s: %s", case_id if 'case_id' in locals() else 'unknown', exc)
 
     return response_obj
 
