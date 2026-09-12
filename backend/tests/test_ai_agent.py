@@ -130,7 +130,7 @@ class AIAgentTest(unittest.TestCase):
     @patch("app.services.ai_agent.provider.time.sleep")
     @patch("app.services.ai_agent.provider.urlopen")
     def test_groq_case_1_429_with_retry_after(self, mock_urlopen, mock_sleep):
-        """GROQ CASE 1: Provider returns 429 with Retry-After. Instantly moves to fallback without sleep."""
+        """GROQ CASE 1: Provider returns 429 with Retry-After. Sleeps bounded delay and retries model successfully."""
         resp_success = MagicMock()
         resp_success.status = 200
         data_bytes = json.dumps({
@@ -143,7 +143,6 @@ class AIAgentTest(unittest.TestCase):
         resp_success.__enter__.return_value.read.return_value = data_bytes
         resp_success.__enter__.return_value.status = 200
 
-        # Primary model (llama-3.3-70b-versatile) returns 429 -> immediately falls back to candidate 2 (llama-3.1-8b-instant) which succeeds
         mock_urlopen.side_effect = [
             HTTPError(
                 "https://api.groq.com/openai/v1/chat/completions",
@@ -158,21 +157,20 @@ class AIAgentTest(unittest.TestCase):
         provider = create_provider(
             "groq",
             api_key="gsk_test",
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             timeout_seconds=10.0,
         )
         decision = provider.decide({}, [], ["inspect_url"])
         self.assertEqual(decision.kind, "tool_call")
         self.assertEqual(decision.tool, "inspect_url")
         self.assertEqual(mock_urlopen.call_count, 2)
-        # 429 causes immediate fallback without sleeping
-        mock_sleep.assert_not_called()
-        self.assertEqual(provider.model, "llama-3.3-70b-versatile")
+        mock_sleep.assert_called_once_with(1.5)
+        self.assertEqual(provider.model, "openai/gpt-oss-120b")
 
     @patch("app.services.ai_agent.provider.time.sleep")
     @patch("app.services.ai_agent.provider.urlopen")
     def test_groq_case_2_429_without_retry_after_backoff(self, mock_urlopen, mock_sleep):
-        """GROQ CASE 2: Provider returns 429 without Retry-After. Immediately attempts fallback candidate model without sleep."""
+        """GROQ CASE 2: Provider returns 429 without Retry-After. Exponential backoff sleep and retries model successfully."""
         resp_success = MagicMock()
         resp_success.status = 200
         data_bytes = json.dumps({
@@ -199,7 +197,7 @@ class AIAgentTest(unittest.TestCase):
         provider = create_provider(
             "groq",
             api_key="gsk_test",
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             timeout_seconds=10.0,
             base_backoff=0.5,
         )
@@ -207,8 +205,8 @@ class AIAgentTest(unittest.TestCase):
         self.assertEqual(decision.kind, "tool_call")
         self.assertEqual(decision.tool, "inspect_ip")
         self.assertEqual(mock_urlopen.call_count, 2)
-        mock_sleep.assert_not_called()
-        self.assertEqual(provider.model, "llama-3.3-70b-versatile")
+        mock_sleep.assert_called_once_with(0.5)
+        self.assertEqual(provider.model, "openai/gpt-oss-120b")
 
     @patch("app.services.ai_agent.provider.time.sleep")
     @patch("app.services.ai_agent.provider.urlopen")
@@ -261,8 +259,9 @@ class AIAgentTest(unittest.TestCase):
         provider = create_provider(
             "groq",
             api_key="gsk_test",
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             timeout_seconds=10.0,
+            base_backoff=0.5,
         )
         result = run_ai_investigation(
             email,
@@ -275,7 +274,7 @@ class AIAgentTest(unittest.TestCase):
         self.assertEqual(result.source, "ai_agent")
         self.assertEqual(result.iterations, 1)
         self.assertEqual(mock_urlopen.call_count, 2)
-        mock_sleep.assert_not_called()
+        mock_sleep.assert_called_once_with(0.5)
 
     @patch("app.services.ai_agent.provider.time.sleep")
     @patch("app.services.ai_agent.provider.urlopen")
@@ -292,7 +291,7 @@ class AIAgentTest(unittest.TestCase):
         provider = create_provider(
             "groq",
             api_key="gsk_invalid_key",
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             timeout_seconds=10.0,
         )
         with self.assertRaises(AIAnalysisError):
@@ -311,51 +310,61 @@ class AIAgentTest(unittest.TestCase):
     def test_groq_case_5_successful_autonomous_tool_call(self):
         """GROQ CASE 5: Successful autonomous tool call loop with real tool execution."""
         email, security, intelligence, investigation = _parts()
-        final_payload = {
-            "summary": "Autonomous investigation completed via inspect_domain",
-            "risk_level": investigation.risk_assessment.level,
-            "classification": investigation.risk_assessment.classification,
-            "confidence": investigation.risk_assessment.confidence.level,
-            "reasoning": "Domain was verified through registered tool.",
-            "key_findings": [],
-            "recommended_actions": [],
-            "attribution": {
-                "status": "infrastructure_only",
-                "assessment": CONSERVATIVE_ATTRIBUTION,
-                "confidence": "low",
-                "supporting_evidence": [],
-                "limitations": [],
-            },
-            "evidence": ["example.com"],
-            "tool_calls": [],
-            "iterations": 2,
-            "source": "ai_agent",
-        }
 
-        class AutonomousProvider:
+        class MockToolLoopProvider:
             def __init__(self):
                 self.calls = 0
+                self.model = "openai/gpt-oss-120b"
+                self.name = "groq"
 
-            def decide(self, context, history, available_tools):
+            def chat_step(self, messages, tools=None):
                 self.calls += 1
                 if self.calls == 1:
-                    return ProviderDecision(
-                        kind="tool_call",
-                        tool="inspect_domain",
-                        arguments={"domain": "example.com"},
-                    )
-                return ProviderDecision(kind="final", result=final_payload)
+                    return {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "id": "call_123",
+                                "type": "function",
+                                "function": {
+                                    "name": "inspect_domain",
+                                    "arguments": json.dumps({"domain": "example.com"}),
+                                },
+                            }
+                        ],
+                    }
+                return {
+                    "role": "assistant",
+                    "content": json.dumps({
+                        "summary": "AI investigation completed after inspect_domain tool call.",
+                        "risk_level": "medium",
+                        "classification": "suspicious",
+                        "confidence": "high",
+                        "reasoning": "Observed suspicious domain findings.",
+                        "key_findings": [],
+                        "recommended_actions": [],
+                        "attribution": {
+                            "status": "infrastructure_only",
+                            "assessment": CONSERVATIVE_ATTRIBUTION,
+                            "confidence": "low",
+                            "supporting_evidence": [],
+                            "limitations": [],
+                        },
+                        "evidence": ["example.com"],
+                    }),
+                }
 
+        provider = MockToolLoopProvider()
         result = run_ai_investigation(
             email,
             security,
             intelligence,
             investigation,
-            settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=4),
-            provider=AutonomousProvider(),
+            settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=3),
+            provider=provider,
         )
         self.assertEqual(result.source, "ai_agent")
-        self.assertEqual(result.iterations, 2)
         self.assertEqual(len(result.tool_calls), 1)
         self.assertEqual(result.tool_calls[0].name, "inspect_domain")
         self.assertEqual(result.tool_calls[0].target, "example.com")
@@ -377,7 +386,7 @@ class AIAgentTest(unittest.TestCase):
         provider = create_provider(
             "groq",
             api_key="gsk_test",
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             timeout_seconds=10.0,
         )
         with self.assertRaises(AIAnalysisError):
@@ -393,7 +402,7 @@ class AIAgentTest(unittest.TestCase):
     @patch("app.services.ai_agent.provider.time.sleep")
     @patch("app.services.ai_agent.provider.urlopen")
     def test_groq_case_7_retry_after_extremely_large_bounded_delay(self, mock_urlopen, mock_sleep):
-        """GROQ CASE 7: Extremely large Retry-After (3600s) on 429 does NOT sleep and immediately moves to fallback."""
+        """GROQ CASE 7: Extremely large Retry-After (3600s) on 429 is capped at max_retry_delay (10s)."""
         resp_success = MagicMock()
         resp_success.status = 200
         data_bytes = json.dumps({
@@ -420,15 +429,14 @@ class AIAgentTest(unittest.TestCase):
         provider = create_provider(
             "groq",
             api_key="gsk_test",
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             timeout_seconds=10.0,
             max_retry_delay=10.0,
         )
         decision = provider.decide({}, [], ["inspect_url"])
         self.assertEqual(decision.kind, "tool_call")
         self.assertEqual(mock_urlopen.call_count, 2)
-        # Verify 0 sleep calls occurred
-        mock_sleep.assert_not_called()
+        mock_sleep.assert_called_once_with(10.0)
 
     def test_native_tool_call_response_and_round_trip(self):
         """Verify native OpenAI-compatible tool_calls:
@@ -778,8 +786,8 @@ class AIAgentTest(unittest.TestCase):
 
     @patch("app.services.ai_agent.provider.time.sleep")
     @patch("app.services.ai_agent.provider.urlopen")
-    def test_groq_400_json_validate_fallback_model(self, mock_urlopen, mock_sleep):
-        """Verify HTTP 400 on primary model falls back to secondary model."""
+    def test_groq_400_json_validate_raises_provider_error(self, mock_urlopen, mock_sleep):
+        """Verify HTTP 400 on model raises ProviderError without fallback models."""
         err_400 = HTTPError(
             "https://api.groq.com/openai/v1/chat/completions",
             400,
@@ -787,19 +795,7 @@ class AIAgentTest(unittest.TestCase):
             {},
             fp=None,
         )
-        resp_fallback = MagicMock()
-        resp_fallback.status = 200
-        resp_fallback.__enter__.return_value.read.return_value = json.dumps({
-            "choices": [{
-                "message": {
-                    "role": "assistant",
-                    "content": "fallback model response",
-                }
-            }]
-        }).encode("utf-8")
-        resp_fallback.__enter__.return_value.status = 200
-
-        mock_urlopen.side_effect = [err_400, resp_fallback]
+        mock_urlopen.side_effect = err_400
 
         provider = create_provider(
             "groq",
@@ -807,10 +803,8 @@ class AIAgentTest(unittest.TestCase):
             model="openai/gpt-oss-120b",
             timeout_seconds=10.0,
         )
-        res = provider.chat_step([{"role": "user", "content": "hello"}])
-        self.assertEqual(res["role"], "assistant")
-        self.assertEqual(res["content"], "fallback model response")
-        # Primary provider.model remains stable as configured
+        with self.assertRaises(ProviderError):
+            provider.chat_step([{"role": "user", "content": "hello"}])
         self.assertEqual(provider.model, "openai/gpt-oss-120b")
 
 
@@ -1042,28 +1036,28 @@ class AIAgentTest(unittest.TestCase):
         provider = create_provider(
             "groq",
             api_key="gsk_test_secret_key",
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             timeout_seconds=45.0,
         )
         self.assertIsInstance(provider, OpenAICompatibleProvider)
         self.assertEqual(provider.endpoint, "https://api.groq.com/openai/v1/chat/completions")
-        self.assertEqual(provider.model, "llama-3.3-70b-versatile")
+        self.assertEqual(provider.model, "openai/gpt-oss-120b")
         headers = provider._headers()
         self.assertEqual(headers["Authorization"], "Bearer gsk_test_secret_key")
         self.assertIn("Mozilla/5.0", headers["User-Agent"])
 
     def test_missing_groq_api_key_raises(self):
         with self.assertRaises(ProviderError):
-            create_provider("groq", api_key="", model="llama-3.3-70b-versatile", timeout_seconds=30.0)
+            create_provider("groq", api_key="", model="openai/gpt-oss-120b", timeout_seconds=30.0)
         with self.assertRaises(ProviderError):
-            create_provider("groq", api_key=None, model="llama-3.3-70b-versatile", timeout_seconds=30.0)
+            create_provider("groq", api_key=None, model="openai/gpt-oss-120b", timeout_seconds=30.0)
 
     def test_groq_settings_effective_key_and_defaults(self):
         s1 = Settings(_env_file=None, groq_api_key="gsk_from_groq_env")
         self.assertEqual(s1.effective_ai_api_key, "gsk_from_groq_env")
         self.assertEqual(s1.ai_provider, "groq")
-        self.assertEqual(s1.ai_model, "llama-3.3-70b-versatile")
-        self.assertEqual(s1.ai_agent_max_iterations, 4)
+        self.assertEqual(s1.ai_model, "openai/gpt-oss-120b")
+        self.assertEqual(s1.ai_agent_max_iterations, 3)
 
         s2 = Settings(_env_file=None, groq_api_key=None, ai_api_key="fallback_key")
         self.assertEqual(s2.effective_ai_api_key, "fallback_key")
@@ -1105,7 +1099,7 @@ class AIAgentTest(unittest.TestCase):
         provider = create_provider(
             "groq",
             api_key="gsk_test",
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             timeout_seconds=10.0,
         )
         decision = provider.decide({}, [], ["inspect_url"])
@@ -1125,7 +1119,7 @@ class AIAgentTest(unittest.TestCase):
         provider = create_provider(
             "groq",
             api_key="gsk_test",
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             timeout_seconds=10.0,
         )
         with self.assertRaises(ProviderError):
@@ -1236,7 +1230,7 @@ class AIAgentTest(unittest.TestCase):
         provider = create_provider(
             "groq",
             api_key="gsk_bad_key",
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             timeout_seconds=5.0,
         )
         with self.assertRaises(AIAnalysisError) as ctx:
@@ -1265,7 +1259,7 @@ class AIAgentTest(unittest.TestCase):
         provider = create_provider(
             "groq",
             api_key="gsk_test",
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             timeout_seconds=5.0,
         )
         with self.assertRaises(AIAnalysisError):

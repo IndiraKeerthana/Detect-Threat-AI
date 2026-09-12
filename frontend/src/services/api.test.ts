@@ -140,7 +140,7 @@ const SAMPLE_SUCCESS_RESPONSE = {
   },
   ai_investigation: {
     source: 'ai_agent',
-    model: 'llama-3.3-70b-versatile',
+    model: 'openai/gpt-oss-120b',
     iterations: 1,
     tool_calls: [{ name: 'inspect_ip', arguments: { ip: '198.51.100.77' }, status: 'success' }],
     verdict: 'Benign administrative message',

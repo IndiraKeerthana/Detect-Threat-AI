@@ -76,6 +76,8 @@ async def analyze_email(file: UploadFile = File(...)) -> EmailAnalysisResponse:
     investigation = analyze_investigation(
         parsed_email, security_analysis, threat_intelligence
     )
+    random_suffix = random.randint(1000, 9999)
+    case_id = f"CASE-2026-{random_suffix}"
     ai_investigation = None
     ai_status = "completed"
     ai_error = None
@@ -90,18 +92,47 @@ async def analyze_email(file: UploadFile = File(...)) -> EmailAnalysisResponse:
         )
         ai_status = "completed"
     except AIConfigurationError as err:
-        logger.error("AI investigation configuration error: %s", err)
+        logger.error(
+            "AI investigation configuration error: case_id=%s provider=%s model=%s category=%s status_code=none iteration=0 error=%s",
+            case_id,
+            getattr(settings, "ai_provider", "groq"),
+            getattr(settings, "ai_model", "openai/gpt-oss-120b"),
+            "configuration/authentication failure",
+            err,
+        )
         ai_investigation = None
         ai_status = "unavailable"
         ai_error = f"AI analysis unavailable: {err}"
-    except (AIAnalysisError, Exception) as err:
-        logger.error("AI investigation failed: %s", err)
+    except AIAnalysisError as err:
+        logger.error(
+            "AI investigation failed: case_id=%s provider=%s model=%s category=%s status_code=%s iteration=%s error=%s",
+            case_id,
+            err.provider or getattr(settings, "ai_provider", "groq"),
+            err.model or getattr(settings, "ai_model", "openai/gpt-oss-120b"),
+            err.category,
+            err.status_code,
+            err.iteration,
+            err,
+        )
+        ai_investigation = None
+        ai_status = "failed"
+        ai_error = "AI analysis failed — investigation could not be completed."
+    except Exception as err:
+        logger.error(
+            "AI investigation unexpected failure: case_id=%s provider=%s model=%s category=%s status_code=none iteration=0 error=%s",
+            case_id,
+            getattr(settings, "ai_provider", "groq"),
+            getattr(settings, "ai_model", "openai/gpt-oss-120b"),
+            "provider failure",
+            err,
+        )
         ai_investigation = None
         ai_status = "failed"
         ai_error = "AI analysis failed — investigation could not be completed."
 
     response_obj = parsed_email.model_copy(
         update={
+            "case_id": case_id,
             "relay_analysis": relay_analysis,
             "security_analysis": security_analysis,
             "threat_intelligence": threat_intelligence,
@@ -121,9 +152,6 @@ async def analyze_email(file: UploadFile = File(...)) -> EmailAnalysisResponse:
     )
 
     try:
-        random_suffix = random.randint(1000, 9999)
-        case_id = f"CASE-2026-{random_suffix}"
-        response_obj.case_id = case_id
         now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
         raw_sev = (investigation.risk_assessment.level or "high").upper()

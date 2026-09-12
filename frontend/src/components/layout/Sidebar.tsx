@@ -158,7 +158,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               AI Agent
             </span>
             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded badge-ai font-bold">
-              Groq (LLaMA-3)
+              Groq (GPT-OSS-120B)
             </span>
           </div>
         </div>

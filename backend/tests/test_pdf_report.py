@@ -318,7 +318,7 @@ def get_sample_malicious_analysis() -> dict:
             "iterations": 3,
             "source": "ai_agent",
             "provider": "Groq",
-            "model": "llama-3.3-70b-versatile",
+            "model": "openai/gpt-oss-120b",
         },
     }
 
@@ -409,7 +409,7 @@ def get_sample_benign_analysis() -> dict:
             "iterations": 1,
             "source": "ai_agent",
             "provider": "Groq",
-            "model": "llama-3.3-70b-versatile",
+            "model": "openai/gpt-oss-120b",
         },
     }
 

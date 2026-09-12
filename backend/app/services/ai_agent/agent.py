@@ -36,6 +36,23 @@ class AIConfigurationError(RuntimeError):
 class AIAnalysisError(RuntimeError):
     """Raised when AI provider request, execution, or validation fails."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        category: str = "provider failure",
+        status_code: int | None = None,
+        iteration: int = 0,
+        provider: str | None = None,
+        model: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.category = category
+        self.status_code = status_code
+        self.iteration = iteration
+        self.provider = provider
+        self.model = model
+
 
 _SECRET_KEYS = {"secret", "token", "password", "authorization", "api_key", "apikey", "raw", "body", "attachment"}
 CONSERVATIVE_ATTRIBUTION = (
@@ -423,11 +440,11 @@ class AIInvestigationAgent:
         self,
         provider: LLMProvider,
         *,
-        max_iterations: int = 5,
+        max_iterations: int = 3,
         registry_factory=make_tool_registry,
     ) -> None:
         self.provider = provider
-        self.max_iterations = max(1, min(int(max_iterations), 20))
+        self.max_iterations = max(1, min(int(max_iterations), 3))
         self.registry_factory = registry_factory
 
     def investigate(
@@ -556,7 +573,18 @@ class AIInvestigationAgent:
                 break
             except (ProviderError, ValueError, TypeError) as exc:
                 logger.warning("AI investigation iteration %d failed (%s)", iteration, type(exc).__name__)
-                raise AIAnalysisError(f"AI investigation iteration {iteration} failed: {type(exc).__name__}") from exc
+                category = getattr(exc, "category", "provider failure")
+                status_code = getattr(exc, "status_code", None)
+                model = getattr(self.provider, "model", None)
+                provider = getattr(self.provider, "name", "groq")
+                raise AIAnalysisError(
+                    f"AI investigation iteration {iteration} failed: {type(exc).__name__}",
+                    category=category,
+                    status_code=status_code,
+                    iteration=iteration,
+                    provider=provider,
+                    model=model,
+                ) from exc
 
         final_data = None
         last_content = messages[-1].get("content") if messages and messages[-1].get("role") == "assistant" else None
@@ -578,7 +606,18 @@ class AIInvestigationAgent:
                     raise ProviderError("malformed final synthesis response")
             except Exception as exc:
                 logger.warning("AI final report synthesis failed (%s)", type(exc).__name__)
-                raise AIAnalysisError(f"AI final report synthesis failed: {type(exc).__name__}") from exc
+                category = getattr(exc, "category", "provider failure")
+                status_code = getattr(exc, "status_code", None)
+                model = getattr(self.provider, "model", None)
+                provider = getattr(self.provider, "name", "groq")
+                raise AIAnalysisError(
+                    f"AI final report synthesis failed: {type(exc).__name__}",
+                    category=category,
+                    status_code=status_code,
+                    iteration=len(calls) + 1,
+                    provider=provider,
+                    model=model,
+                ) from exc
 
         try:
             final_data["source"] = "ai_agent"
@@ -738,8 +777,25 @@ class AIInvestigationAgent:
                     history.append({"type": "tool_result", "tool": decision.tool, "error": str(err)})
             except (ProviderError, ValueError, TypeError) as exc:
                 logger.warning("AI investigation iteration %d failed (%s)", iteration, type(exc).__name__)
-                raise AIAnalysisError(f"AI legacy investigation iteration {iteration} failed: {type(exc).__name__}") from exc
-        raise AIAnalysisError("AI legacy investigation exhausted iterations without returning a final assessment.")
+                category = getattr(exc, "category", "provider failure")
+                status_code = getattr(exc, "status_code", None)
+                model = getattr(self.provider, "model", None)
+                provider = getattr(self.provider, "name", "groq")
+                raise AIAnalysisError(
+                    f"AI legacy investigation iteration {iteration} failed: {type(exc).__name__}",
+                    category=category,
+                    status_code=status_code,
+                    iteration=iteration,
+                    provider=provider,
+                    model=model,
+                ) from exc
+        raise AIAnalysisError(
+            "AI legacy investigation exhausted iterations without returning a final assessment.",
+            category="provider failure",
+            iteration=self.max_iterations,
+            provider=getattr(self.provider, "name", "groq"),
+            model=getattr(self.provider, "model", None),
+        )
 
     @staticmethod
     def _validate_result(result: AIInvestigationResult, context: dict[str, Any]) -> None:
@@ -816,21 +872,37 @@ def run_ai_investigation(
         selected = provider or create_provider(
             str(getattr(settings, "ai_provider", "groq")),
             api_key=api_key,
-            model=str(getattr(settings, "ai_model", "llama-3.3-70b-versatile")),
+            model=str(getattr(settings, "ai_model", "openai/gpt-oss-120b")),
             timeout_seconds=float(getattr(settings, "ai_agent_timeout_seconds", 60.0)),
         )
         return AIInvestigationAgent(
             selected,
-            max_iterations=int(getattr(settings, "ai_agent_max_iterations", 4)),
+            max_iterations=int(getattr(settings, "ai_agent_max_iterations", 3)),
         ).investigate(context, investigation)
     except AIConfigurationError:
         raise
-    except (ProviderError, AIAnalysisError):
+    except AIAnalysisError:
         raise
+    except ProviderError as exc:
+        logger.warning("AI investigation failed (%s)", type(exc).__name__)
+        raise AIAnalysisError(
+            f"AI investigation provider failed: {type(exc).__name__}",
+            category=getattr(exc, "category", "provider failure"),
+            status_code=getattr(exc, "status_code", None),
+            iteration=0,
+            provider=str(getattr(settings, "ai_provider", "groq")),
+            model=str(getattr(settings, "ai_model", "openai/gpt-oss-120b")),
+        ) from exc
     except Exception as exc:
         # Never expose provider URLs, response bodies, keys, or exception text.
         logger.warning("AI investigation failed (%s)", type(exc).__name__)
-        raise AIAnalysisError(f"AI investigation execution failed: {type(exc).__name__}") from exc
+        raise AIAnalysisError(
+            f"AI investigation execution failed: {type(exc).__name__}",
+            category="provider failure",
+            iteration=0,
+            provider=str(getattr(settings, "ai_provider", "groq")),
+            model=str(getattr(settings, "ai_model", "openai/gpt-oss-120b")),
+        ) from exc
 
 
 # Concise compatibility entry points for callers that do not need the class.
