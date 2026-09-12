@@ -60,3 +60,15 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def validate_ai_configuration(settings: Settings | None = None) -> tuple[bool, str]:
+    """Safe validation of AI configuration without exposing secrets."""
+    settings = settings or get_settings()
+    if not settings.ai_agent_enabled:
+        return False, "AI Analyst is disabled (AI_AGENT_ENABLED=false)."
+    key = settings.effective_ai_api_key
+    if not key or not key.strip():
+        return False, f"AI configuration error: Missing required API key for provider '{settings.ai_provider}' (GROQ_API_KEY / AI_API_KEY is unset)."
+    return True, "AI configuration valid."
+

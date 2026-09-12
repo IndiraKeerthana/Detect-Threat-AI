@@ -27,6 +27,16 @@ from app.services.ai_agent.schemas import AIAttribution, AIFinding, AIInvestigat
 from app.services.ai_agent.tools import ToolRegistry, ToolValidationError, make_tool_registry, tool_call_key
 
 logger = logging.getLogger(__name__)
+
+
+class AIConfigurationError(RuntimeError):
+    """Raised when AI agent is disabled or required configuration/key is missing."""
+
+
+class AIAnalysisError(RuntimeError):
+    """Raised when AI provider request, execution, or validation fails."""
+
+
 _SECRET_KEYS = {"secret", "token", "password", "authorization", "api_key", "apikey", "raw", "body", "attachment"}
 CONSERVATIVE_ATTRIBUTION = (
     "The evidence supports identification of suspicious infrastructure, but does not establish "
@@ -281,58 +291,6 @@ def build_investigation_context(
     }
 
 
-def _fallback(
-    investigation: InvestigationAnalysis,
-    *,
-    iterations: int = 0,
-    tool_calls: list[AIToolCall] | None = None,
-) -> AIInvestigationResult:
-    summary = investigation.investigation_summary
-    return AIInvestigationResult(
-        summary=summary.summary,
-        risk_level=summary.risk_level,
-        classification=investigation.risk_assessment.classification,
-        confidence=summary.confidence,
-        reasoning=investigation.risk_assessment.rationale,
-        key_findings=[
-            AIFinding(
-                title=factor.title,
-                severity=factor.severity,
-                explanation=factor.explanation,
-                evidence=factor.evidence[:5],
-            )
-            for factor in investigation.risk_assessment.factors[:8]
-        ],
-        recommended_actions=[
-            item.action or item.title or item.code for item in investigation.recommended_actions[:8]
-        ],
-        attribution=AIAttribution(
-            status=investigation.attribution.status,
-            assessment=investigation.attribution.assessment,
-            confidence=investigation.attribution.confidence,
-            supporting_evidence=investigation.attribution.supporting_evidence[:8],
-            limitations=investigation.attribution.limitations[:8],
-        ),
-        evidence=[
-            evidence
-            for edge in investigation.evidence_graph.edges[:12]
-            for evidence in edge.evidence[:2]
-        ][:20],
-        tool_calls=tool_calls or [],
-        iterations=min(iterations, 20),
-        source="deterministic_fallback",
-        provider="deterministic_fallback",
-        model=None,
-    )
-
-
-def deterministic_fallback(
-    investigation: InvestigationAnalysis, *, iterations: int = 0
-) -> AIInvestigationResult:
-    """Public deterministic result constructor used by integrations/tests."""
-    return _fallback(investigation, iterations=iterations)
-
-
 def build_foundation_context(
     email: EmailAnalysisResponse,
     security_analysis: SecurityAnalysis,
@@ -402,15 +360,21 @@ def run_foundation_ai_investigation(
     *,
     settings: Settings | Any | None = None,
 ) -> AIInvestigationResult:
-    """Run exactly one bounded provider request, with deterministic fallback."""
+    """Run exactly one bounded provider request without deterministic fallback."""
     settings = settings or get_settings()
-    deterministic = _fallback(investigation)
     if not bool(getattr(settings, "ai_agent_enabled", False)):
-        return deterministic
+        raise AIConfigurationError("AI Analyst is disabled (AI_AGENT_ENABLED=false).")
+    api_key = (
+        getattr(settings, "effective_ai_api_key", None)
+        or getattr(settings, "groq_api_key", None)
+        or getattr(settings, "ai_api_key", None)
+    )
+    if not api_key:
+        raise AIConfigurationError("AI Analyst configuration error: Missing required API key.")
     try:
         selected = create_provider(
             str(getattr(settings, "ai_provider", "openai")),
-            api_key=getattr(settings, "ai_api_key", None),
+            api_key=api_key,
             model=str(getattr(settings, "ai_model", "gpt-4o-mini")),
             timeout_seconds=float(getattr(settings, "ai_agent_timeout_seconds", 30.0)),
         )
@@ -433,9 +397,11 @@ def run_foundation_ai_investigation(
         ))
         result.tool_calls = []
         return result
+    except AIConfigurationError:
+        raise
     except Exception as exc:
         logger.warning("AI foundation unavailable (%s)", type(exc).__name__)
-        return deterministic
+        raise AIAnalysisError(f"AI foundation analysis failed: {type(exc).__name__}") from exc
 
 
 def _coerce_decision(value: Any) -> ProviderDecision:
@@ -590,7 +556,7 @@ class AIInvestigationAgent:
                 break
             except (ProviderError, ValueError, TypeError) as exc:
                 logger.warning("AI investigation iteration %d failed (%s)", iteration, type(exc).__name__)
-                return _fallback(deterministic, iterations=len(calls), tool_calls=calls)
+                raise AIAnalysisError(f"AI investigation iteration {iteration} failed: {type(exc).__name__}") from exc
 
         final_data = None
         last_content = messages[-1].get("content") if messages and messages[-1].get("role") == "assistant" else None
@@ -612,7 +578,7 @@ class AIInvestigationAgent:
                     raise ProviderError("malformed final synthesis response")
             except Exception as exc:
                 logger.warning("AI final report synthesis failed (%s)", type(exc).__name__)
-                return _fallback(deterministic, iterations=len(calls), tool_calls=calls)
+                raise AIAnalysisError(f"AI final report synthesis failed: {type(exc).__name__}") from exc
 
         try:
             final_data["source"] = "ai_agent"
@@ -663,7 +629,7 @@ class AIInvestigationAgent:
             return result
         except Exception as exc:
             logger.warning("AI final report processing failed (%s)", type(exc).__name__)
-            return _fallback(deterministic, iterations=len(calls), tool_calls=calls)
+            raise AIAnalysisError(f"AI final report processing failed: {type(exc).__name__}") from exc
 
     def _investigate_legacy(
         self,
@@ -772,8 +738,8 @@ class AIInvestigationAgent:
                     history.append({"type": "tool_result", "tool": decision.tool, "error": str(err)})
             except (ProviderError, ValueError, TypeError) as exc:
                 logger.warning("AI investigation iteration %d failed (%s)", iteration, type(exc).__name__)
-                return _fallback(deterministic, iterations=len(calls), tool_calls=calls)
-        return _fallback(deterministic, iterations=len(calls), tool_calls=calls)
+                raise AIAnalysisError(f"AI legacy investigation iteration {iteration} failed: {type(exc).__name__}") from exc
+        raise AIAnalysisError("AI legacy investigation exhausted iterations without returning a final assessment.")
 
     @staticmethod
     def _validate_result(result: AIInvestigationResult, context: dict[str, Any]) -> None:
@@ -829,23 +795,24 @@ def run_ai_investigation(
     settings: Settings | Any | None = None,
     provider: LLMProvider | None = None,
 ) -> AIInvestigationResult:
-    """Run Step 7, failing closed to the deterministic Step 6 result."""
+    """Run Step 7 autonomous AI investigation. Real AI is mandatory; deterministic fallback is prohibited."""
     settings = settings or get_settings()
     enabled = bool(getattr(settings, "ai_agent_enabled", False))
-    deterministic = _fallback(investigation)
     if not enabled:
-        logger.info("AI investigation agent is disabled (AI_AGENT_ENABLED=false). Using deterministic fallback.")
-        return deterministic
+        logger.warning("AI Analyst is disabled (AI_AGENT_ENABLED=false). Real AI is mandatory.")
+        raise AIConfigurationError("AI Analyst is disabled (AI_AGENT_ENABLED=false). Real AI analysis is mandatory.")
+
+    api_key = (
+        getattr(settings, "effective_ai_api_key", None)
+        or getattr(settings, "groq_api_key", None)
+        or getattr(settings, "ai_api_key", None)
+    )
+    if not api_key and provider is None:
+        logger.warning("AI Analyst enabled but required API key (GROQ_API_KEY / AI_API_KEY) is missing.")
+        raise AIConfigurationError("AI Analyst configuration error: Missing required API key (GROQ_API_KEY / AI_API_KEY).")
+
+    context = build_investigation_context(email, security_analysis, threat_intelligence, investigation)
     try:
-        context = build_investigation_context(email, security_analysis, threat_intelligence, investigation)
-        api_key = (
-            getattr(settings, "effective_ai_api_key", None)
-            or getattr(settings, "groq_api_key", None)
-            or getattr(settings, "ai_api_key", None)
-        )
-        if not api_key and provider is None:
-            logger.warning("AI investigation agent enabled but API key (GROQ_API_KEY / AI_API_KEY) is missing. Using deterministic fallback.")
-            return deterministic
         selected = provider or create_provider(
             str(getattr(settings, "ai_provider", "groq")),
             api_key=api_key,
@@ -856,10 +823,14 @@ def run_ai_investigation(
             selected,
             max_iterations=int(getattr(settings, "ai_agent_max_iterations", 4)),
         ).investigate(context, investigation)
+    except AIConfigurationError:
+        raise
+    except (ProviderError, AIAnalysisError):
+        raise
     except Exception as exc:
         # Never expose provider URLs, response bodies, keys, or exception text.
-        logger.warning("AI investigation unavailable (%s)", type(exc).__name__)
-        return deterministic
+        logger.warning("AI investigation failed (%s)", type(exc).__name__)
+        raise AIAnalysisError(f"AI investigation execution failed: {type(exc).__name__}") from exc
 
 
 # Concise compatibility entry points for callers that do not need the class.

@@ -618,8 +618,8 @@ def generate_forensic_pdf(data_dict: dict[str, Any], case_id: str = "CASE-UNASSI
     # =========================================================================
     story.append(Paragraph("10. Autonomous AI Investigation Record", style_h2))
     if ai_investigation:
-        exec_source = (ai_investigation.get("source") or "deterministic_fallback").upper()
-        provider = sanitize_text(ai_investigation.get("provider") or ("AI AGENT" if exec_source == "AI_AGENT" else "DETERMINISTIC FALLBACK"))
+        exec_source = sanitize_text((ai_investigation.get("source") or "AI_AGENT").upper())
+        provider = sanitize_text(ai_investigation.get("provider") or "AI AGENT")
         model_name = sanitize_text(ai_investigation.get("model") or "N/A")
         iterations = ai_investigation.get("iterations", 1)
         reasoning = sanitize_text(ai_investigation.get("reasoning") or ai_investigation.get("summary") or "Autonomous forensic evaluation completed.")
@@ -644,7 +644,7 @@ def generate_forensic_pdf(data_dict: dict[str, Any], case_id: str = "CASE-UNASSI
         story.append(Spacer(1, 4))
         story.append(Paragraph(f"<b>Structured AI Findings &amp; Rationale:</b><br/>{reasoning}", style_body))
     else:
-        story.append(Paragraph("No autonomous AI investigation record present. Evaluated via rule-based deterministic pipeline.", style_body))
+        story.append(Paragraph("AI analysis unavailable or failed. No autonomous AI investigation record was generated.", style_body))
 
     story.append(Spacer(1, 10))
 

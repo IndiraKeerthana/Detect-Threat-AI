@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.investigation import (
@@ -89,6 +91,8 @@ class EmailAnalysisResponse(BaseModel):
     investigation_summary: InvestigationSummary | None = None
     investigation: InvestigationAnalysis | None = None
     ai_investigation: "AIInvestigationResult | None" = None
+    ai_status: Literal["completed", "failed", "unavailable"] | None = None
+    ai_error: str | None = None
     # Retained on the internal model for security_analysis; it is not a new
     # top-level response field so existing API consumers keep the same shape.
     authentication_results: list[str] = Field(default_factory=list, exclude=True)

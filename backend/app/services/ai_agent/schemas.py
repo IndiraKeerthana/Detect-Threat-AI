@@ -59,7 +59,7 @@ class AIInvestigationResult(BaseModel):
     evidence: list[str] = Field(default_factory=list)
     tool_calls: list[AIToolCall] = Field(default_factory=list)
     iterations: int = Field(default=0, ge=0, le=20)
-    source: Literal["ai_agent", "deterministic_fallback"]
+    source: Literal["ai_agent"] = "ai_agent"
     provider: str | None = None
     model: str | None = None
 

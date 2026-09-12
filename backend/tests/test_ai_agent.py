@@ -7,6 +7,8 @@ from urllib.error import HTTPError
 
 from app.config import Settings
 from app.services.ai_agent.agent import (
+    AIAnalysisError,
+    AIConfigurationError,
     CONSERVATIVE_ATTRIBUTION,
     build_investigation_context,
     run_ai_investigation,
@@ -49,26 +51,31 @@ class _FinalProvider:
 
 
 class AIAgentTest(unittest.TestCase):
-    def test_disabled_and_missing_key_are_deterministic(self):
+    def test_disabled_and_missing_key_raise_configuration_error(self):
         email, security, intelligence, investigation = _parts()
-        disabled = run_ai_investigation(
-            email,
-            security,
-            intelligence,
-            investigation,
-            settings=SimpleNamespace(ai_agent_enabled=False),
-        )
-        missing = run_ai_investigation(
-            email,
-            security,
-            intelligence,
-            investigation,
-            settings=SimpleNamespace(ai_agent_enabled=True, ai_api_key=None),
-        )
-        self.assertEqual(disabled.source, "deterministic_fallback")
-        self.assertEqual(missing.source, "deterministic_fallback")
+        with self.assertRaises(AIConfigurationError):
+            run_ai_investigation(
+                email,
+                security,
+                intelligence,
+                investigation,
+                settings=SimpleNamespace(ai_agent_enabled=False),
+            )
+        with self.assertRaises(AIConfigurationError):
+            run_ai_investigation(
+                email,
+                security,
+                intelligence,
+                investigation,
+                settings=SimpleNamespace(
+                    ai_agent_enabled=True,
+                    ai_api_key=None,
+                    groq_api_key=None,
+                    effective_ai_api_key=None,
+                ),
+            )
 
-    def test_unavailable_timeout_and_malformed_fail_closed(self):
+    def test_unavailable_timeout_and_malformed_raise_analysis_error(self):
         email, security, intelligence, investigation = _parts()
 
         class Broken:
@@ -76,15 +83,15 @@ class AIAgentTest(unittest.TestCase):
                 raise TimeoutError("not exposed")
 
         for provider in (Broken(), _FinalProvider({"bad": True})):
-            result = run_ai_investigation(
-                email,
-                security,
-                intelligence,
-                investigation,
-                settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=5),
-                provider=provider,
-            )
-            self.assertEqual(result.source, "deterministic_fallback")
+            with self.assertRaises(AIAnalysisError):
+                run_ai_investigation(
+                    email,
+                    security,
+                    intelligence,
+                    investigation,
+                    settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=5),
+                    provider=provider,
+                )
 
     def test_success_and_safe_attribution(self):
         email, security, intelligence, investigation = _parts()
@@ -273,7 +280,7 @@ class AIAgentTest(unittest.TestCase):
     @patch("app.services.ai_agent.provider.time.sleep")
     @patch("app.services.ai_agent.provider.urlopen")
     def test_groq_case_4_permanent_authentication_failure_no_retries(self, mock_urlopen, mock_sleep):
-        """GROQ CASE 4: Provider returns permanent 401. No pointless repeated retries, safe deterministic fallback."""
+        """GROQ CASE 4: Provider returns permanent 401. No pointless repeated retries, raises AIAnalysisError immediately."""
         email, security, intelligence, investigation = _parts()
         mock_urlopen.side_effect = HTTPError(
             "https://api.groq.com/openai/v1/chat/completions",
@@ -288,20 +295,18 @@ class AIAgentTest(unittest.TestCase):
             model="llama-3.3-70b-versatile",
             timeout_seconds=10.0,
         )
-        result = run_ai_investigation(
-            email,
-            security,
-            intelligence,
-            investigation,
-            settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=4),
-            provider=provider,
-        )
+        with self.assertRaises(AIAnalysisError):
+            run_ai_investigation(
+                email,
+                security,
+                intelligence,
+                investigation,
+                settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=4),
+                provider=provider,
+            )
         # Should fail immediately on attempt 1 without retrying or sleeping
         self.assertEqual(mock_urlopen.call_count, 1)
         mock_sleep.assert_not_called()
-        self.assertEqual(result.source, "deterministic_fallback")
-        self.assertEqual(result.iterations, 0)
-        self.assertEqual(result.tool_calls, [])
 
     def test_groq_case_5_successful_autonomous_tool_call(self):
         """GROQ CASE 5: Successful autonomous tool call loop with real tool execution."""
@@ -359,8 +364,8 @@ class AIAgentTest(unittest.TestCase):
 
     @patch("app.services.ai_agent.provider.time.sleep")
     @patch("app.services.ai_agent.provider.urlopen")
-    def test_groq_case_6_all_ai_attempts_fail_deterministic_fallback(self, mock_urlopen, mock_sleep):
-        """GROQ CASE 6: All AI attempts fail. Safely returns deterministic fallback with iterations=0 and tool_calls=[]."""
+    def test_groq_case_6_all_ai_attempts_fail_raises_analysis_error(self, mock_urlopen, mock_sleep):
+        """GROQ CASE 6: All AI attempts fail. Raises AIAnalysisError without invoking deterministic fallback."""
         email, security, intelligence, investigation = _parts()
         mock_urlopen.side_effect = HTTPError(
             "https://api.groq.com/openai/v1/chat/completions",
@@ -375,17 +380,15 @@ class AIAgentTest(unittest.TestCase):
             model="llama-3.3-70b-versatile",
             timeout_seconds=10.0,
         )
-        result = run_ai_investigation(
-            email,
-            security,
-            intelligence,
-            investigation,
-            settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=4),
-            provider=provider,
-        )
-        self.assertEqual(result.source, "deterministic_fallback")
-        self.assertEqual(result.iterations, 0)
-        self.assertEqual(result.tool_calls, [])
+        with self.assertRaises(AIAnalysisError):
+            run_ai_investigation(
+                email,
+                security,
+                intelligence,
+                investigation,
+                settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=4),
+                provider=provider,
+            )
 
     @patch("app.services.ai_agent.provider.time.sleep")
     @patch("app.services.ai_agent.provider.urlopen")
@@ -598,22 +601,18 @@ class AIAgentTest(unittest.TestCase):
         self.assertEqual(len(result.tool_calls), 1)
         self.assertEqual(result.tool_calls[0].name, "inspect_domain")
 
-    def test_truthful_deterministic_fallback_reporting(self):
-        """Verify deterministic fallback truthfully reports source and provider as deterministic_fallback and model as None."""
+    def test_disabled_ai_raises_configuration_error_without_fallback(self):
+        """Verify disabled AI raises AIConfigurationError and does not invoke fallback."""
         email, security, intelligence, investigation = _parts()
-        result = run_ai_investigation(
-            email,
-            security,
-            intelligence,
-            investigation,
-            settings=SimpleNamespace(ai_agent_enabled=False),
-        )
-
-        self.assertEqual(result.source, "deterministic_fallback")
-        self.assertEqual(result.provider, "deterministic_fallback")
-        self.assertIsNone(result.model)
-        self.assertEqual(result.iterations, 0)
-        self.assertEqual(result.tool_calls, [])
+        with self.assertRaises(AIConfigurationError) as ctx:
+            run_ai_investigation(
+                email,
+                security,
+                intelligence,
+                investigation,
+                settings=SimpleNamespace(ai_agent_enabled=False),
+            )
+        self.assertIn("disabled", str(ctx.exception).lower())
 
     def test_truthful_ai_model_fallback_reporting(self):
         """Verify fallback to another model truthfully reports the fallback model used and NOT the original model."""
@@ -841,16 +840,15 @@ class AIAgentTest(unittest.TestCase):
                     arguments={},
                 )
 
-        result = run_ai_investigation(
-            email,
-            security,
-            intelligence,
-            investigation,
-            settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=2),
-            provider=Repeater(),
-        )
-        self.assertEqual(result.source, "deterministic_fallback")
-        self.assertLessEqual(result.iterations, 2)
+        with self.assertRaises(AIAnalysisError):
+            run_ai_investigation(
+                email,
+                security,
+                intelligence,
+                investigation,
+                settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=2),
+                provider=Repeater(),
+            )
 
     def test_result_schema_forbids_extra_fields(self):
         with self.assertRaises(ValueError):
@@ -1005,15 +1003,15 @@ class AIAgentTest(unittest.TestCase):
             "iterations": 1,
             "source": "ai_agent",
         }
-        result = run_ai_investigation(
-            email,
-            security,
-            intelligence,
-            investigation,
-            settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=5),
-            provider=_FinalProvider(hallucinated_payload),
-        )
-        self.assertEqual(result.source, "deterministic_fallback")
+        with self.assertRaises(AIAnalysisError):
+            run_ai_investigation(
+                email,
+                security,
+                intelligence,
+                investigation,
+                settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=5),
+                provider=_FinalProvider(hallucinated_payload),
+            )
 
     def test_iteration_limit_enforced_without_repeats(self):
         email, security, intelligence, investigation = _parts()
@@ -1030,17 +1028,15 @@ class AIAgentTest(unittest.TestCase):
                     arguments={"code": f"CODE_{self.call}"},
                 )
 
-        result = run_ai_investigation(
-            email,
-            security,
-            intelligence,
-            investigation,
-            settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=3),
-            provider=InfiniteUniqueToolsProvider(),
-        )
-        self.assertEqual(result.source, "deterministic_fallback")
-        self.assertEqual(result.iterations, 3)
-        self.assertEqual(len(result.tool_calls), 3)
+        with self.assertRaises(AIAnalysisError):
+            run_ai_investigation(
+                email,
+                security,
+                intelligence,
+                investigation,
+                settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=3),
+                provider=InfiniteUniqueToolsProvider(),
+            )
 
     def test_groq_provider_configuration(self):
         provider = create_provider(
@@ -1175,3 +1171,145 @@ class AIAgentTest(unittest.TestCase):
             self.assertEqual(result.source, "ai_agent")
             self.assertEqual(result.attribution.assessment, CONSERVATIVE_ATTRIBUTION)
             self.assertEqual(result.attribution.status, "infrastructure_only")
+
+    def test_missing_ai_key_does_not_invoke_fallback(self):
+        """Rule 1: Missing AI key must raise AIConfigurationError, NEVER invoke fallback."""
+        email, security, intelligence, investigation = _parts()
+        with self.assertRaises(AIConfigurationError) as ctx:
+            run_ai_investigation(
+                email,
+                security,
+                intelligence,
+                investigation,
+                settings=SimpleNamespace(
+                    ai_agent_enabled=True,
+                    effective_ai_api_key=None,
+                    groq_api_key=None,
+                    ai_api_key=None,
+                ),
+            )
+        self.assertIn("missing", str(ctx.exception).lower())
+
+    def test_disabled_ai_does_not_invoke_fallback(self):
+        """Rule 2: Disabled AI must raise AIConfigurationError, NEVER invoke fallback."""
+        email, security, intelligence, investigation = _parts()
+        with self.assertRaises(AIConfigurationError) as ctx:
+            run_ai_investigation(
+                email,
+                security,
+                intelligence,
+                investigation,
+                settings=SimpleNamespace(ai_agent_enabled=False),
+            )
+        self.assertIn("disabled", str(ctx.exception).lower())
+
+    def test_provider_timeout_does_not_invoke_fallback(self):
+        """Rule 3: Provider timeout must raise AIAnalysisError, NEVER invoke fallback."""
+        email, security, intelligence, investigation = _parts()
+
+        class TimeoutProvider:
+            def decide(self, *args):
+                raise TimeoutError("connection timed out")
+
+        with self.assertRaises(AIAnalysisError) as ctx:
+            run_ai_investigation(
+                email,
+                security,
+                intelligence,
+                investigation,
+                settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=3),
+                provider=TimeoutProvider(),
+            )
+        self.assertIn("timeout", str(ctx.exception).lower())
+
+    @patch("app.services.ai_agent.provider.urlopen")
+    def test_provider_401_does_not_invoke_fallback(self, mock_urlopen):
+        """Rule 4: Provider 401 unauthorized must raise AIAnalysisError, NEVER invoke fallback."""
+        email, security, intelligence, investigation = _parts()
+        mock_urlopen.side_effect = HTTPError(
+            "https://api.groq.com/openai/v1/chat/completions",
+            401,
+            "Unauthorized",
+            {},
+            fp=None,
+        )
+        provider = create_provider(
+            "groq",
+            api_key="gsk_bad_key",
+            model="llama-3.3-70b-versatile",
+            timeout_seconds=5.0,
+        )
+        with self.assertRaises(AIAnalysisError) as ctx:
+            run_ai_investigation(
+                email,
+                security,
+                intelligence,
+                investigation,
+                settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=3),
+                provider=provider,
+            )
+        self.assertIn("failed", str(ctx.exception).lower())
+
+    @patch("app.services.ai_agent.provider.time.sleep")
+    @patch("app.services.ai_agent.provider.urlopen")
+    def test_provider_429_does_not_invoke_fallback(self, mock_urlopen, mock_sleep):
+        """Rule 5: Provider 429 rate limit exhausting retries must raise AIAnalysisError, NEVER invoke fallback."""
+        email, security, intelligence, investigation = _parts()
+        mock_urlopen.side_effect = HTTPError(
+            "https://api.groq.com/openai/v1/chat/completions",
+            429,
+            "Rate limit reached",
+            {},
+            fp=None,
+        )
+        provider = create_provider(
+            "groq",
+            api_key="gsk_test",
+            model="llama-3.3-70b-versatile",
+            timeout_seconds=5.0,
+        )
+        with self.assertRaises(AIAnalysisError):
+            run_ai_investigation(
+                email,
+                security,
+                intelligence,
+                investigation,
+                settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=2),
+                provider=provider,
+            )
+
+    def test_successful_ai_executes_normally(self):
+        """Rule 6: Successful AI returns source=ai_agent and retains model and provider."""
+        email, security, intelligence, investigation = _parts()
+        payload = {
+            "summary": "Real AI verified investigation",
+            "risk_level": "high",
+            "classification": "phishing",
+            "confidence": "high",
+            "reasoning": "Real AI reasoning based on observable evidence.",
+            "key_findings": [],
+            "recommended_actions": ["Block sender"],
+            "attribution": {
+                "status": "infrastructure_only",
+                "assessment": "Observable infrastructure analysis.",
+                "confidence": "low",
+                "supporting_evidence": [],
+                "limitations": [],
+            },
+            "evidence": [],
+            "tool_calls": [],
+            "iterations": 1,
+            "source": "ai_agent",
+        }
+        result = run_ai_investigation(
+            email,
+            security,
+            intelligence,
+            investigation,
+            settings=SimpleNamespace(ai_agent_enabled=True, ai_agent_max_iterations=3),
+            provider=_FinalProvider(payload),
+        )
+        self.assertEqual(result.source, "ai_agent")
+        self.assertEqual(result.summary, "Real AI verified investigation")
+        self.assertNotEqual(result.source, "deterministic_fallback")
+

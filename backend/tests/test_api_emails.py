@@ -9,7 +9,11 @@ from unittest.mock import patch
 from fastapi import HTTPException, UploadFile
 
 from app.api.emails import analyze_email
-from app.services.ai_agent.agent import run_ai_investigation
+from app.services.ai_agent.agent import (
+    AIAnalysisError,
+    AIConfigurationError,
+    run_ai_investigation,
+)
 from app.services.ai_agent.schemas import (
     AIAttribution,
     AIFinding,
@@ -96,8 +100,8 @@ class EmailRouteTest(unittest.IsolatedAsyncioTestCase):
             ai_thread = captured_threads[0]
             # Must NOT execute on the event loop thread
             self.assertNotEqual(ai_thread, event_loop_thread)
-            self.assertIsNotNone(response.ai_investigation)
-            self.assertEqual(response.ai_investigation.source, "deterministic_fallback")
+            self.assertIsNone(response.ai_investigation)
+            self.assertEqual(response.ai_status, "unavailable")
 
     async def test_ai_investigation_uses_asyncio_to_thread(self) -> None:
         """Verify asyncio.to_thread is invoked with run_ai_investigation and valid arguments."""
@@ -114,7 +118,8 @@ class EmailRouteTest(unittest.IsolatedAsyncioTestCase):
             mock_to_thread.assert_called_once()
             call_func = mock_to_thread.call_args[0][0]
             self.assertEqual(call_func, run_ai_investigation)
-            self.assertIsNotNone(response.ai_investigation)
+            self.assertIsNone(response.ai_investigation)
+            self.assertEqual(response.ai_status, "unavailable")
 
     async def test_ai_investigation_successful_ai_agent_carried_through(self) -> None:
         """Verify successful AI investigation with source=ai_agent, iterations, and tool_calls is preserved."""
@@ -176,42 +181,28 @@ class EmailRouteTest(unittest.IsolatedAsyncioTestCase):
             self.assertIsNotNone(response.investigation)
             self.assertIsNotNone(response.evidence_graph)
 
-    async def test_ai_investigation_deterministic_fallback_carried_through(self) -> None:
-        """Verify deterministic fallback structure is preserved on provider failure."""
+    async def test_ai_investigation_provider_failure_marks_incomplete_and_preserves_forensics(self) -> None:
+        """Verify provider failure marks investigation incomplete without fallback, preserving forensic evidence."""
         fixture_path = Path(__file__).parent / "fixtures" / "sample.eml"
         with open(fixture_path, "rb") as fixture:
             upload = UploadFile(file=fixture, filename="sample.eml")
-            fallback_result = AIInvestigationResult(
-                summary="Deterministic fallback summary",
-                risk_level="medium",
-                classification="suspicious",
-                confidence="medium",
-                reasoning="Deterministic rationale.",
-                key_findings=[],
-                recommended_actions=[],
-                attribution=AIAttribution(
-                    status="infrastructure_only",
-                    assessment="Infrastructure only.",
-                    confidence="low",
-                    supporting_evidence=[],
-                    limitations=[],
-                ),
-                evidence=[],
-                tool_calls=[],
-                iterations=0,
-                source="deterministic_fallback",
-            )
             settings = SimpleNamespace(max_email_size_mb=25.0)
 
             with patch("app.api.emails.get_settings", return_value=settings), patch(
-                "app.api.emails.run_ai_investigation", return_value=fallback_result
+                "app.api.emails.run_ai_investigation",
+                side_effect=AIAnalysisError("AI investigation execution failed: ProviderTimeout"),
             ):
                 response = await analyze_email(upload)
 
-            self.assertIsNotNone(response.ai_investigation)
-            self.assertEqual(response.ai_investigation.source, "deterministic_fallback")
-            self.assertEqual(response.ai_investigation.iterations, 0)
-            self.assertEqual(response.ai_investigation.tool_calls, [])
+            self.assertIsNone(response.ai_investigation)
+            self.assertEqual(response.ai_status, "failed")
+            self.assertIsNotNone(response.ai_error)
+            self.assertIsNotNone(response.relay_analysis)
+            self.assertIsNotNone(response.security_analysis)
+            self.assertIsNotNone(response.threat_intelligence)
+            self.assertIsNotNone(response.investigation)
+            self.assertIsNotNone(response.evidence_graph)
+            self.assertIsNotNone(response.risk_assessment)
 
     async def test_ai_investigation_exception_fails_closed_safely(self) -> None:
         """Verify route handles unhandled worker thread exceptions gracefully without crashing."""

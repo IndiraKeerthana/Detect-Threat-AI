@@ -11,7 +11,7 @@ import type { EmailAnalysisResponse } from '../types/investigation.ts';
 import { MOCK_INVESTIGATION_DATA } from '../data/mockInvestigation.ts';
 import { fetchCases, updateCaseStatusApi } from './api.ts';
 
-export type CaseStatus = 'OPEN' | 'IN REVIEW' | 'CONTAINED' | 'CLOSED';
+export type CaseStatus = 'OPEN' | 'IN REVIEW' | 'CONTAINED' | 'CLOSED' | 'INCOMPLETE' | 'FAILED';
 export type CaseSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 
 export interface CaseRecord {
@@ -266,18 +266,15 @@ class CaseStore {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           this.cases = parsed.map((c: CaseRecord) => {
-            if (c.investigationData?.ai_investigation?.source === 'deterministic_fallback') {
+            if (c.investigationData?.ai_investigation && (c.investigationData.ai_investigation as any).source !== 'ai_agent') {
               return {
                 ...c,
+                status: (c.status === 'OPEN' ? 'INCOMPLETE' : c.status) as CaseStatus,
                 investigationData: {
                   ...c.investigationData,
-                  ai_investigation: {
-                    ...MOCK_INVESTIGATION_DATA.ai_investigation,
-                    ...c.investigationData.ai_investigation,
-                    source: 'ai_agent',
-                    provider: 'groq',
-                    model: 'openai/gpt-oss-20b',
-                  },
+                  ai_investigation: null,
+                  ai_status: 'unavailable',
+                  ai_error: 'AI analysis unavailable — no valid autonomous AI record.',
                 },
               };
             }

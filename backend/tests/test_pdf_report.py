@@ -407,9 +407,9 @@ def get_sample_benign_analysis() -> dict:
             "evidence": [],
             "tool_calls": [],
             "iterations": 1,
-            "source": "deterministic_fallback",
-            "provider": "Deterministic Engine",
-            "model": "rule-engine-v1",
+            "source": "ai_agent",
+            "provider": "Groq",
+            "model": "llama-3.3-70b-versatile",
         },
     }
 
@@ -452,11 +452,11 @@ class TestPdfReportGenerator(unittest.IsolatedAsyncioTestCase):
         pdf_bytes = generate_forensic_pdf(data, case_id="CASE-TEST-AILIVE")
         self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
 
-    def test_ai_deterministic_fallback(self):
-        """6. Test AI deterministic fallback rendering."""
+    def test_ai_unavailable_rendering(self):
+        """6. Test AI unavailable rendering when no autonomous record present."""
         data = get_sample_benign_analysis()
-        data["ai_investigation"]["source"] = "deterministic_fallback"
-        pdf_bytes = generate_forensic_pdf(data, case_id="CASE-TEST-AIFALLBACK")
+        data["ai_investigation"] = None
+        pdf_bytes = generate_forensic_pdf(data, case_id="CASE-TEST-AIUNAVAIL")
         self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
 
     def test_long_urls_and_text_wrapping(self):

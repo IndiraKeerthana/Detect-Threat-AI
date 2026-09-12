@@ -58,7 +58,11 @@ export const Investigation: React.FC<InvestigationProps> = ({
         />
 
         {/* 03 AI Forensic Assessment */}
-        <AIInvestigationCard aiData={data.ai_investigation} />
+        <AIInvestigationCard
+          aiData={data.ai_investigation}
+          aiStatus={data.ai_status}
+          aiError={data.ai_error}
+        />
 
         {/* 04 Observable Topology (Protected Attack Graph) */}
         <AttackGraph data={data} />

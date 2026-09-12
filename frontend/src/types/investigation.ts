@@ -341,7 +341,7 @@ export interface AIInvestigationResult {
   evidence: string[];
   tool_calls: AIToolCall[];
   iterations: number;
-  source: 'ai_agent' | 'deterministic_fallback';
+  source: 'ai_agent';
   provider?: string | null;
   model?: string | null;
 }
@@ -383,6 +383,8 @@ export interface EmailAnalysisResponse {
   investigation_summary?: InvestigationSummary | null;
   investigation?: InvestigationAnalysis | null;
   ai_investigation?: AIInvestigationResult | null;
+  ai_status?: 'completed' | 'failed' | 'unavailable' | null;
+  ai_error?: string | null;
 }
 
 // --- Case Management (UI Foundation) ---

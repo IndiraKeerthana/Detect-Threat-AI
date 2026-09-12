@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Sparkles, Terminal, CheckCircle2, Shield, Wrench, AlertOctagon, ChevronDown, ChevronRight } from 'lucide-react';
+import { Sparkles, Terminal, CheckCircle2, Wrench, AlertOctagon, ChevronDown, ChevronRight } from 'lucide-react';
 import type { AIInvestigationResult } from '../../types/investigation';
 import { SectionHeader } from './SectionHeader';
 
 interface AIInvestigationCardProps {
   aiData?: AIInvestigationResult | null;
+  aiStatus?: string | null;
+  aiError?: string | null;
 }
 
 interface TimelineStage {
@@ -17,18 +19,45 @@ interface TimelineStage {
   isTool?: boolean;
 }
 
-export const AIInvestigationCard: React.FC<AIInvestigationCardProps> = ({ aiData }) => {
+export const AIInvestigationCard: React.FC<AIInvestigationCardProps> = ({ aiData, aiError }) => {
   const [isTraceExpanded, setIsTraceExpanded] = useState<boolean>(false);
 
   if (!aiData) {
     return (
-      <div className="surface-card p-5 border border-[var(--border-subtle)] text-center text-xs text-[var(--text-dim)] font-mono">
-        NO AUTONOMOUS AI INVESTIGATION RECORD ATTACHED
+      <div className="surface-card p-5 border border-[var(--border-subtle)] space-y-4">
+        <SectionHeader
+          index="03"
+          title="AI forensic assessment"
+          subtitle="Autonomous agent synthesis, evidence-grounded rationale, and tool activity trace."
+          action={
+            <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[var(--surface-elevated)] border border-[var(--severity-high)] text-[var(--severity-high)] font-bold">
+                <AlertOctagon className="w-3.5 h-3.5" />
+                <span>AI ANALYSIS UNAVAILABLE / FAILED</span>
+              </span>
+            </div>
+          }
+        />
+        <div className="border border-[var(--border-subtle)] rounded-lg p-5 space-y-3 bg-[var(--surface-subtle)]">
+          <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2 text-xs font-mono">
+            <span className="text-[var(--severity-high)] font-semibold tracking-wider uppercase flex items-center gap-1.5">
+              <Terminal className="w-3.5 h-3.5" />
+              AI Analyst Status · Execution Halted
+            </span>
+            <span className="text-[var(--text-dim)] text-[10px]">
+              STATUS: AI ANALYSIS FAILED / UNAVAILABLE
+            </span>
+          </div>
+          <p className="text-xs text-[var(--text-muted)] font-sans leading-relaxed">
+            {aiError || 'AI analysis unavailable — investigation could not be completed.'}
+          </p>
+          <div className="text-[11px] text-[var(--text-dim)] font-mono pt-1 border-t border-[var(--border-subtle)]">
+            Forensic evidence extracted from email headers, transport infrastructure, authentication (SPF/DKIM/DMARC), and threat telemetry remains intact below.
+          </div>
+        </div>
       </div>
     );
   }
-
-  const isAgent = aiData.source === 'ai_agent';
 
   // Build the vertical activity timeline from real observable stages and real tool calls
   const timelineStages: TimelineStage[] = [
@@ -81,21 +110,14 @@ export const AIInvestigationCard: React.FC<AIInvestigationCardProps> = ({ aiData
         subtitle="Autonomous agent synthesis, evidence-grounded rationale, and tool activity trace."
         action={
           <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
-            {isAgent ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded badge-ai font-bold">
-                <Sparkles className="w-3.5 h-3.5 text-[var(--ai)]" />
-                <span>{(aiData.provider || 'AI AGENT').toUpperCase()}</span>
-                {aiData.model && (
-                  <span className="text-[10px] text-[var(--text-muted)] border-l border-[var(--border-subtle)] pl-1.5">{aiData.model}</span>
-                )}
-                <span className="text-[10px] text-[var(--text-dim)]">({aiData.iterations} ITERATIONS)</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[var(--surface-elevated)] border border-[var(--border-subtle)] text-[var(--severity-medium)]">
-                <Shield className="w-3.5 h-3.5" />
-                <span>DETERMINISTIC FALLBACK</span>
-              </span>
-            )}
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded badge-ai font-bold">
+              <Sparkles className="w-3.5 h-3.5 text-[var(--ai)]" />
+              <span>{(aiData.provider || 'AI AGENT').toUpperCase()}</span>
+              {aiData.model && (
+                <span className="text-[10px] text-[var(--text-muted)] border-l border-[var(--border-subtle)] pl-1.5">{aiData.model}</span>
+              )}
+              <span className="text-[10px] text-[var(--text-dim)]">({aiData.iterations} ITERATIONS)</span>
+            </span>
             <span className="px-2 py-1 rounded bg-[var(--surface-elevated)] border border-[var(--border-subtle)] text-[var(--state-pass)] text-[11px] font-semibold">
               COMPLETE
             </span>
@@ -111,9 +133,7 @@ export const AIInvestigationCard: React.FC<AIInvestigationCardProps> = ({ aiData
             Intelligence Briefing · Analyst Synthesis
           </span>
           <span className="text-[var(--text-dim)] text-[10px]">
-            {isAgent
-              ? `EXECUTION MODE: ${(aiData.provider || 'AI').toUpperCase()} AGENT (${aiData.model || 'BOUNDED'})`
-              : 'EXECUTION MODE: DETERMINISTIC FALLBACK'}
+            {`EXECUTION MODE: ${(aiData.provider || 'AI').toUpperCase()} AGENT (${aiData.model || 'BOUNDED'})`}
           </span>
         </div>
 

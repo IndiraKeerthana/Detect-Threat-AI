@@ -12,7 +12,11 @@ from app.services.relay_analyzer import analyze_received_headers
 from app.services.security_analysis import analyze_security
 from app.services.threat_intelligence import analyze_threat_intelligence
 from app.services.investigation import analyze_investigation
-from app.services.ai_agent.agent import run_ai_investigation
+from app.services.ai_agent.agent import (
+    AIAnalysisError,
+    AIConfigurationError,
+    run_ai_investigation,
+)
 from app.services.pdf_report_generator import generate_forensic_pdf
 from app.services.case_storage import save_case
 
@@ -72,6 +76,9 @@ async def analyze_email(file: UploadFile = File(...)) -> EmailAnalysisResponse:
     investigation = analyze_investigation(
         parsed_email, security_analysis, threat_intelligence
     )
+    ai_investigation = None
+    ai_status = "completed"
+    ai_error = None
     try:
         ai_investigation = await asyncio.to_thread(
             run_ai_investigation,
@@ -81,9 +88,18 @@ async def analyze_email(file: UploadFile = File(...)) -> EmailAnalysisResponse:
             investigation,
             settings=settings,
         )
-    except Exception:
-        # Step 7 is additive and must never make the established analysis fail.
+        ai_status = "completed"
+    except AIConfigurationError as err:
+        logger.error("AI investigation configuration error: %s", err)
         ai_investigation = None
+        ai_status = "unavailable"
+        ai_error = f"AI analysis unavailable: {err}"
+    except (AIAnalysisError, Exception) as err:
+        logger.error("AI investigation failed: %s", err)
+        ai_investigation = None
+        ai_status = "failed"
+        ai_error = "AI analysis failed — investigation could not be completed."
+
     response_obj = parsed_email.model_copy(
         update={
             "relay_analysis": relay_analysis,
@@ -99,6 +115,8 @@ async def analyze_email(file: UploadFile = File(...)) -> EmailAnalysisResponse:
             "investigation_summary": investigation.investigation_summary,
             "investigation": investigation,
             "ai_investigation": ai_investigation,
+            "ai_status": ai_status,
+            "ai_error": ai_error,
         }
     )
 
@@ -118,9 +136,15 @@ async def analyze_email(file: UploadFile = File(...)) -> EmailAnalysisResponse:
             severity = "MEDIUM"
 
         subject = response_obj.subject or file.filename or "Suspicious Email Ingestion"
+        case_status = "OPEN" if ai_investigation else "INCOMPLETE"
+        case_title = (
+            f"Forensic Ingestion — {subject}"
+            if ai_investigation
+            else f"[INCOMPLETE] Forensic Ingestion — {subject}"
+        )
         case_record = {
             "id": case_id,
-            "title": f"Forensic Ingestion — {subject}",
+            "title": case_title,
             "subject": subject,
             "sender": response_obj.from_ or "Unknown Sender",
             "recipient": response_obj.to or "Undisclosed Recipients",
@@ -128,7 +152,7 @@ async def analyze_email(file: UploadFile = File(...)) -> EmailAnalysisResponse:
             "classification": investigation.risk_assessment.classification or "unclassified",
             "riskScore": investigation.risk_assessment.score,
             "confidence": investigation.risk_assessment.confidence.level,
-            "status": "OPEN",
+            "status": case_status,
             "createdAt": now_str,
             "updatedAt": now_str,
             "sourceIp": (relay_analysis.probable_source_infrastructure.address or "Unavailable") if relay_analysis and relay_analysis.probable_source_infrastructure else "Unavailable",
