@@ -47,7 +47,10 @@ export const Home: React.FC<HomeProps> = ({
     abortControllerRef.current = controller;
 
     try {
-      const result = await analyzeEmail(file, { signal: controller.signal });
+      const result = await analyzeEmail(file, {
+        signal: controller.signal,
+        sampleUpload: file.name === 'sample_bec_investigation.eml',
+      });
       const newCase = caseStore.createCaseFromAnalysis(result);
       setCompletedCaseId(newCase.id);
       onInvestigationComplete(result);

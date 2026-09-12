@@ -442,7 +442,7 @@ def run_foundation_ai_investigation(
         decision = selected.decide_once(
             build_foundation_context(email, security_analysis, threat_intelligence, investigation),
             system_prompt=FOUNDATION_SYSTEM_PROMPT,
-            max_tokens=700,
+            max_tokens=2048,
         )
         if decision.kind != "final" or decision.result is None:
             raise ProviderError("provider did not return a final investigation")

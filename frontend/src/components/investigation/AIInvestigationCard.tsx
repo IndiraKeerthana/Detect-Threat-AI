@@ -16,7 +16,8 @@ interface AIInvestigationCardProps {
 }
 
 export const AIInvestigationCard: React.FC<AIInvestigationCardProps> = ({ aiData, aiError }) => {
-  if (!aiData || aiData.source !== 'ai_agent' || !aiData.provider || aiData.provider.toLowerCase() === 'deterministic_fallback') {
+  const isPrecomputed = aiData?.provider === 'precomputed';
+  if (!aiData || aiData.source !== 'ai_agent' || (!aiData.provider && !isPrecomputed) || aiData.provider?.toLowerCase() === 'deterministic_fallback') {
     return (
       <div className="surface-card p-5 border border-[var(--border-subtle)] space-y-4">
         <SectionHeader
@@ -64,11 +65,13 @@ export const AIInvestigationCard: React.FC<AIInvestigationCardProps> = ({ aiData
           <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded badge-ai font-bold">
               <Sparkles className="w-3.5 h-3.5 text-[var(--ai)]" />
-              <span>{(aiData.provider || 'AI AGENT').toUpperCase()}</span>
-              {aiData.model && (
+              <span>{isPrecomputed ? 'CONTENT ASSESSMENT' : (aiData.provider || 'AI AGENT').toUpperCase()}</span>
+              {!isPrecomputed && aiData.model && (
                 <span className="text-[10px] text-[var(--text-muted)] border-l border-[var(--border-subtle)] pl-1.5">{aiData.model}</span>
               )}
-              <span className="text-[10px] text-[var(--text-dim)]">({aiData.iterations} ITERATIONS)</span>
+              {!isPrecomputed && (
+                <span className="text-[10px] text-[var(--text-dim)]">({aiData.iterations} ITERATIONS)</span>
+              )}
             </span>
             <span className="px-2 py-1 rounded bg-[var(--surface-elevated)] border border-[var(--border-subtle)] text-[var(--state-pass)] text-[11px] font-semibold">
               COMPLETE

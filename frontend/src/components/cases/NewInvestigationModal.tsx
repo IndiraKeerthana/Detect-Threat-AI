@@ -232,10 +232,13 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
       }, 700);
 
       stepTimer2 = setTimeout(() => {
-        setAnalysisStep('INVOKING AUTONOMOUS FORENSIC AGENT & COMPUTING THREAT ARC...');
+        setAnalysisStep('FINALIZING DETERMINISTIC FORENSIC ASSESSMENT...');
       }, 1600);
 
-      const result = await analyzeEmail(sampleFile, { signal: controller.signal });
+      const result = await analyzeEmail(sampleFile, {
+        signal: controller.signal,
+        sampleUpload: true,
+      });
 
       const sampleCase = caseStore.createCaseFromAnalysis(
         result,

@@ -4,6 +4,47 @@
  */
 
 import type { EmailAnalysisResponse } from '../types/investigation';
+import type { AIInvestigationResult } from '../types/investigation';
+
+const SAMPLE_AI_INVESTIGATION: AIInvestigationResult = {
+  summary: 'Concise content assessment of the fixed sample specimen.',
+  risk_level: 'high',
+  classification: 'bec',
+  confidence: 'high',
+  reasoning: 'The message combines a payment deadline, banking-change request, IP-based link, and support-channel bypass.',
+  email_intent:
+    "The email claims to be from Finance Operations and asks the recipient to urgently confirm updated vendor banking details before today's payment run.",
+  claimed_identity: 'Finance Operations',
+  requested_action: 'Confirm updated vendor banking details through the external verification link.',
+  suspicious_content_findings: [
+    'The email is suspicious because it creates strong urgency around a financial request, asks the recipient to confirm or change banking details through an external link, uses an IP address instead of a trusted company domain, and tells the recipient to bypass normal support channels. These are strong indicators of phishing/BEC.',
+    'Urgent deadline tied to a financial/payment request.',
+    'Request to confirm updated vendor banking details.',
+    'Verification link uses an IP address rather than a trusted domain.',
+    'Recipient is instructed to bypass normal support channels.',
+    'Sender/authentication details do not fully align.',
+  ],
+  key_findings: [],
+  recommended_actions: [],
+  attribution: {
+    status: 'infrastructure_only',
+    assessment: 'Precomputed content assessment for the fixed sample specimen.',
+    confidence: 'unknown',
+    supporting_evidence: [],
+    limitations: [],
+  },
+  evidence: [],
+  tool_calls: [],
+  iterations: 0,
+  source: 'ai_agent',
+  provider: 'precomputed',
+  model: null,
+  authentication_findings: [],
+  url_findings: [],
+  attachment_findings: [],
+  infrastructure_findings: [],
+  historical_findings: [],
+};
 
 const API_BASE_URL =
   typeof import.meta !== 'undefined' && import.meta.env && typeof import.meta.env.VITE_API_URL === 'string'
@@ -22,6 +63,8 @@ export interface AnalyzeEmailOptions {
   timeoutMs?: number;
   /** Optional external AbortSignal for user or component unmount cancellation. */
   signal?: AbortSignal;
+  /** Bypass external AI for the fixed local sample and use its precomputed assessment. */
+  sampleUpload?: boolean;
 }
 
 export class ApiError extends Error {
@@ -90,6 +133,7 @@ export async function analyzeEmail(
     const response = await fetch(endpoint, {
       method: 'POST',
       body: formData,
+      headers: options?.sampleUpload ? { 'X-DetectThreat-Sample': 'true' } : undefined,
       signal: controller.signal,
     });
 
@@ -118,6 +162,11 @@ export async function analyzeEmail(
     }
 
     const data: EmailAnalysisResponse = await response.json();
+    if (options?.sampleUpload) {
+      data.ai_investigation = SAMPLE_AI_INVESTIGATION;
+      data.ai_status = 'completed';
+      data.ai_error = null;
+    }
     return data;
   } catch (err: unknown) {
     if (err instanceof ApiError) {
@@ -253,4 +302,3 @@ export async function updateCaseStatusApi(caseId: string, status: string): Promi
     return false;
   }
 }
-

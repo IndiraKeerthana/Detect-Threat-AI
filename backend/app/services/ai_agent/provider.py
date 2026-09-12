@@ -394,7 +394,7 @@ class OpenAICompatibleProvider:
             "max_completion_tokens" not in payload
             and "max_tokens" not in payload
         ):
-            payload["max_completion_tokens"] = 800
+            payload["max_completion_tokens"] = 2048
 
         request = Request(
             self.endpoint,
@@ -826,7 +826,7 @@ class OpenAICompatibleProvider:
         context: dict[str, Any],
         *,
         system_prompt: str,
-        max_tokens: int = 700,
+        max_tokens: int = 2048,
     ) -> ProviderDecision:
         """
         Make one bounded request for the
