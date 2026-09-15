@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { AlertCircle, AlertTriangle, CheckCircle, ShieldAlert, ChevronDown, ChevronUp } from 'lucide-react';
+import React from 'react';
+import { AlertCircle, AlertTriangle, CheckCircle, ShieldAlert } from 'lucide-react';
 import type { SecurityIndicator } from '../../types/investigation';
 import { SectionHeader } from '../investigation/SectionHeader';
 
@@ -7,122 +7,103 @@ interface KeyFindingsListProps {
   indicators?: SecurityIndicator[];
 }
 
-export const KeyFindingsList: React.FC<KeyFindingsListProps> = ({
-  indicators = [],
-}) => {
-  const [expandedCodes, setExpandedCodes] = useState<Record<string, boolean>>({});
-
-  const toggleExpand = (code: string) => {
-    setExpandedCodes((prev) => ({ ...prev, [code]: !prev[code] }));
-  };
-
+export const KeyFindingsList: React.FC<KeyFindingsListProps> = ({ indicators = [] }) => {
   const getSeverityPill = (sev: string) => {
     switch (sev.toLowerCase()) {
       case 'critical':
         return {
           icon: ShieldAlert,
-          badgeClass: 'text-[var(--severity-critical)] bg-[var(--surface-elevated)] border-[var(--border-subtle)]',
-          indicatorBar: 'bg-[var(--severity-critical)]',
+          badgeClass: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+          indicatorBar: 'bg-rose-500',
         };
       case 'high':
         return {
           icon: AlertCircle,
-          badgeClass: 'text-[var(--severity-critical)] bg-[var(--surface-elevated)] border-[var(--border-subtle)]',
-          indicatorBar: 'bg-[var(--severity-critical)]',
+          badgeClass: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+          indicatorBar: 'bg-rose-500',
         };
       case 'medium':
         return {
           icon: AlertTriangle,
-          badgeClass: 'text-[var(--severity-medium)] bg-[var(--surface-elevated)] border-[var(--border-subtle)]',
-          indicatorBar: 'bg-[var(--severity-medium)]',
+          badgeClass: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+          indicatorBar: 'bg-amber-500',
         };
       default:
         return {
           icon: CheckCircle,
-          badgeClass: 'text-[var(--severity-low)] bg-[var(--surface-elevated)] border-[var(--border-subtle)]',
-          indicatorBar: 'bg-[var(--severity-low)]',
+          badgeClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+          indicatorBar: 'bg-emerald-500',
         };
     }
   };
 
   return (
-    <div className="surface-card p-5 border border-[var(--border-subtle)] space-y-4">
+    <div className="surface-card p-5 border border-[var(--border-subtle)] rounded-2xl space-y-4 font-sans">
       {/* Section Header */}
       <SectionHeader
-        index="02"
-        title="Key forensic findings"
-        subtitle="Ranked deterministic security indicators and anomalies detected across email headers, payload, and content."
+        index={2}
+        title="Why This Email Was Flagged"
+        subtitle="Key warning signs and security findings detected in the email."
         action={
-          <span className="text-xs font-mono text-[var(--text-dim)]">
-            ACTIVE FINDINGS: <strong className="text-[var(--text)]">{indicators.length}</strong>
+          <span className="text-xs text-[var(--text-muted)] font-mono">
+            Active Warning Signals: <strong className="text-[var(--text)]">{indicators.length}</strong>
           </span>
         }
       />
 
-      {/* Single Consolidated Container with Hairline Rows */}
+      {/* Directly Visible Findings List */}
       {indicators.length === 0 ? (
-        <div className="p-6 text-center text-xs font-mono text-[var(--text-dim)] border border-[var(--border-subtle)] rounded bg-[var(--surface-subtle)]">
-          NO DETERMINISTIC FORENSIC ANOMALIES DETECTED
+        <div className="p-6 text-center text-xs text-[var(--text-muted)] border border-[var(--border-subtle)] rounded-xl bg-[var(--surface-subtle)]">
+          No suspicious indicators or warning signs were detected in this email.
         </div>
       ) : (
-        <div className="border border-[var(--border-subtle)] rounded bg-[var(--surface-subtle)] divide-y divide-[var(--border-subtle)] overflow-hidden">
+        <div className="border border-[var(--border-subtle)] rounded-xl bg-[var(--surface-subtle)] divide-y divide-[var(--border-subtle)] overflow-hidden">
           {indicators.map((ind) => {
             const pill = getSeverityPill(ind.severity);
             const Icon = pill.icon;
-            const isExpanded = Boolean(expandedCodes[ind.code]);
 
             return (
               <div
                 key={ind.code}
-                className="p-3.5 hover:bg-[var(--surface-hover)] transition-colors relative"
+                className="p-4 hover:bg-[var(--surface-hover)] transition-colors relative space-y-1.5"
               >
                 {/* Left Severity Accent Bar */}
                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${pill.indicatorBar}`} />
 
-                <div className="pl-2.5 space-y-1.5">
-                  {/* Header Row: Severity Badge + Title + Category + Expand Button */}
+                <div className="pl-3 space-y-1.5">
+                  {/* Header Row */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center space-x-2.5 flex-1 min-w-0">
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border flex items-center gap-1 shrink-0 ${pill.badgeClass}`}
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase border flex items-center gap-1 shrink-0 ${pill.badgeClass}`}
                       >
-                        <Icon className="w-3 h-3" />
+                        <Icon className="w-3.5 h-3.5" />
                         {ind.severity}
                       </span>
 
-                      <span className="font-semibold text-xs text-[var(--text)] tracking-tight truncate">
+                      <span className="font-semibold text-sm text-[var(--text)] tracking-tight truncate">
                         {ind.title}
                       </span>
                     </div>
 
-                    <div className="flex items-center space-x-2 shrink-0">
-                      <span className="text-[10px] font-mono text-[var(--text-dim)] bg-[var(--surface)] border border-[var(--border-subtle)] px-1.5 py-0.5 rounded hidden sm:inline">
-                        {ind.category.toUpperCase()} · {ind.code}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => toggleExpand(ind.code)}
-                        className="p-1 rounded text-[var(--text-dim)] hover:text-[var(--text)] hover:bg-[var(--surface-elevated)] transition-colors"
-                        title={isExpanded ? 'Collapse evidence' : 'Expand evidence'}
-                      >
-                        {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
+                    <span className="text-[11px] font-mono text-[var(--text-dim)] bg-[var(--surface-elevated)] border border-[var(--border-subtle)] px-2 py-0.5 rounded-md hidden sm:inline">
+                      {ind.category}
+                    </span>
                   </div>
 
-                  {/* Short Explanation */}
-                  <p className="text-[11px] text-[var(--text-muted)] leading-relaxed font-sans">
+                  {/* Human-Readable Explanation */}
+                  <p className="text-xs text-[var(--text-muted)] leading-relaxed">
                     {ind.explanation}
                   </p>
 
-                  {/* Expandable Evidence / Observables */}
-                  {isExpanded && ind.evidence && ind.evidence.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[var(--border-subtle)] mt-2">
-                      <span className="text-[10px] font-mono text-[var(--text-dim)]">OBSERVABLE EVIDENCE:</span>
+                  {/* Observed Evidence */}
+                  {ind.evidence && ind.evidence.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-[10px] font-mono text-[var(--text-dim)] uppercase">Evidence:</span>
                       {ind.evidence.map((ev, i) => (
                         <span
                           key={i}
-                          className="font-mono text-[10px] px-2 py-0.5 bg-[var(--surface)] border border-[var(--border-subtle)] rounded text-[var(--identifier)] select-all"
+                          className="font-mono text-[11px] px-2 py-0.5 bg-[var(--surface)] border border-[var(--border-subtle)] rounded-md text-[var(--identifier)] select-all"
                         >
                           {ev}
                         </span>

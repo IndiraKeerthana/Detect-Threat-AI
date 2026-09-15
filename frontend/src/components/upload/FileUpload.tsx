@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import type { DragEvent, ChangeEvent } from 'react';
-import { UploadCloud, FileCheck2, Trash2, AlertCircle, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
+import { UploadCloud, FileCheck2, Trash2, ShieldCheck, Sparkles, Loader2, ShieldAlert } from 'lucide-react';
 
 interface FileUploadProps {
   onAnalyze: (file: File) => void;
@@ -21,12 +21,10 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const capabilities = [
-    { label: 'SPF', desc: 'RFC 7208' },
-    { label: 'DKIM', desc: 'RFC 6376' },
-    { label: 'DMARC', desc: 'RFC 7489' },
-    { label: 'IP INTELLIGENCE', desc: 'AbuseIPDB/VT' },
-    { label: 'DNS', desc: 'Resolvers/RDAP' },
-    { label: 'AI FORENSICS', desc: 'Groq Multi-turn' },
+    { label: 'Email Security', desc: 'SPF / DKIM / DMARC' },
+    { label: 'Sender Location', desc: 'IP & Country' },
+    { label: 'Online Safety', desc: 'Known Reputation' },
+    { label: 'AI Investigation', desc: 'Groq AI Agent' },
   ];
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
@@ -44,12 +42,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   const validateAndSet = (file: File) => {
     setValidationError(null);
     if (!file.name.toLowerCase().endsWith('.eml')) {
-      setValidationError('Invalid file format. Please upload a standard RFC 822/5322 (.eml) email file.');
+      setValidationError('Please upload a standard email file (.eml).');
       setSelectedFile(null);
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      setValidationError('File exceeds the 10 MB forensic size threshold.');
+      setValidationError('File exceeds the 10 MB limit.');
       setSelectedFile(null);
       return;
     }
@@ -87,17 +85,17 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   };
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-5">
       {/* Capability Indicator Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 bg-[var(--surface-subtle)] border border-[var(--border-subtle)] rounded text-xs">
-        <span className="text-[11px] font-mono text-[var(--text-dim)]">INSPECTION ENGINE:</span>
-        <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-[var(--surface-subtle)] border border-[var(--border-subtle)] rounded-xl text-xs font-sans">
+        <span className="text-xs font-semibold text-[var(--text-muted)]">AUTOMATED CHECKS:</span>
+        <div className="flex flex-wrap items-center gap-3.5 text-xs">
           {capabilities.map((c, i) => (
-            <span key={c.label} className="inline-flex items-center gap-1.5 text-[var(--text-muted)]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--state-pass)]" />
+            <span key={c.label} className="inline-flex items-center gap-1.5 text-[var(--text-muted)] font-medium">
+              <span className="w-2 h-2 rounded-full bg-[var(--state-pass)]" />
               <span className="text-[var(--text)]">{c.label}</span>
-              <span className="text-[var(--text-dim)] text-[10px]">({c.desc})</span>
-              {i < capabilities.length - 1 && <span className="text-[var(--border-subtle)] ml-1.5">|</span>}
+              <span className="text-[var(--text-dim)] text-[11px]">({c.desc})</span>
+              {i < capabilities.length - 1 && <span className="text-[var(--border-subtle)] ml-2">|</span>}
             </span>
           ))}
         </div>
@@ -109,12 +107,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className={`relative border-2 border-dashed rounded-lg p-8 md:p-10 transition-all cursor-pointer select-none text-center ${
+        className={`relative border-2 border-dashed rounded-2xl p-8 sm:p-10 transition-all cursor-pointer select-none text-center ${
           dragOver
-            ? 'border-[var(--identifier)] bg-[var(--surface-hover)]'
+            ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
             : selectedFile
             ? 'border-[var(--border-active)] bg-[var(--surface)]'
-            : 'border-[var(--border-subtle)] bg-[var(--surface-subtle)] hover:border-[var(--border)] hover:bg-[var(--surface)]'
+            : 'border-[var(--border-subtle)] bg-[var(--surface-subtle)] hover:border-[var(--border-active)] hover:bg-[var(--surface)]'
         }`}
       >
         <input
@@ -126,32 +124,31 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         />
 
         {!selectedFile ? (
-          <div className="space-y-3">
-            <div className="w-12 h-12 rounded-md bg-[var(--surface-elevated)] border border-[var(--border-subtle)] mx-auto flex items-center justify-center text-[var(--text-muted)]">
-              <UploadCloud className="w-6 h-6 text-[var(--text-muted)]" />
+          <div className="space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-[var(--surface-elevated)] border border-[var(--border-subtle)] mx-auto flex items-center justify-center text-[var(--accent)] shadow-xs">
+              <UploadCloud className="w-7 h-7" />
             </div>
-            <div>
-              <p className="text-sm font-medium text-[var(--text)] font-sans">
-                Drop raw <code className="font-mono text-[var(--identifier)]">.eml</code> file here, or{' '}
-                <span className="text-[var(--identifier)] underline underline-offset-4 font-mono">browse local storage</span>
-              </p>
-              <p className="text-xs text-[var(--text-dim)] mt-1 font-mono">
-                Standard RFC 822/5322 formatted email • Up to 10 MB per investigation
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-[var(--text)] font-sans">
+                Drop your <span className="text-[var(--accent)] font-mono">.eml</span> email file here
+              </h3>
+              <p className="text-xs text-[var(--text-muted)] font-sans">
+                Or click to browse your files • Standard .eml format up to 10 MB
               </p>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-[var(--surface-elevated)] border border-[var(--border)] rounded-md text-left">
-            <div className="flex items-center space-x-3 truncate">
-              <div className="w-9 h-9 rounded bg-[var(--surface)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--state-pass)] shrink-0">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-[var(--surface-elevated)] border border-[var(--border)] rounded-xl text-left">
+            <div className="flex items-center space-x-3.5 truncate">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shrink-0">
                 <FileCheck2 className="w-5 h-5" />
               </div>
               <div className="truncate">
-                <div className="text-sm font-mono text-[var(--text)] truncate font-medium">
+                <div className="text-sm font-semibold text-[var(--text)] font-sans truncate">
                   {selectedFile.name}
                 </div>
-                <div className="text-xs font-mono text-[var(--text-dim)]">
-                  {formatFileSize(selectedFile.size)} • RFC 822 Validated
+                <div className="text-xs text-[var(--text-muted)] font-sans">
+                  {formatFileSize(selectedFile.size)} • Ready for analysis
                 </div>
               </div>
             </div>
@@ -161,7 +158,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 type="button"
                 onClick={handleRemove}
                 disabled={isAnalyzing}
-                className="p-2 text-[var(--text-dim)] hover:text-[var(--severity-critical)] rounded hover:bg-[var(--surface-hover)] border border-transparent transition-colors cursor-pointer"
+                className="p-2 text-[var(--text-dim)] hover:text-rose-500 rounded-lg hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
                 title="Remove file"
               >
                 <Trash2 className="w-4 h-4" />
@@ -174,17 +171,17 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                   onAnalyze(selectedFile);
                 }}
                 disabled={isAnalyzing}
-                className="px-4 py-2 bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text)] border border-[var(--border)] text-xs font-mono font-medium rounded flex items-center gap-2 shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                className="px-5 py-2.5 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-xs transition-all disabled:opacity-50 cursor-pointer"
               >
                 {isAnalyzing ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--identifier)]" />
-                    <span>ANALYZING EVIDENCE...</span>
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <span>Checking this email...</span>
                   </>
                 ) : (
                   <>
-                    <span>ANALYZE .EML</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-[var(--text-dim)]" />
+                    <ShieldCheck className="w-4 h-4 text-white" />
+                    <span>Analyze Email Now</span>
                   </>
                 )}
               </button>
@@ -195,25 +192,26 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
       {/* Validation or API Error Banner */}
       {(validationError || error) && (
-        <div className="p-3.5 bg-[var(--surface-elevated)] border border-[var(--severity-critical)] rounded-md flex items-start gap-2.5 text-xs text-[var(--severity-critical)]">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+        <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-start gap-3 text-xs text-rose-400 font-sans">
+          <ShieldAlert className="w-5 h-5 shrink-0 text-rose-500 mt-0.5" />
           <div>
-            <span className="font-semibold font-mono">FORENSIC REJECTION:</span>{' '}
-            {validationError || error}
+            <strong className="font-semibold block mb-0.5">We couldn't analyze this email right now</strong>
+            <span>{validationError || error}</span>
           </div>
         </div>
       )}
 
-      {/* Quick Sample Loader */}
-      <div className="flex items-center justify-between text-xs text-[var(--text-dim)] pt-1">
-        <span>No sample file at hand?</span>
+      {/* Quick Sample Loader Option */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[var(--text-muted)] font-sans pt-1">
+        <span>Don't have an .eml file ready?</span>
         <button
           type="button"
           onClick={onLoadMock}
-          className="inline-flex items-center gap-1.5 text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
+          disabled={isAnalyzing}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--accent)] transition-colors cursor-pointer disabled:opacity-50"
         >
-          <Sparkles className="w-3.5 h-3.5 text-[var(--ai)]" />
-          Load a synthetic BEC/phishing investigation specimen (sample_bec_investigation.eml)
+          <Sparkles className="w-4 h-4 text-[var(--accent)]" />
+          <span>Try Sample Email</span>
         </button>
       </div>
     </div>

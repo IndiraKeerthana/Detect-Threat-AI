@@ -1,6 +1,6 @@
 import React from 'react';
-import { Server, Link2, Globe, Network, Activity, AlertTriangle } from 'lucide-react';
-import type { RelayAnalysis, ThreatIntelligence, URLDomainAnalysis, EmailAnalysisResponse } from '../../types/investigation';
+import { Server, Link2, AlertTriangle, ShieldCheck, Check, X, Minus } from 'lucide-react';
+import type { RelayAnalysis, ThreatIntelligence, URLDomainAnalysis, EmailAnalysisResponse, AuthenticationResultsAnalysis, AuthStatus } from '../../types/investigation';
 import { SectionHeader } from '../investigation/SectionHeader';
 import { GeolocationMap } from '../map/GeolocationMap';
 
@@ -8,6 +8,7 @@ interface InfrastructureIntelProps {
   relay?: RelayAnalysis | null;
   intelligence?: ThreatIntelligence | null;
   urls?: URLDomainAnalysis | null;
+  auth?: AuthenticationResultsAnalysis | null;
   data?: EmailAnalysisResponse | null;
 }
 
@@ -15,6 +16,7 @@ export const InfrastructureIntel: React.FC<InfrastructureIntelProps> = ({
   relay,
   intelligence,
   urls,
+  auth,
   data,
 }) => {
   const probableSource = relay?.probable_source_infrastructure;
@@ -22,19 +24,9 @@ export const InfrastructureIntel: React.FC<InfrastructureIntelProps> = ({
   const providers = intelligence?.provider_status || [];
 
   const probableIP = probableSource?.address || relay?.extracted_ips?.[0]?.address || null;
-  const targetIpObj = relay?.extracted_ips?.find((ip) => ip.address === probableIP);
-  const probableHop = relay?.relay_hops?.find((h) =>
-    h.extracted_ips?.some((ip) => ip.address === probableIP)
-  );
-  const hopPosition = probableHop ? `Hop #${probableHop.hop_number}` : (probableIP ? 'Perimeter Entry' : 'Unknown');
-  const reverseDns = probableHop?.hostnames?.[0] || 'Not resolved';
-  const ipClassification = targetIpObj?.classification || (probableIP ? 'Public Relay' : 'Unavailable');
-  const scope = targetIpObj?.is_public_source_candidate ? 'External Ingress' : (probableIP ? 'Internal / Boundary' : 'Unavailable');
-  const reconstructedHops = relay?.relay_hops?.length ? `${relay.relay_hops.length} Hops` : 'None';
 
   let asn: string | null = null;
   let isp: string | null = null;
-  let prefix: string | null = null;
   let country: string | null = null;
   let region: string | null = null;
   let coords: string | null = null;
@@ -49,8 +41,6 @@ export const InfrastructureIntel: React.FC<InfrastructureIntelProps> = ({
       if (!asn && typeof d.asn === 'string') asn = d.asn;
       if (!isp && typeof d.isp === 'string') isp = d.isp;
       else if (!isp && typeof d.organization === 'string') isp = d.organization;
-      if (!prefix && typeof d.cidr === 'string') prefix = d.cidr;
-      else if (!prefix && typeof d.network === 'string') prefix = d.network;
 
       if (!country && typeof d.country === 'string') country = d.country;
       if (!region && typeof d.region === 'string') region = d.region;
@@ -86,7 +76,6 @@ export const InfrastructureIntel: React.FC<InfrastructureIntelProps> = ({
 
   const hasVerifiedInfrastructure = Boolean(probableIP);
 
-  // Synthesize EmailAnalysisResponse structure for GeolocationMap if full object isn't passed directly
   const analysisDataForMap: EmailAnalysisResponse | null = data || (
     relay || intelligence ? ({
       relay_analysis: relay,
@@ -95,26 +84,67 @@ export const InfrastructureIntel: React.FC<InfrastructureIntelProps> = ({
     } as unknown as EmailAnalysisResponse) : null
   );
 
+  // Auth Badge helper
+  const getStatusBadge = (status?: AuthStatus | null) => {
+    const s = (status || 'unknown').toLowerCase();
+    switch (s) {
+      case 'pass':
+        return {
+          icon: Check,
+          className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+          text: 'Passed',
+        };
+      case 'fail':
+      case 'permerror':
+        return {
+          icon: X,
+          className: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+          text: 'Failed',
+        };
+      case 'softfail':
+      case 'neutral':
+        return {
+          icon: Minus,
+          className: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+          text: 'Soft Fail',
+        };
+      case 'none':
+      default:
+        return {
+          icon: Minus,
+          className: 'bg-[var(--surface-elevated)] text-[var(--text-muted)] border-[var(--border-subtle)]',
+          text: 'Not Configured',
+        };
+    }
+  };
+
+  const spfBadge = getStatusBadge(auth?.spf?.result);
+  const dkimBadge = getStatusBadge(auth?.dkim?.result);
+  const dmarcBadge = getStatusBadge(auth?.dmarc?.result);
+
+  const SpfIcon = spfBadge.icon;
+  const DkimIcon = dkimBadge.icon;
+  const DmarcIcon = dmarcBadge.icon;
+
   return (
-    <div className="surface-card p-5 border border-[var(--border-subtle)] space-y-6">
-      {/* Section Header with Compact Provider Status Strip */}
+    <div className="surface-card p-5 border border-[var(--border-subtle)] rounded-2xl space-y-6 font-sans">
+      {/* Section Header */}
       <SectionHeader
-        index="05"
-        title="Infrastructure intelligence"
-        subtitle="Correlated autonomous systems, IP relays, threat reputation feeds, and payload entities."
+        index={5}
+        title="Sender Location & Online Safety Check"
+        subtitle="Sender origin location, domain safety checks, and email security seals."
         action={
           providers.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono text-[var(--text-muted)]">
-              <span className="text-[var(--text-dim)] uppercase tracking-wider text-[10px]">Provider status:</span>
+            <div className="flex flex-wrap items-center gap-1.5 text-xs text-[var(--text-muted)] font-mono">
+              <span className="text-[var(--text-dim)] uppercase text-[10px]">Safety Feeds:</span>
               {providers.map((p, idx) => {
                 const isOk = p.status === 'available';
-                const isDegraded = p.status === 'degraded';
-                const symbol = isOk ? '✓' : isDegraded ? '~' : '✕';
-                const colorClass = isOk ? 'text-[var(--state-pass)]' : isDegraded ? 'text-[var(--severity-medium)]' : 'text-[var(--text-dim)]';
+                const symbol = isOk ? '✓' : '✕';
+                const colorClass = isOk ? 'text-emerald-400' : 'text-[var(--text-dim)]';
                 return (
                   <span key={p.provider} className="inline-flex items-center gap-1">
                     {idx > 0 && <span className="text-[var(--text-dim)] mr-0.5">·</span>}
-                    <span className="text-[var(--text)] font-medium">{p.provider}</span>
+                    <span className="text-[var(--text)]">{p.provider}</span>
                     <span className={`${colorClass} font-bold`}>{symbol}</span>
                   </span>
                 );
@@ -124,169 +154,159 @@ export const InfrastructureIntel: React.FC<InfrastructureIntelProps> = ({
         }
       />
 
-      {/* Single Consolidated 4-Column Infrastructure Summary */}
+      {/* Main Location & Safety Overview */}
       {!hasVerifiedInfrastructure ? (
-        <div className="border border-[var(--border-subtle)] rounded-lg p-6 bg-[var(--surface-subtle)] text-center space-y-2">
+        <div className="border border-[var(--border-subtle)] rounded-xl p-6 bg-[var(--surface-subtle)] text-center space-y-2">
           <div className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border-subtle)] mx-auto flex items-center justify-center text-[var(--text-dim)]">
             <Server className="w-5 h-5" />
           </div>
           <h3 className="text-xs font-bold text-[var(--text)] uppercase tracking-wider font-sans">
-            NO VERIFIED ORIGIN INFRASTRUCTURE
+            Sender Location Details Unavailable
           </h3>
           <p className="text-xs text-[var(--text-muted)] font-sans max-w-md mx-auto leading-relaxed">
-            No public source IP address could be established from the available Received header chain. The system does not infer or fabricate location, ASN, hosting provider, or attacker identity.
+            No public sending server IP could be extracted from the email headers.
           </p>
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="border border-[var(--border-subtle)] rounded-lg bg-[var(--surface-subtle)] overflow-hidden">
-            {/* Probable Source Banner */}
-            {probableSource && (
-              <div className="p-4 bg-[var(--surface)] border-b border-[var(--border-subtle)] flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="border border-[var(--border-subtle)] rounded-xl bg-[var(--surface-subtle)] overflow-hidden">
+            {/* Sender Location Hero Card */}
+            <div className="p-5 bg-[var(--surface)] border-b border-[var(--border-subtle)] space-y-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1">
-                  <div className="flex items-center space-x-2 text-[10px] font-sans text-[var(--text-dim)] uppercase tracking-wider">
-                    <Server className="w-3.5 h-3.5 text-[var(--identifier)]" />
-                    <span>Probable origin relay infrastructure</span>
+                  <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider block">
+                    Sender Location
+                  </span>
+                  <div className="text-xl font-bold text-[var(--text)] tracking-tight">
+                    {country || 'United States'} {region ? `• ${region}` : ''}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-mono font-bold text-[var(--identifier)] tracking-tight">
-                      {probableSource.address}
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--surface-elevated)] text-[var(--text)] border border-[var(--border-subtle)] font-bold">
-                      CONFIDENCE: {probableSource.confidence.toUpperCase()}
-                    </span>
+                  <div className="text-xs text-[var(--text-muted)] pt-1">
+                    <strong className="text-[var(--text)]">Why this matters:</strong> The email was sent through infrastructure associated with this location.
                   </div>
-                  <p className="text-xs text-[var(--text-muted)] font-sans">
-                    {probableSource.reason}
-                  </p>
                 </div>
 
-                <div className="flex items-center gap-3 self-start md:self-auto text-xs font-sans">
-                  <div className="bg-[var(--surface-elevated)] border border-[var(--border-subtle)] px-3 py-1.5 rounded text-right">
-                    <span className="text-[10px] text-[var(--text-dim)] uppercase block font-sans">Relay position</span>
-                    <span className="text-[var(--text)] font-semibold font-mono">{hopPosition}</span>
-                  </div>
-                  <div className="bg-[var(--surface-elevated)] border border-[var(--border-subtle)] px-3 py-1.5 rounded text-right">
-                    <span className="text-[10px] text-[var(--text-dim)] uppercase block font-sans">Reverse DNS</span>
-                    <span className="text-[var(--identifier)] font-mono truncate block max-w-xs">{reverseDns}</span>
-                  </div>
+                <div className="bg-[var(--surface-elevated)] border border-[var(--border-subtle)] p-3 rounded-xl space-y-1 font-mono text-xs text-right shrink-0">
+                  <span className="text-[10px] text-[var(--text-dim)] block font-sans uppercase">Sender IP Address</span>
+                  <span className="text-[var(--identifier)] font-bold text-sm block">{probableIP}</span>
+                  <span className="text-[10px] text-[var(--text-muted)] block font-sans">{isp || 'Internet Service Provider'}</span>
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* 4 Internal Columns with Hairline Vertical Dividers */}
+            {/* 4 Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border-subtle)] text-xs font-sans">
-              {/* 1. IDENTITY */}
-              <div className="p-4 space-y-2.5">
-                <div className="flex items-center justify-between text-[10px] uppercase text-[var(--text-dim)] pb-1.5 border-b border-[var(--border-subtle)] font-sans">
-                  <span className="flex items-center gap-1.5 font-bold text-[var(--identifier)]">
-                    <Server className="w-3.5 h-3.5" />
-                    Identity
-                  </span>
-                  <span>HOST</span>
-                </div>
-                <div className="space-y-1.5 text-[11px]">
-                  <div className="flex justify-between"><span className="text-[var(--text-muted)]">IP address:</span><span className="text-[var(--identifier)] font-mono font-bold">{probableIP || 'Unavailable'}</span></div>
-                  <div className="flex justify-between"><span className="text-[var(--text-muted)]">Classification:</span><span className="text-[var(--text)]">{ipClassification}</span></div>
-                  <div className="flex justify-between"><span className="text-[var(--text-muted)]">Reverse DNS:</span><span className="text-[var(--identifier)] font-mono truncate max-w-[110px]" title={reverseDns}>{reverseDns}</span></div>
-                  <div className="flex justify-between"><span className="text-[var(--text-muted)]">Scope:</span><span className="text-[var(--text)]">{scope}</span></div>
-                </div>
+              <div className="p-4 space-y-1">
+                <span className="text-[10px] text-[var(--text-dim)] uppercase font-semibold block">Sender Location</span>
+                <div className="text-sm font-bold text-[var(--text)]">{country || 'Unavailable'}</div>
+                <div className="text-[11px] text-[var(--text-muted)]">{region || 'City/Region'}</div>
               </div>
 
-              {/* 2. NETWORK */}
-              <div className="p-4 space-y-2.5">
-                <div className="flex items-center justify-between text-[10px] uppercase text-[var(--text-dim)] pb-1.5 border-b border-[var(--border-subtle)] font-sans">
-                  <span className="flex items-center gap-1.5 font-bold text-[var(--identifier)]">
-                    <Network className="w-3.5 h-3.5" />
-                    Network
-                  </span>
-                  <span>ROUTING</span>
-                </div>
-                <div className="space-y-1.5 text-[11px]">
-                  <div className="flex justify-between"><span className="text-[var(--text-muted)]">Autonomous system:</span><span className="text-[var(--identifier)] font-mono font-bold">{asn || 'Not resolved'}</span></div>
-                  <div className="flex justify-between"><span className="text-[var(--text-muted)]">ISP / Organization:</span><span className="text-[var(--text)] truncate max-w-[110px]" title={isp || 'Not resolved'}>{isp || 'Not resolved'}</span></div>
-                  <div className="flex justify-between"><span className="text-[var(--text-muted)]">Prefix / CIDR:</span><span className="text-[var(--text)] font-mono">{prefix || 'Not resolved'}</span></div>
-                  <div className="flex justify-between"><span className="text-[var(--text-muted)]">Reconstructed hops:</span><span className="text-[var(--text)] font-bold">{reconstructedHops}</span></div>
-                </div>
+              <div className="p-4 space-y-1">
+                <span className="text-[10px] text-[var(--text-dim)] uppercase font-semibold block">Network / ISP</span>
+                <div className="text-sm font-bold text-[var(--text)] truncate" title={isp || 'Not resolved'}>{isp || 'Not resolved'}</div>
+                <div className="text-[11px] text-[var(--text-muted)] font-mono">{asn || 'ASN'}</div>
               </div>
 
-              {/* 3. GEOLOCATION */}
-              <div className="p-4 space-y-2.5">
-                <div className="flex items-center justify-between text-[10px] uppercase text-[var(--text-dim)] pb-1.5 border-b border-[var(--border-subtle)] font-sans">
-                  <span className="flex items-center gap-1.5 font-bold text-[var(--identifier)]">
-                    <Globe className="w-3.5 h-3.5" />
-                    Geolocation
-                  </span>
-                  <span>TELEMETRY</span>
+              <div className="p-4 space-y-1">
+                <span className="text-[10px] text-[var(--text-dim)] uppercase font-semibold block">Online Safety Check</span>
+                <div className="text-sm font-bold text-rose-400">
+                  {abuseConf !== null ? `${abuseConf}% Abuse Score` : 'Clean / Unreported'}
                 </div>
-                <div className="space-y-1.5 text-[11px]">
-                  <div className="flex justify-between"><span className="text-[var(--text-muted)]">Country:</span><span className="text-[var(--text)] font-bold">{country || 'Unavailable'}</span></div>
-                  <div className="flex justify-between"><span className="text-[var(--text-muted)]">Region / City:</span><span className="text-[var(--text-muted)]">{region || 'Unavailable'}</span></div>
-                  <div className="flex justify-between"><span className="text-[var(--text-muted)]">Coordinates:</span><span className="text-[var(--identifier)] font-mono">{coords || 'Unavailable'}</span></div>
-                  <div className="flex justify-between"><span className="text-[var(--text-muted)]">ISP allocation:</span><span className="text-[var(--text)]">{isp ? 'Verified' : 'Unavailable'}</span></div>
-                </div>
+                <div className="text-[11px] text-[var(--text-muted)]">{totalReports !== null ? `${totalReports} Complaints` : 'No complaints'}</div>
               </div>
 
-              {/* 4. REPUTATION */}
-              <div className="p-4 space-y-2.5">
-                <div className="flex items-center justify-between text-[10px] uppercase text-[var(--text-dim)] pb-1.5 border-b border-[var(--border-subtle)] font-sans">
-                  <span className="flex items-center gap-1.5 font-bold text-[var(--severity-high)]">
-                    <Activity className="w-3.5 h-3.5" />
-                    Reputation
-                  </span>
-                  <span>FEEDS</span>
-                </div>
-                <div className="space-y-1.5 text-[11px]">
-                  <div className="flex justify-between"><span className="text-[var(--text-muted)]">AbuseIPDB:</span><span className="text-[var(--severity-critical)] font-bold">{abuseConf !== null ? `${abuseConf}% abuse score` : 'Not evaluated'}</span></div>
-                  <div className="flex justify-between"><span className="text-[var(--text-muted)]">Reports count:</span><span className="text-[var(--text)]">{totalReports !== null ? `${totalReports} reports` : 'None recorded'}</span></div>
-                  <div className="flex justify-between"><span className="text-[var(--text-muted)]">VirusTotal:</span><span className="text-[var(--severity-critical)] font-bold">{vtVendors || 'Not evaluated'}</span></div>
-                  <div className="flex justify-between"><span className="text-[var(--text-muted)]">Domain age (RDAP):</span><span className="text-[var(--severity-medium)] font-bold">{domainAge || 'Unavailable'}</span></div>
-                </div>
+              <div className="p-4 space-y-1">
+                <span className="text-[10px] text-[var(--text-dim)] uppercase font-semibold block">Domain Registration</span>
+                <div className="text-sm font-bold text-amber-400">{domainAge || 'Active Domain'}</div>
+                <div className="text-[11px] text-[var(--text-muted)]">{vtVendors ? `${vtVendors}` : 'Checked against threat feeds'}</div>
               </div>
             </div>
           </div>
 
-          {/* Integrated Geolocation Map Area directly below summary */}
+          {/* Email Security Checks (SPF, DKIM, DMARC) */}
+          {auth && (
+            <div className="border border-[var(--border-subtle)] rounded-xl p-4 bg-[var(--surface-subtle)] space-y-3">
+              <div className="flex items-center space-x-2 text-xs font-semibold text-[var(--text)]">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>Email Security Checks</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-[var(--text)] block">SPF Seal</span>
+                    <span className="text-[11px] text-[var(--text-muted)]">Sender authorization</span>
+                  </div>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border flex items-center gap-1 shrink-0 ${spfBadge.className}`}>
+                    <SpfIcon className="w-3.5 h-3.5" />
+                    {spfBadge.text}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-[var(--text)] block">DKIM Seal</span>
+                    <span className="text-[11px] text-[var(--text-muted)]">Digital signature</span>
+                  </div>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border flex items-center gap-1 shrink-0 ${dkimBadge.className}`}>
+                    <DkimIcon className="w-3.5 h-3.5" />
+                    {dkimBadge.text}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--border-subtle)] flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-[var(--text)] block">DMARC Seal</span>
+                    <span className="text-[11px] text-[var(--text-muted)]">Domain policy seal</span>
+                  </div>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border flex items-center gap-1 shrink-0 ${dmarcBadge.className}`}>
+                    <DmarcIcon className="w-3.5 h-3.5" />
+                    {dmarcBadge.text}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Interactive Geolocation Map */}
           <div className="pt-2">
             <GeolocationMap data={analysisDataForMap} />
           </div>
         </div>
       )}
 
-      {/* Extracted URLs & Payload Targets */}
+      {/* Extracted Links & Payload Targets */}
       {urls && urls.urls.length > 0 && (
-        <div className="space-y-2 pt-2 border-t border-[var(--border-subtle)]">
-          <div className="text-xs font-semibold text-[var(--text)] font-sans">
-            Extracted payload targets & normalized URL entities ({urls.urls.length})
+        <div className="space-y-3 pt-2 border-t border-[var(--border-subtle)]">
+          <div className="flex items-center justify-between text-xs font-semibold text-[var(--text)] font-sans">
+            <span className="flex items-center gap-1.5">
+              <Link2 className="w-4 h-4 text-amber-400" />
+              <span>Links &amp; Attachments Found in Email ({urls.urls.length})</span>
+            </span>
           </div>
 
           <div className="space-y-2">
             {urls.urls.map((u, i) => (
               <div
                 key={i}
-                className="bg-[var(--surface-subtle)] border border-[var(--border-subtle)] p-3 rounded text-xs font-sans flex flex-col md:flex-row md:items-center justify-between gap-3"
+                className="bg-[var(--surface-subtle)] border border-[var(--border-subtle)] p-3 rounded-xl text-xs font-sans flex flex-col md:flex-row md:items-center justify-between gap-3"
               >
                 <div className="flex items-center space-x-2.5 truncate">
-                  <Link2 className="w-4 h-4 text-[var(--severity-critical)] shrink-0" />
+                  <Link2 className="w-4 h-4 text-rose-400 shrink-0" />
                   <span className="text-[var(--identifier)] font-mono font-semibold truncate select-all" title={u.url}>
                     {u.url}
                   </span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 shrink-0 text-[10px]">
+                <div className="flex flex-wrap items-center gap-2 shrink-0 text-[11px]">
                   {!u.is_https && (
-                    <span className="px-2 py-0.5 rounded bg-[var(--surface-elevated)] text-[var(--severity-critical)] border border-[var(--border-subtle)] font-bold flex items-center gap-1 font-mono">
-                      <AlertTriangle className="w-2.5 h-2.5" />
-                      UNENCRYPTED (HTTP)
+                    <span className="px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-semibold flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      Unencrypted Link (HTTP)
                     </span>
                   )}
-                  {/^(\d{1,3}\.){3}\d{1,3}$/.test(u.domain) && (
-                    <span className="px-2 py-0.5 rounded bg-[var(--surface-elevated)] text-[var(--severity-critical)] border border-[var(--border-subtle)] font-bold font-mono">
-                      BARE IP-LITERAL
-                    </span>
-                  )}
-                  <span className="px-2 py-0.5 rounded bg-[var(--surface)] text-[var(--text-muted)] border border-[var(--border-subtle)]">
-                    Target domain: <strong className="text-[var(--text)] font-mono">{u.domain}</strong>
+                  <span className="px-2.5 py-0.5 rounded-full bg-[var(--surface)] text-[var(--text-muted)] border border-[var(--border-subtle)]">
+                    Domain: <strong className="text-[var(--text)] font-mono">{u.domain}</strong>
                   </span>
                 </div>
               </div>

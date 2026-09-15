@@ -8,8 +8,6 @@ import {
   AlertCircle,
   Sparkles,
   ArrowRight,
-  Shield,
-  Clock,
   Terminal,
 } from 'lucide-react';
 import { analyzeEmail, ApiError } from '../../services/api';
@@ -40,7 +38,6 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Clean up in-flight requests on unmount
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
@@ -66,7 +63,6 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
     onClose();
   }, [isAnalyzing, onClose]);
 
-  // Handle escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -83,14 +79,14 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
     setErrorTitle(null);
     setErrorMessage(null);
     if (!file.name.toLowerCase().endsWith('.eml')) {
-      setErrorTitle('INVALID FILE FORMAT');
-      setErrorMessage('Only standard RFC 822/5322 (.eml) email files are accepted for forensic parsing.');
+      setErrorTitle('Invalid File Format');
+      setErrorMessage('Please select a valid .eml email file.');
       setSelectedFile(null);
       return false;
     }
     if (file.size > 10 * 1024 * 1024) {
-      setErrorTitle('FORENSIC THRESHOLD EXCEEDED');
-      setErrorMessage('The selected file exceeds the 10 MB maximum forensic inspection threshold.');
+      setErrorTitle('File Size Limit Exceeded');
+      setErrorMessage('The selected file exceeds the 10 MB maximum size limit.');
       setSelectedFile(null);
       return false;
     }
@@ -140,8 +136,8 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
 
   const handleAnalyze = async () => {
     if (!selectedFile) {
-      setErrorTitle('MISSING FORENSIC ARTIFACT');
-      setErrorMessage('Please select or drop an RFC 822/5322 (.eml) file to commence investigation.');
+      setErrorTitle('No Email File Selected');
+      setErrorMessage('Please select or drop an .eml email file to analyze.');
       return;
     }
 
@@ -151,18 +147,18 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
     setIsAnalyzing(true);
     setErrorTitle(null);
     setErrorMessage(null);
-    setAnalysisStep('PARSING RFC 822 / 5322 HEADERS & MIME STRUCTURE...');
+    setAnalysisStep('Checking email headers and security seals...');
 
     let stepTimer1: ReturnType<typeof setTimeout> | undefined;
     let stepTimer2: ReturnType<typeof setTimeout> | undefined;
 
     try {
       stepTimer1 = setTimeout(() => {
-        setAnalysisStep('RECONSTRUCTING PERIMETER RELAY HOPS & RESOLVING GEOLOCATION...');
+        setAnalysisStep('Checking sender location and domain safety feeds...');
       }, 700);
 
       stepTimer2 = setTimeout(() => {
-        setAnalysisStep('INVOKING AUTONOMOUS FORENSIC AGENT & COMPUTING THREAT ARC...');
+        setAnalysisStep('Finalizing safety assessment and intent review...');
       }, 1600);
 
       const result = await analyzeEmail(selectedFile, { signal: controller.signal });
@@ -179,25 +175,25 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         if (err.status === 408) {
-          setErrorTitle('INVESTIGATION TIMEOUT');
+          setErrorTitle('Analysis Timeout');
           setErrorMessage(err.message);
         } else if (err.status === 0) {
           if (err.detail === 'ABORTED') {
-            setErrorTitle('INVESTIGATION CANCELLED');
-            setErrorMessage('The forensic investigation was cancelled.');
+            setErrorTitle('Analysis Cancelled');
+            setErrorMessage('The email check was cancelled.');
           } else {
-            setErrorTitle('ANALYSIS SERVICE UNAVAILABLE');
+            setErrorTitle('Service Unavailable');
             setErrorMessage(
-              'The forensic analysis backend is unreachable. Please verify the backend service is running and try again.'
+              'The backend analysis service is currently unreachable. Please verify your server connection.'
             );
           }
         } else {
-          setErrorTitle(`FORENSIC EXTRACTION FAILED (HTTP ${err.status})`);
+          setErrorTitle(`Analysis Failed (${err.status})`);
           setErrorMessage(err.detail || err.message);
         }
       } else {
-        const msg = err instanceof Error ? err.message : 'Unknown parsing failure occurred.';
-        setErrorTitle('ANALYSIS PIPELINE FAILURE');
+        const msg = err instanceof Error ? err.message : 'Unknown analysis failure occurred.';
+        setErrorTitle('Analysis Failure');
         setErrorMessage(msg);
       }
     } finally {
@@ -218,7 +214,7 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
     setIsAnalyzing(true);
     setErrorTitle(null);
     setErrorMessage(null);
-    setAnalysisStep('LOADING SYNTHETIC BEC/PHISHING SPECIMEN (sample_bec_investigation.eml)...');
+    setAnalysisStep('Loading sample email for demonstration...');
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -228,11 +224,11 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
 
     try {
       stepTimer1 = setTimeout(() => {
-        setAnalysisStep('RECONSTRUCTING SMTP RELAYS & EVALUATING RFC 8601 SIGNALS...');
+        setAnalysisStep('Checking email security seals and sender identity...');
       }, 700);
 
       stepTimer2 = setTimeout(() => {
-        setAnalysisStep('FINALIZING DETERMINISTIC FORENSIC ASSESSMENT...');
+        setAnalysisStep('Calculating safety score and findings...');
       }, 1600);
 
       const result = await analyzeEmail(sampleFile, {
@@ -243,8 +239,8 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
       const sampleCase = caseStore.createCaseFromAnalysis(
         result,
         sampleFile,
-        caseTitle.trim() || 'Synthetic BEC / Phishing Specimen',
-        analystNotes.trim() || 'Vendor banking details update required before today\'s payment run (SIH26106).'
+        caseTitle.trim() || 'Sample BEC Phishing Email',
+        analystNotes.trim() || 'Sample investigation email loaded for demonstration.'
       );
       setIsAnalyzing(false);
       onInvestigationCreated(sampleCase);
@@ -252,25 +248,25 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         if (err.status === 408) {
-          setErrorTitle('INVESTIGATION TIMEOUT');
+          setErrorTitle('Analysis Timeout');
           setErrorMessage(err.message);
         } else if (err.status === 0) {
           if (err.detail === 'ABORTED') {
-            setErrorTitle('INVESTIGATION CANCELLED');
-            setErrorMessage('The forensic investigation was cancelled.');
+            setErrorTitle('Analysis Cancelled');
+            setErrorMessage('The email check was cancelled.');
           } else {
-            setErrorTitle('ANALYSIS SERVICE UNAVAILABLE');
+            setErrorTitle('Service Unavailable');
             setErrorMessage(
-              'The forensic analysis backend is unreachable. Please verify the backend service is running and try again.'
+              'The backend analysis service is currently unreachable.'
             );
           }
         } else {
-          setErrorTitle(`FORENSIC EXTRACTION FAILED (HTTP ${err.status})`);
+          setErrorTitle(`Analysis Failed (${err.status})`);
           setErrorMessage(err.detail || err.message);
         }
       } else {
-        const msg = err instanceof Error ? err.message : 'Unknown parsing failure occurred.';
-        setErrorTitle('ANALYSIS PIPELINE FAILURE');
+        const msg = err instanceof Error ? err.message : 'Unknown analysis failure occurred.';
+        setErrorTitle('Analysis Failure');
         setErrorMessage(msg);
       }
     } finally {
@@ -289,30 +285,29 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
-      {/* Modal Dialog Card */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn font-sans">
       <div
         ref={modalRef}
-        className="w-full max-w-xl bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="w-full max-w-xl bg-[var(--surface)] border border-[var(--border-subtle)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
       >
-        {/* Header Bar */}
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)] bg-[var(--surface-subtle)]">
           <div className="space-y-0.5">
             <div className="flex items-center space-x-2">
               <span className="w-2 h-2 rounded-full bg-[var(--ai)] animate-pulse" />
-              <h2 className="text-sm font-bold font-mono tracking-wider text-[var(--text)] uppercase">
-                NEW INVESTIGATION
+              <h2 className="text-base font-bold text-[var(--text)]">
+                Check an Email
               </h2>
             </div>
-            <p className="text-xs text-[var(--text-muted)] font-sans">
-              Ingest and analyze raw .eml message for forensic indicators.
+            <p className="text-xs text-[var(--text-muted)]">
+              Upload an .eml file to see whether it looks suspicious.
             </p>
           </div>
 
           <button
             type="button"
             onClick={handleClose}
-            className="p-1.5 rounded text-[var(--text-dim)] hover:text-[var(--text)] hover:bg-[var(--surface-elevated)] border border-transparent hover:border-[var(--border-subtle)] transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-[var(--text-dim)] hover:text-[var(--text)] hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer"
             title={isAnalyzing ? 'Cancel analysis (Esc)' : 'Close modal (Esc)'}
           >
             <X className="w-4 h-4" />
@@ -320,11 +315,11 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
         </div>
 
         {/* Content Body */}
-        <div className="p-6 space-y-5 overflow-y-auto font-sans">
+        <div className="p-6 space-y-5 overflow-y-auto">
           {/* File Dropzone Area */}
           <div>
-            <label className="block text-xs font-mono text-[var(--text-muted)] uppercase tracking-wider mb-2">
-              1. Email Artifact (.eml) <span className="text-[var(--severity-critical)]">*</span>
+            <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">
+              1. Email File (.eml) <span className="text-rose-400">*</span>
             </label>
 
             <div
@@ -332,7 +327,7 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => !isAnalyzing && fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-all select-none ${
+              className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all select-none ${
                 dragOver
                   ? 'border-[var(--ai)] bg-[var(--surface-elevated)]'
                   : selectedFile
@@ -351,30 +346,30 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
 
               {!selectedFile ? (
                 <div className="space-y-2">
-                  <div className="w-10 h-10 rounded bg-[var(--surface)] border border-[var(--border-subtle)] mx-auto flex items-center justify-center text-[var(--text-muted)]">
+                  <div className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border-subtle)] mx-auto flex items-center justify-center text-[var(--text-muted)]">
                     <UploadCloud className="w-5 h-5 text-[var(--ai)]" />
                   </div>
                   <div>
-                    <span className="text-xs text-[var(--text)] font-medium">
-                      Click to browse or drop an <code className="font-mono text-[var(--identifier)]">.eml</code> file
+                    <span className="text-xs text-[var(--text)] font-semibold">
+                      Click to browse or drag &amp; drop an <code className="font-mono text-[var(--identifier)]">.eml</code> file
                     </span>
-                    <p className="text-[11px] text-[var(--text-dim)] font-mono mt-0.5">
-                      Max file threshold 10 MB • RFC 822/5322 Standard
+                    <p className="text-[11px] text-[var(--text-dim)] mt-0.5">
+                      Maximum file size 10 MB
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between gap-3 p-3 bg-[var(--surface)] border border-[var(--border-subtle)] rounded text-left">
+                <div className="flex items-center justify-between gap-3 p-3 bg-[var(--surface)] border border-[var(--border-subtle)] rounded-xl text-left">
                   <div className="flex items-center space-x-3 truncate">
-                    <div className="w-8 h-8 rounded bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--state-pass)] shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-[var(--surface-elevated)] border border-[var(--border-subtle)] flex items-center justify-center text-emerald-400 shrink-0">
                       <FileCheck2 className="w-4 h-4" />
                     </div>
                     <div className="truncate">
-                      <div className="text-xs font-mono text-[var(--text)] font-medium truncate">
+                      <div className="text-xs font-semibold text-[var(--text)] truncate">
                         {selectedFile.name}
                       </div>
-                      <div className="text-[10px] font-mono text-[var(--text-muted)]">
-                        {formatFileSize(selectedFile.size)} • Ready for ingestion
+                      <div className="text-[11px] text-[var(--text-muted)] font-mono">
+                        {formatFileSize(selectedFile.size)} • Ready to check
                       </div>
                     </div>
                   </div>
@@ -383,8 +378,8 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
                     type="button"
                     onClick={handleRemoveFile}
                     disabled={isAnalyzing}
-                    className="p-1.5 text-[var(--text-dim)] hover:text-[var(--severity-critical)] rounded hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer"
-                    title="Remove artifact"
+                    className="p-1.5 text-[var(--text-dim)] hover:text-rose-400 rounded-lg hover:bg-[var(--surface-elevated)] transition-colors cursor-pointer"
+                    title="Remove file"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -393,79 +388,66 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
             </div>
           </div>
 
-          {/* Optional Metadata Fields */}
-          <div className="space-y-4">
+          {/* Optional Title & Notes */}
+          <div className="space-y-3">
             <div>
-              <label className="block text-xs font-mono text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
-                2. Case Title <span className="text-[var(--text-dim)] font-normal font-sans">(Optional)</span>
+              <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
+                2. Case Title <span className="text-[var(--text-dim)] font-normal">(Optional)</span>
               </label>
               <input
                 type="text"
                 value={caseTitle}
                 onChange={(e) => setCaseTitle(e.target.value)}
                 disabled={isAnalyzing}
-                placeholder="e.g. Executive Phishing Dispatch - Sep 2026"
-                className="w-full bg-[var(--surface-subtle)] border border-[var(--border-subtle)] focus:border-[var(--border-active)] rounded px-3 py-2 text-xs text-[var(--text)] placeholder-[var(--text-disabled)] font-mono outline-none"
+                placeholder="e.g. Suspicious Payment Request"
+                className="w-full bg-[var(--surface-subtle)] border border-[var(--border-subtle)] focus:border-[var(--border-active)] rounded-xl px-3 py-2 text-xs text-[var(--text)] placeholder-[var(--text-disabled)] outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
-                3. Analyst Intake Notes <span className="text-[var(--text-dim)] font-normal font-sans">(Optional)</span>
+              <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
+                3. Additional Notes <span className="text-[var(--text-dim)] font-normal">(Optional)</span>
               </label>
               <textarea
                 rows={2}
                 value={analystNotes}
                 onChange={(e) => setAnalystNotes(e.target.value)}
                 disabled={isAnalyzing}
-                placeholder="Add internal SOC ticket ID, observed telemetry, or dispatcher priority..."
-                className="w-full bg-[var(--surface-subtle)] border border-[var(--border-subtle)] focus:border-[var(--border-active)] rounded px-3 py-2 text-xs text-[var(--text)] placeholder-[var(--text-disabled)] font-sans outline-none resize-none"
+                placeholder="Add notes about where this email came from..."
+                className="w-full bg-[var(--surface-subtle)] border border-[var(--border-subtle)] focus:border-[var(--border-active)] rounded-xl px-3 py-2 text-xs text-[var(--text)] placeholder-[var(--text-disabled)] outline-none resize-none"
               />
             </div>
           </div>
 
-          {/* Progress / Analyzing Indicator State */}
+          {/* Analyzing Loading Indicator */}
           {isAnalyzing && (
-            <div className="p-4 bg-[var(--surface-subtle)] border border-[var(--border)] rounded-md space-y-2.5 animate-pulse">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="flex items-center gap-2 text-[var(--ai)]">
+            <div className="p-4 bg-[var(--surface-subtle)] border border-[var(--border-subtle)] rounded-xl space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-2 text-[var(--ai)] font-semibold">
                   <span className="w-2 h-2 rounded-full bg-[var(--ai)] animate-ping" />
-                  PROCESSING FORENSIC EXTRACTION
+                  Checking this email...
                 </span>
-                <span className="text-[var(--text-dim)]">ENGINE ACTIVE</span>
               </div>
               <div className="h-1.5 w-full bg-[var(--surface-elevated)] rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-[var(--ai)] to-[var(--identifier)] w-2/3 rounded-full animate-[progress_1.5s_ease-in-out_infinite]" />
+                <div className="h-full bg-[var(--ai)] w-2/3 rounded-full animate-pulse" />
               </div>
-              <div className="flex items-center gap-2 text-[11px] font-mono text-[var(--text-muted)]">
+              <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
                 <Terminal className="w-3.5 h-3.5 text-[var(--identifier)] shrink-0" />
                 <span className="truncate">{analysisStep}</span>
               </div>
             </div>
           )}
 
-          {/* Operational Error State */}
+          {/* Error Message */}
           {errorTitle && (
-            <div className="p-3 bg-[var(--surface-elevated)] border border-[var(--severity-critical)] rounded-md flex items-start gap-3 text-xs">
-              <AlertCircle className="w-4 h-4 text-[var(--severity-critical)] shrink-0 mt-0.5" />
+            <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-start gap-3 text-xs">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
               <div className="space-y-0.5">
-                <div className="font-mono font-bold text-[var(--severity-critical)]">{errorTitle}</div>
-                <div className="text-[var(--text-muted)] leading-relaxed font-sans">{errorMessage}</div>
+                <div className="font-semibold text-rose-400">{errorTitle}</div>
+                <div className="text-[var(--text-muted)] leading-relaxed">{errorMessage}</div>
               </div>
             </div>
           )}
-
-          {/* Engine Capability Footer Tag */}
-          <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)] text-[11px] font-mono text-[var(--text-dim)]">
-            <span className="flex items-center gap-1.5">
-              <Shield className="w-3.5 h-3.5 text-[var(--ai)]" />
-              Multi-turn Autonomous Agent & RFC Verification
-            </span>
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              ~2-4s Runtime
-            </span>
-          </div>
         </div>
 
         {/* Modal Actions Footer */}
@@ -474,35 +456,35 @@ export const NewInvestigationModal: React.FC<NewInvestigationModalProps> = ({
             type="button"
             onClick={handleLoadSample}
             disabled={isAnalyzing}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded badge-ai text-xs font-mono transition-colors disabled:opacity-50 cursor-pointer"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] border border-[var(--border-subtle)] text-xs font-semibold text-[var(--ai)] transition-colors disabled:opacity-50 cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5 text-[var(--ai)]" />
-            LOAD SAMPLE SPECIMEN
+            Try Sample Email
           </button>
 
           <div className="flex items-center space-x-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 sm:flex-none px-4 py-2 rounded bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-muted)] hover:text-[var(--text)] border border-[var(--border-subtle)] text-xs font-mono transition-colors cursor-pointer"
+              className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-muted)] hover:text-[var(--text)] border border-[var(--border-subtle)] text-xs font-medium transition-colors cursor-pointer"
             >
-              {isAnalyzing ? 'CANCEL ANALYSIS' : 'CANCEL'}
+              {isAnalyzing ? 'Cancel' : 'Cancel'}
             </button>
 
             <button
               type="button"
               onClick={handleAnalyze}
               disabled={isAnalyzing || !selectedFile}
-              className="flex-1 sm:flex-none px-5 py-2 rounded bg-[var(--text)] hover:opacity-90 text-[var(--background)] text-xs font-mono font-medium flex items-center justify-center gap-1.5 shadow-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="flex-1 sm:flex-none px-5 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               {isAnalyzing ? (
                 <>
                   <span className="w-3 h-3 border-2 border-[var(--background)]/30 border-t-[var(--background)] rounded-full animate-spin" />
-                  ANALYZING...
+                  Checking...
                 </>
               ) : (
                 <>
-                  ANALYZE EMAIL
+                  Analyze Email
                   <ArrowRight className="w-3.5 h-3.5" />
                 </>
               )}

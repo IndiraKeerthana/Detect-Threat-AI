@@ -1,5 +1,5 @@
-import React from 'react';
-import { Check, X, Minus, AlertTriangle, ShieldCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, X, Minus, AlertTriangle, ShieldCheck, ChevronDown, ChevronUp } from 'lucide-react';
 import type { AuthenticationResultsAnalysis, AuthStatus } from '../../types/investigation';
 import { SectionHeader } from '../investigation/SectionHeader';
 
@@ -8,10 +8,12 @@ interface AuthenticationSectionProps {
 }
 
 export const AuthenticationSection: React.FC<AuthenticationSectionProps> = ({ auth }) => {
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
+
   if (!auth) {
     return (
-      <div className="surface-card p-5 border border-[var(--border-subtle)] text-center text-xs text-[var(--text-dim)] font-mono">
-        NO RFC 8601 AUTHENTICATION DATA PRESENT
+      <div className="surface-card p-5 border border-[var(--border-subtle)] rounded-2xl text-center text-xs text-[var(--text-muted)] font-sans">
+        No email security check data found in email headers.
       </div>
     );
   }
@@ -22,34 +24,29 @@ export const AuthenticationSection: React.FC<AuthenticationSectionProps> = ({ au
       case 'pass':
         return {
           icon: Check,
-          className: 'bg-[var(--surface-elevated)] text-[var(--state-pass)] border-[var(--border-subtle)]',
+          className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
           text: 'PASS',
         };
       case 'fail':
       case 'permerror':
         return {
           icon: X,
-          className: 'bg-[var(--surface-elevated)] text-[var(--state-fail)] border-[var(--border-subtle)]',
+          className: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
           text: s.toUpperCase(),
         };
       case 'softfail':
       case 'neutral':
         return {
           icon: Minus,
-          className: 'bg-[var(--surface-elevated)] text-[var(--severity-medium)] border-[var(--border-subtle)]',
+          className: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
           text: s.toUpperCase(),
         };
       case 'none':
+      default:
         return {
           icon: Minus,
           className: 'bg-[var(--surface-elevated)] text-[var(--text-muted)] border-[var(--border-subtle)]',
           text: 'NONE',
-        };
-      default:
-        return {
-          icon: Minus,
-          className: 'bg-[var(--surface-elevated)] text-[var(--text-dim)] border-[var(--border-subtle)]',
-          text: s.toUpperCase(),
         };
     }
   };
@@ -73,119 +70,107 @@ export const AuthenticationSection: React.FC<AuthenticationSectionProps> = ({ au
     auth.return_path_domain.toLowerCase() !== auth.from_domain.toLowerCase();
 
   return (
-    <div className="surface-card p-5 border border-[var(--border-subtle)] space-y-4">
+    <div className="surface-card p-5 border border-[var(--border-subtle)] rounded-2xl space-y-4 font-sans">
       {/* Section Header */}
       <SectionHeader
-        index="02"
-        title="Email authentication"
-        subtitle="RFC 8601 sender SPF policy, DKIM signatures, and DMARC enforcement."
+        index="05"
+        title="Email Security Checks"
+        subtitle="Verifies whether the email was authorized by the domain owner and passes authentication seals."
         action={
-          <div className="flex items-center space-x-2 text-[10px] font-mono text-[var(--text-dim)]">
-            <ShieldCheck className="w-3.5 h-3.5 text-[var(--state-pass)]" />
-            <span>AUTHSERV: <strong className="text-[var(--text)]">{auth.authserv_ids[0] || 'None'}</strong></span>
+          <div className="flex items-center space-x-2 text-xs text-[var(--text-muted)]">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>Security Seals Checked</span>
           </div>
         }
       />
 
-      {/* Single Consolidated Container with Hairline Dividers */}
-      <div className="border border-[var(--border-subtle)] rounded bg-[var(--surface-subtle)] divide-y divide-[var(--border-subtle)]">
-        {/* SPF Row */}
-        <div className="p-3.5 space-y-1.5 text-xs font-mono">
+      {/* Main Security Seals Grid */}
+      <div className="border border-[var(--border-subtle)] rounded-xl bg-[var(--surface-subtle)] divide-y divide-[var(--border-subtle)]">
+        {/* SPF */}
+        <div className="p-4 space-y-1.5">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="font-semibold text-[var(--text)]">SPF</span>
-              <span className="text-[10px] text-[var(--text-dim)] font-sans">RFC 7208</span>
+            <div>
+              <span className="font-semibold text-sm text-[var(--text)]">Sender Authorization Seal (SPF)</span>
+              <p className="text-xs text-[var(--text-muted)]">Checks if the sending server is authorized to send email for this domain.</p>
             </div>
-            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 ${spfBadge.className}`}>
-              <SpfIcon className="w-3 h-3" />
+            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center gap-1 shrink-0 ${spfBadge.className}`}>
+              <SpfIcon className="w-3.5 h-3.5" />
               {spfBadge.text}
             </span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-[var(--text-muted)] font-sans pt-1">
-            <div>Evaluating domain: <span className="font-mono text-[var(--identifier)]">{auth.spf?.domain || auth.from_domain || 'None'}</span></div>
-            <div>Raw result: <span className="font-mono text-[var(--text)]">{auth.spf?.raw || 'None'}</span></div>
-          </div>
         </div>
 
-        {/* DKIM Row */}
-        <div className="p-3.5 space-y-1.5 text-xs font-mono">
+        {/* DKIM */}
+        <div className="p-4 space-y-1.5">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="font-semibold text-[var(--text)]">DKIM</span>
-              <span className="text-[10px] text-[var(--text-dim)] font-sans">RFC 6376</span>
+            <div>
+              <span className="font-semibold text-sm text-[var(--text)] font-sans">Digital Signature Seal (DKIM)</span>
+              <p className="text-xs text-[var(--text-muted)]">Verifies that the email message was not altered in transit.</p>
             </div>
-            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 ${dkimBadge.className}`}>
-              <DkimIcon className="w-3 h-3" />
+            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center gap-1 shrink-0 ${dkimBadge.className}`}>
+              <DkimIcon className="w-3.5 h-3.5" />
               {dkimBadge.text}
             </span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-[var(--text-muted)] font-sans pt-1">
-            <div>Signing domain: <span className="font-mono text-[var(--identifier)]">{auth.dkim?.domain || 'None (No signature)'}</span></div>
-            <div>Status: <span className="font-mono text-[var(--text)]">{auth.dkim?.raw || 'None'}</span></div>
-          </div>
         </div>
 
-        {/* DMARC Row */}
-        <div className="p-3.5 space-y-1.5 text-xs font-mono">
+        {/* DMARC */}
+        <div className="p-4 space-y-1.5">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="font-semibold text-[var(--text)]">DMARC</span>
-              <span className="text-[10px] text-[var(--text-dim)] font-sans">RFC 7489</span>
+            <div>
+              <span className="font-semibold text-sm text-[var(--text)]">Domain Protection Seal (DMARC)</span>
+              <p className="text-xs text-[var(--text-muted)]">Ensures the email matches domain owner policies and prevents impersonation.</p>
             </div>
-            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 ${dmarcBadge.className}`}>
-              <DmarcIcon className="w-3 h-3" />
+            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center gap-1 shrink-0 ${dmarcBadge.className}`}>
+              <DmarcIcon className="w-3.5 h-3.5" />
               {dmarcBadge.text}
             </span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-[var(--text-muted)] font-sans pt-1">
-            <div>Policy target: <span className="font-mono text-[var(--identifier)]">{auth.dmarc?.domain || auth.from_domain || 'None'}</span></div>
-            <div>Policy action: <span className="font-mono text-[var(--state-fail)] font-semibold">{auth.dmarc?.raw || 'None'}</span></div>
           </div>
         </div>
       </div>
 
-      {/* Domain Alignment & Identity Diagnostics */}
-      <div className="border border-[var(--border-subtle)] rounded p-3.5 bg-[var(--surface)] space-y-2 text-xs font-mono">
-        <div className="text-[10px] uppercase text-[var(--text-dim)] tracking-wider">
-          Domain alignment & identity verification
-        </div>
-
-        <div className="space-y-1.5 divide-y divide-[var(--border-subtle)]">
-          <div className="flex items-center justify-between py-1">
-            <span className="text-[var(--text-muted)] font-sans text-[11px]">RFC 5322 From domain:</span>
-            <span className="text-[var(--identifier)] font-mono">{auth.from_domain || 'None'}</span>
+      {/* Domain Alignment Alert */}
+      {(hasReplyToMismatch || hasReturnPathMismatch) && (
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-2">
+          <div className="flex items-center gap-2 font-semibold text-amber-400">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span>Sender Address Discrepancy Detected</span>
           </div>
-
-          <div className="flex items-center justify-between py-1 pt-1.5">
-            <span className="text-[var(--text-muted)] font-sans text-[11px]">Reply-To header domain:</span>
-            <div className="flex items-center gap-2">
-              <span className={`font-mono ${hasReplyToMismatch ? 'text-[var(--state-fail)]' : 'text-[var(--identifier)]'}`}>
-                {auth.reply_to_domain || 'None'}
-              </span>
-              {hasReplyToMismatch && (
-                <span className="px-1.5 py-0.2 rounded bg-[var(--surface-elevated)] text-[var(--state-fail)] border border-[var(--border-subtle)] text-[9px] font-bold flex items-center gap-1">
-                  <AlertTriangle className="w-2.5 h-2.5" />
-                  MISMATCH
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between py-1 pt-1.5">
-            <span className="text-[var(--text-muted)] font-sans text-[11px]">Return-Path domain:</span>
-            <div className="flex items-center gap-2">
-              <span className={`font-mono ${hasReturnPathMismatch ? 'text-[var(--severity-medium)]' : 'text-[var(--identifier)]'}`}>
-                {auth.return_path_domain || 'None'}
-              </span>
-              {hasReturnPathMismatch && (
-                <span className="px-1.5 py-0.2 rounded bg-[var(--surface-elevated)] text-[var(--severity-medium)] border border-[var(--border-subtle)] text-[9px] font-bold flex items-center gap-1">
-                  <AlertTriangle className="w-2.5 h-2.5" />
-                  MISMATCH
-                </span>
-              )}
-            </div>
+          <p className="text-[var(--text-muted)] leading-relaxed">
+            The sender domain does not match the reply address or technical return path. Scammers often use a different reply address to trick recipients.
+          </p>
+          <div className="space-y-1 pt-1 font-mono text-[11px]">
+            {hasReplyToMismatch && (
+              <div>Reply-To Address: <strong className="text-rose-400">{auth.reply_to_domain}</strong> (Sender: {auth.from_domain})</div>
+            )}
+            {hasReturnPathMismatch && (
+              <div>Technical Return Path: <strong className="text-amber-400">{auth.return_path_domain}</strong></div>
+            )}
           </div>
         </div>
+      )}
+
+      {/* Technical Details Accordion */}
+      <div className="pt-2">
+        <button
+          type="button"
+          onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
+          className="px-3 py-1.5 rounded-lg bg-[var(--surface)] hover:bg-[var(--surface-elevated)] border border-[var(--border-subtle)] text-xs text-[var(--text-muted)] hover:text-[var(--text)] transition-colors flex items-center gap-1.5 cursor-pointer"
+        >
+          <span>{showTechnicalDetails ? 'Hide Technical RFC Details' : 'Show Technical RFC Details'}</span>
+          {showTechnicalDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </button>
+
+        {showTechnicalDetails && (
+          <div className="mt-3 p-4 rounded-xl bg-[var(--surface-subtle)] border border-[var(--border-subtle)] space-y-2 text-xs font-mono">
+            <div>SPF Domain: <span className="text-[var(--identifier)]">{auth.spf?.domain || 'N/A'}</span></div>
+            <div>SPF Raw: <span className="text-[var(--text)]">{auth.spf?.raw || 'N/A'}</span></div>
+            <div>DKIM Domain: <span className="text-[var(--identifier)]">{auth.dkim?.domain || 'N/A'}</span></div>
+            <div>DKIM Raw: <span className="text-[var(--text)]">{auth.dkim?.raw || 'N/A'}</span></div>
+            <div>DMARC Domain: <span className="text-[var(--identifier)]">{auth.dmarc?.domain || 'N/A'}</span></div>
+            <div>DMARC Raw: <span className="text-[var(--text)]">{auth.dmarc?.raw || 'N/A'}</span></div>
+          </div>
+        )}
       </div>
     </div>
   );

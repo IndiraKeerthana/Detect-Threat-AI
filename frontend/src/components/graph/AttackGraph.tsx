@@ -524,9 +524,9 @@ export const AttackGraph: React.FC<AttackGraphProps> = ({ data }) => {
     <div className="surface-card p-6 border border-[#1e2430] space-y-4 relative font-mono select-none">
       {/* Section Header */}
       <SectionHeader
-        index="04"
+        index={4}
         title="Attack & Infrastructure Path"
-        subtitle="Trace the email from the message to the observed relay, source infrastructure, network, and verified geolocation."
+        subtitle="Trace the email path visually from sender to sending server, relay path, network, and location."
       />
 
       {/* 1. Observed Email Path Bar (Above Graph) */}
