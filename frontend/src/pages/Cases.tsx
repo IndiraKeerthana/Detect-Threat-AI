@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Search,
   ArrowUpRight,
@@ -13,10 +13,8 @@ import {
   Layers,
   Network,
   Globe,
-  Link2,
   ChevronDown,
   ChevronRight,
-  AlertTriangle,
 } from 'lucide-react';
 import {
   caseStore,
@@ -45,6 +43,42 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
   const [expandedCampaigns, setExpandedCampaigns] = useState<Record<string, boolean>>({});
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<'RISK' | 'STATUS' | null>(null);
+
+  const riskDropdownRef = useRef<HTMLDivElement>(null);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        openDropdown === 'RISK' &&
+        riskDropdownRef.current &&
+        !riskDropdownRef.current.contains(event.target as Node)
+      ) {
+        setOpenDropdown(null);
+      }
+      if (
+        openDropdown === 'STATUS' &&
+        statusDropdownRef.current &&
+        !statusDropdownRef.current.contains(event.target as Node)
+      ) {
+        setOpenDropdown(null);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenDropdown(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [openDropdown]);
 
   const handleDownloadCaseReport = async (caseRecord: CaseRecord) => {
     setDownloadingId(caseRecord.id);
@@ -53,7 +87,7 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Forensic_Investigation_Report_${caseRecord.id}.pdf`;
+      a.download = `Email_Safety_Report_${caseRecord.id}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -119,16 +153,16 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
     };
   }, [cases]);
 
-  const getSeverityBadge = (sev: CaseSeverity) => {
+  const getSeverityBadgeClass = (sev: CaseSeverity) => {
     switch (sev.toUpperCase()) {
       case 'CRITICAL':
       case 'HIGH':
-        return 'badge-critical';
+        return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
       case 'MEDIUM':
-        return 'badge-warning';
+        return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
       case 'LOW':
       default:
-        return 'badge-success';
+        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
     }
   };
 
@@ -137,6 +171,7 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
     setFilterStatus('ALL');
     setSearchQuery('');
     setSortBy('activity_desc');
+    setOpenDropdown(null);
   };
 
   const handleCaseCreated = (newCase: CaseRecord) => {
@@ -144,20 +179,20 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto py-2">
+    <div className="space-y-6 max-w-7xl mx-auto py-2 font-sans">
       {/* 1. Header Area */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border-subtle)]">
         <div>
           <div className="flex items-center space-x-2 text-xs font-mono text-[var(--text-dim)] uppercase">
-            <span>Case Management</span>
+            <span>Case Directory</span>
             <span>/</span>
-            <span className="text-[var(--text-muted)]">Triage & Campaign Clusters</span>
+            <span className="text-[var(--text-muted)]">Saved Checks</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text)] mt-1 font-sans">
-            Case registry & campaign clustering
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text)] mt-1">
+            All Cases &amp; Investigations
           </h1>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5 font-sans">
-            Persisted investigation records correlated across verified origin IPs, sender domains, and payload entities.
+          <p className="text-xs text-[var(--text-muted)] mt-1 font-sans">
+            Search, filter, and review all email safety checks and saved cases.
           </p>
         </div>
 
@@ -165,27 +200,26 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="px-4 py-2 rounded bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text)] text-xs font-mono font-medium inline-flex items-center gap-2 border border-[var(--border)] shadow-sm transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text)] text-xs font-semibold inline-flex items-center gap-2 border border-[var(--border-subtle)] shadow-sm transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4 text-[var(--identifier)]" />
-            <span>START NEW INVESTIGATION</span>
-            <kbd className="text-[9px] text-[var(--text-dim)] bg-[var(--surface)] px-1 rounded border border-[var(--border-subtle)]">U</kbd>
+            <span>Check New Email</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Control Bar: Search + Filters + View Mode Switcher */}
-      <div className="surface-card p-4 border border-[var(--border-subtle)] space-y-4">
+      {/* 2. Control Bar */}
+      <div className="surface-card p-4 border border-[var(--border-subtle)] rounded-2xl space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           {/* Search Box */}
           <div className="relative flex-1 max-w-lg">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-dim)]" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-dim)] pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filter by Case ID, subject, sender, domain, or IP address..."
-              className="w-full bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--border)] focus:border-[var(--border-active)] rounded px-3 py-1.5 pl-9 pr-8 text-xs text-[var(--text)] placeholder-[var(--text-disabled)] font-mono outline-none transition-colors"
+              placeholder="Search by Case ID, subject, sender, or IP address..."
+              className="w-full bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--border)] focus:border-[var(--border-active)] rounded-xl px-3 py-2 pl-9 pr-8 text-xs text-[var(--text)] placeholder-[var(--text-disabled)] outline-none transition-colors"
             />
             {searchQuery && (
               <button
@@ -198,173 +232,219 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
             )}
           </div>
 
-          {/* Quick Metrics Pills */}
+          {/* Quick Metrics */}
           <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-[var(--text-muted)]">
-            <span className="px-2.5 py-1 rounded bg-[var(--surface-subtle)] border border-[var(--border-subtle)]">
+            <span className="px-3 py-1 rounded-full bg-[var(--surface-subtle)] border border-[var(--border-subtle)]">
               TOTAL: <strong className="text-[var(--text)]">{cases.length}</strong>
             </span>
-            <span className="px-2.5 py-1 rounded bg-[var(--surface-subtle)] border border-[var(--border-subtle)]">
+            <span className="px-3 py-1 rounded-full bg-[var(--surface-subtle)] border border-[var(--border-subtle)]">
               OPEN: <strong className="text-[var(--identifier)]">{statusCounts.open}</strong>
             </span>
-            <span className="px-2.5 py-1 rounded bg-[var(--surface-subtle)] border border-[var(--border-subtle)]">
-              IN REVIEW: <strong className="text-[var(--severity-medium)]">{statusCounts.inReview}</strong>
+            <span className="px-3 py-1 rounded-full bg-[var(--surface-subtle)] border border-[var(--border-subtle)]">
+              REVIEW: <strong className="text-amber-400">{statusCounts.inReview}</strong>
             </span>
-            <span className="px-2.5 py-1 rounded bg-[var(--surface-subtle)] border border-[var(--border-subtle)]">
-              CONTAINED: <strong className="text-[var(--state-pass)]">{statusCounts.contained}</strong>
+            <span className="px-3 py-1 rounded-full bg-[var(--surface-subtle)] border border-[var(--border-subtle)]">
+              RESOLVED: <strong className="text-emerald-400">{statusCounts.contained}</strong>
             </span>
           </div>
 
           {/* Sort Selector */}
-          <div className="flex items-center space-x-2 text-xs font-mono self-end lg:self-auto">
+          <div className="flex items-center space-x-2 text-xs self-end lg:self-auto">
             <ArrowUpDown className="w-3.5 h-3.5 text-[var(--text-dim)]" />
-            <span className="text-[var(--text-dim)] hidden sm:inline">SORT:</span>
+            <span className="text-[var(--text-dim)] font-mono hidden sm:inline">Sort:</span>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="bg-[var(--surface)] border border-[var(--border-subtle)] focus:border-[var(--border-active)] rounded px-2.5 py-1.5 text-xs text-[var(--text)] font-mono outline-none cursor-pointer"
+              className="bg-[var(--surface)] border border-[var(--border-subtle)] focus:border-[var(--border-active)] rounded-xl px-3 py-1.5 text-xs text-[var(--text)] font-sans outline-none cursor-pointer"
             >
-              <option value="activity_desc">LAST ACTIVITY (NEWEST)</option>
-              <option value="activity_asc">LAST ACTIVITY (OLDEST)</option>
-              <option value="score_desc">RISK SCORE (HIGH → LOW)</option>
-              <option value="score_asc">RISK SCORE (LOW → HIGH)</option>
+              <option value="activity_desc">Newest First</option>
+              <option value="activity_asc">Oldest First</option>
+              <option value="score_desc">Highest Risk Score</option>
+              <option value="score_asc">Lowest Risk Score</option>
             </select>
           </div>
         </div>
 
-        {/* Filter Chips & View Mode Switcher Row */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[var(--border-subtle)] text-xs font-mono">
-          {/* View Mode Toggle Switcher */}
-          <div className="flex items-center space-x-1.5 bg-[var(--surface-subtle)] p-1 rounded border border-[var(--border-subtle)]">
+        {/* Filter Chips & View Switcher */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[var(--border-subtle)] text-xs font-sans">
+          {/* View Mode Toggle */}
+          <div className="flex items-center space-x-1.5 bg-[var(--surface-subtle)] p-1 rounded-xl border border-[var(--border-subtle)]">
             <button
               type="button"
               onClick={() => setViewMode('INDIVIDUAL')}
-              className={`px-3 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 viewMode === 'INDIVIDUAL'
-                  ? 'bg-[var(--surface-elevated)] text-[var(--text)] border border-[var(--border)] shadow-sm'
+                  ? 'bg-[var(--surface-elevated)] text-[var(--text)] border border-[var(--border-subtle)] shadow-sm'
                   : 'text-[var(--text-dim)] hover:text-[var(--text)]'
               }`}
             >
-              INDIVIDUAL CASES ({filteredCases.length})
+              Individual Cases ({filteredCases.length})
             </button>
             <button
               type="button"
               onClick={() => setViewMode('CAMPAIGNS')}
-              className={`px-3 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 viewMode === 'CAMPAIGNS'
-                  ? 'bg-[var(--surface-elevated)] text-[var(--text)] border border-[var(--border)] shadow-sm'
+                  ? 'bg-[var(--surface-elevated)] text-[var(--text)] border border-[var(--border-subtle)] shadow-sm'
                   : 'text-[var(--text-dim)] hover:text-[var(--text)]'
               }`}
             >
-              CAMPAIGN CLUSTERS ({campaignClusters.length})
+              Grouped Campaigns ({campaignClusters.length})
             </button>
           </div>
 
-          {/* Severity & Status Filters */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[var(--text-dim)] text-[10px] uppercase tracking-wider mr-1 flex items-center gap-1">
-                <Filter className="w-3 h-3" /> SEVERITY:
-              </span>
-              {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((sev) => (
-                <button
-                  key={sev}
-                  type="button"
-                  onClick={() => setFilterSeverity(sev)}
-                  className={`px-2.5 py-0.5 rounded text-[11px] font-mono uppercase transition-colors cursor-pointer ${
-                    filterSeverity === sev
-                      ? 'bg-[var(--surface-elevated)] text-[var(--text)] border border-[var(--border)]'
-                      : 'bg-[var(--surface)] text-[var(--text-dim)] hover:text-[var(--text)] border border-[var(--border-subtle)]'
-                  }`}
-                >
-                  {sev}
-                </button>
-              ))}
-            </div>
+          {/* Severity & Status Dropdown Filters */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Risk Dropdown */}
+            <div className="relative" ref={riskDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setOpenDropdown(openDropdown === 'RISK' ? null : 'RISK')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all inline-flex items-center gap-1.5 cursor-pointer ${
+                  filterSeverity !== 'ALL'
+                    ? 'bg-[var(--surface-elevated)] text-[var(--text)] border border-[var(--border-active)] shadow-xs font-semibold'
+                    : 'bg-[var(--surface-subtle)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] border border-[var(--border-subtle)]'
+                }`}
+              >
+                <Filter className="w-3 h-3 text-[var(--text-dim)]" />
+                <span>
+                  {filterSeverity === 'ALL'
+                    ? 'Risk ▾'
+                    : `Risk: ${filterSeverity.charAt(0) + filterSeverity.slice(1).toLowerCase()} ▾`}
+                </span>
+              </button>
 
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[var(--text-dim)] text-[10px] uppercase tracking-wider mr-1">
-                STATUS:
-              </span>
-              {['ALL', 'OPEN', 'IN REVIEW', 'CONTAINED', 'CLOSED'].map((st) => (
-                <button
-                  key={st}
-                  type="button"
-                  onClick={() => setFilterStatus(st)}
-                  className={`px-2.5 py-0.5 rounded text-[11px] font-mono uppercase transition-colors cursor-pointer ${
-                    filterStatus === st
-                      ? 'bg-[var(--surface-elevated)] text-[var(--text)] border border-[var(--border)]'
-                      : 'bg-[var(--surface)] text-[var(--text-dim)] hover:text-[var(--text)] border border-[var(--border-subtle)]'
-                  }`}
-                >
-                  {st}
-                </button>
-              ))}
-
-              {(filterSeverity !== 'ALL' || filterStatus !== 'ALL' || searchQuery) && (
-                <button
-                  type="button"
-                  onClick={resetFilters}
-                  className="ml-2 text-[var(--identifier)] hover:underline text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
-                  title="Reset all active filters"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  Reset
-                </button>
+              {openDropdown === 'RISK' && (
+                <div className="absolute left-0 mt-1.5 w-36 bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-lg py-1.5 z-30 space-y-0.5">
+                  {[
+                    { key: 'ALL', label: 'All' },
+                    { key: 'CRITICAL', label: 'Critical' },
+                    { key: 'HIGH', label: 'High' },
+                    { key: 'MEDIUM', label: 'Medium' },
+                    { key: 'LOW', label: 'Low' },
+                  ].map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => {
+                        setFilterSeverity(item.key);
+                        setOpenDropdown(null);
+                      }}
+                      className={`w-full text-left px-3.5 py-1.5 text-xs transition-colors flex items-center justify-between cursor-pointer ${
+                        filterSeverity === item.key
+                          ? 'bg-[var(--surface-elevated)] text-[var(--text)] font-semibold'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)]'
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      {filterSeverity === item.key && <span className="text-[var(--identifier)] font-bold">✓</span>}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
+
+            {/* Status Dropdown */}
+            <div className="relative" ref={statusDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setOpenDropdown(openDropdown === 'STATUS' ? null : 'STATUS')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all inline-flex items-center gap-1.5 cursor-pointer ${
+                  filterStatus !== 'ALL'
+                    ? 'bg-[var(--surface-elevated)] text-[var(--text)] border border-[var(--border-active)] shadow-xs font-semibold'
+                    : 'bg-[var(--surface-subtle)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] border border-[var(--border-subtle)]'
+                }`}
+              >
+                <span>
+                  {filterStatus === 'ALL'
+                    ? 'Status ▾'
+                    : `Status: ${filterStatus.split(' ').map((w) => w.charAt(0) + w.slice(1).toLowerCase()).join(' ')} ▾`}
+                </span>
+              </button>
+
+              {openDropdown === 'STATUS' && (
+                <div className="absolute left-0 mt-1.5 w-36 bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-lg py-1.5 z-30 space-y-0.5">
+                  {[
+                    { key: 'ALL', label: 'All' },
+                    { key: 'OPEN', label: 'Open' },
+                    { key: 'IN REVIEW', label: 'In Review' },
+                    { key: 'CONTAINED', label: 'Contained' },
+                    { key: 'CLOSED', label: 'Closed' },
+                  ].map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => {
+                        setFilterStatus(item.key);
+                        setOpenDropdown(null);
+                      }}
+                      className={`w-full text-left px-3.5 py-1.5 text-xs transition-colors flex items-center justify-between cursor-pointer ${
+                        filterStatus === item.key
+                          ? 'bg-[var(--surface-elevated)] text-[var(--text)] font-semibold'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)]'
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      {filterStatus === item.key && <span className="text-[var(--identifier)] font-bold">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {(filterSeverity !== 'ALL' || filterStatus !== 'ALL' || searchQuery) && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="ml-1 text-[var(--identifier)] hover:underline text-xs flex items-center gap-1 transition-colors cursor-pointer font-medium"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Reset
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* 3. Main Queue & Campaign Cluster Display */}
+      {/* 3. Main Queue Display */}
       {viewMode === 'CAMPAIGNS' ? (
         /* CAMPAIGN CLUSTERS VIEW */
-        <div className="space-y-4 font-mono">
+        <div className="space-y-4">
           {campaignClusters.length > 0 ? (
             campaignClusters.map((cluster) => {
               const isExpanded = Boolean(expandedCampaigns[cluster.id]);
               const sharedIp = cluster.sharedIndicators.find((ind) => ind.type === 'ip')?.value || 'None';
               const sharedDomain = cluster.sharedIndicators.find((ind) => ind.type === 'domain')?.value || 'None';
-              const sharedUrl = cluster.sharedIndicators.find((ind) => ind.type === 'url')?.value || 'None';
 
               return (
                 <div
                   key={cluster.id}
-                  className="surface-card border border-[var(--border-subtle)] hover:border-[var(--border)] transition-colors rounded-lg overflow-hidden"
+                  className="surface-card border border-[var(--border-subtle)] rounded-2xl overflow-hidden"
                 >
-                  {/* Cluster Header Banner */}
                   <div className="p-4 bg-[var(--surface-subtle)] border-b border-[var(--border-subtle)] flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="space-y-1.5">
                       <div className="flex items-center space-x-2.5">
-                        <span className="text-xs text-[var(--identifier)] font-bold px-2 py-0.5 rounded bg-[var(--surface-elevated)] border border-[var(--border-subtle)]">
+                        <span className="text-xs text-[var(--identifier)] font-bold font-mono px-2.5 py-0.5 rounded-full bg-[var(--surface-elevated)] border border-[var(--border-subtle)]">
                           {cluster.id}
                         </span>
-                        <h2 className="text-sm font-bold text-[var(--text)] font-sans truncate max-w-lg" title={cluster.title}>
+                        <h2 className="text-sm font-bold text-[var(--text)] truncate max-w-lg" title={cluster.title}>
                           {cluster.title}
                         </h2>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <span className="text-[var(--identifier)] font-bold">
-                          {cluster.caseCount} LINKED CASES
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
+                        <span className="text-[var(--identifier)] font-semibold font-mono">
+                          {cluster.caseCount} Linked Cases
                         </span>
-                        <span className="text-[var(--text-dim)]">•</span>
-                        <span className="text-[var(--text-dim)] font-sans">
+                        <span>•</span>
+                        <span>
                           Date range: <strong className="text-[var(--text)] font-mono">{cluster.dateRange.earliest} — {cluster.dateRange.latest}</strong>
                         </span>
                       </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
-                      <span
-                        className={`px-2.5 py-1 rounded text-xs font-bold border uppercase ${getSeverityBadge(
-                          cluster.highestSeverity
-                        )}`}
-                      >
-                        {cluster.highestSeverity} SEVERITY
-                      </span>
-
-                      <span className="px-2.5 py-1 rounded text-xs font-bold bg-[var(--surface-elevated)] text-[var(--severity-critical)] border border-[var(--border-subtle)] uppercase">
-                        RISK: {cluster.highestRiskScore}/100
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border uppercase ${getSeverityBadgeClass(cluster.highestSeverity)}`}>
+                        {cluster.highestSeverity} Risk
                       </span>
 
                       <button
@@ -375,16 +455,16 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
                             [cluster.id]: !prev[cluster.id],
                           }))
                         }
-                        className="px-3 py-1 rounded bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text)] text-xs font-bold border border-[var(--border-subtle)] transition-colors inline-flex items-center gap-1 cursor-pointer"
+                        className="px-3.5 py-1.5 rounded-xl bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text)] text-xs font-semibold border border-[var(--border-subtle)] transition-colors inline-flex items-center gap-1 cursor-pointer"
                       >
                         {isExpanded ? (
                           <>
-                            <span>HIDE CASES</span>
+                            <span>Hide Cases</span>
                             <ChevronDown className="w-3.5 h-3.5" />
                           </>
                         ) : (
                           <>
-                            <span>VIEW CASES</span>
+                            <span>View Linked Cases</span>
                             <ChevronRight className="w-3.5 h-3.5" />
                           </>
                         )}
@@ -392,115 +472,61 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
                     </div>
                   </div>
 
-                  {/* Shared Infrastructure Highlights */}
-                  <div className="p-4 bg-[var(--surface)] grid grid-cols-1 md:grid-cols-3 gap-3 border-b border-[var(--border-subtle)] text-xs">
-                    {/* Shared IP */}
-                    <div className="bg-[var(--surface-subtle)] p-3 rounded border border-[var(--border-subtle)] space-y-1">
-                      <div className="text-[10px] text-[var(--text-dim)] uppercase tracking-wider flex items-center gap-1 font-sans">
-                        <Network className="w-3 h-3 text-[var(--identifier)]" /> Shared Source IP
+                  {/* Shared Info */}
+                  <div className="p-4 bg-[var(--surface)] grid grid-cols-1 md:grid-cols-2 gap-3 border-b border-[var(--border-subtle)] text-xs">
+                    <div className="bg-[var(--surface-subtle)] p-3 rounded-xl border border-[var(--border-subtle)] space-y-1">
+                      <div className="text-[11px] text-[var(--text-dim)] uppercase font-mono flex items-center gap-1">
+                        <Network className="w-3.5 h-3.5 text-[var(--identifier)]" /> Shared Source IP
                       </div>
-                      <div className="font-bold text-[var(--identifier)] truncate font-mono">
-                        {sharedIp}
-                      </div>
+                      <div className="font-bold text-[var(--identifier)] font-mono">{sharedIp}</div>
                     </div>
 
-                    {/* Shared Sender Domain */}
-                    <div className="bg-[var(--surface-subtle)] p-3 rounded border border-[var(--border-subtle)] space-y-1">
-                      <div className="text-[10px] text-[var(--text-dim)] uppercase tracking-wider flex items-center gap-1 font-sans">
-                        <Globe className="w-3 h-3 text-[var(--identifier)]" /> Shared Sender Domain
+                    <div className="bg-[var(--surface-subtle)] p-3 rounded-xl border border-[var(--border-subtle)] space-y-1">
+                      <div className="text-[11px] text-[var(--text-dim)] uppercase font-mono flex items-center gap-1">
+                        <Globe className="w-3.5 h-3.5 text-[var(--identifier)]" /> Shared Sender Domain
                       </div>
-                      <div className="font-bold text-[var(--text)] truncate font-mono">
-                        {sharedDomain}
-                      </div>
-                    </div>
-
-                    {/* Shared URL Domain */}
-                    <div className="bg-[var(--surface-subtle)] p-3 rounded border border-[var(--border-subtle)] space-y-1">
-                      <div className="text-[10px] text-[var(--text-dim)] uppercase tracking-wider flex items-center gap-1 font-sans">
-                        <Link2 className="w-3 h-3 text-[var(--severity-critical)]" /> Shared Payload Domain
-                      </div>
-                      <div className="font-bold text-[var(--severity-critical)] truncate font-mono">
-                        {sharedUrl}
-                      </div>
+                      <div className="font-bold text-[var(--text)] font-mono">{sharedDomain}</div>
                     </div>
                   </div>
 
-                  {/* Grouping Reasons List */}
-                  <div className="p-4 bg-[var(--surface-subtle)] border-b border-[var(--border-subtle)] space-y-2 text-xs">
-                    <div className="text-[10px] uppercase text-[var(--text-dim)] tracking-wider font-sans font-bold">
-                      Forensic Grouping Rationale
-                    </div>
-                    <ul className="space-y-1 text-[var(--text-muted)] font-sans">
-                      {cluster.reasons.map((reason: string, i: number) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-[var(--identifier)]">•</span>
-                          <span>{reason}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Non-Attacker Attribution Safeguard Box */}
-                  <div className="p-3 bg-[var(--surface-elevated)] text-xs flex items-center gap-2 text-[var(--text-muted)] font-sans border-b border-[var(--border-subtle)]">
-                    <AlertTriangle className="w-4 h-4 text-[var(--severity-medium)] shrink-0" />
-                    <span>
-                      <strong>Forensic Safeguard:</strong> Cases linked by shared infrastructure or indicators. Shared infrastructure does not establish common actor attribution.
-                    </span>
-                  </div>
-
-                  {/* Expandable Linked Cases Table */}
+                  {/* Expandable Cases */}
                   {isExpanded && (
                     <div className="p-4 bg-[var(--surface)] space-y-3">
                       <div className="text-xs font-mono text-[var(--text-dim)] uppercase">
-                        Linked Investigation Cases ({cluster.cases.length})
+                        Linked Cases ({cluster.cases.length})
                       </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs font-mono">
-                          <thead className="bg-[var(--surface-subtle)] border-b border-[var(--border-subtle)] text-[var(--text-dim)] text-[10px] uppercase">
-                            <tr>
-                              <th className="py-2.5 px-3">Case ID</th>
-                              <th className="py-2.5 px-3">Subject</th>
-                              <th className="py-2.5 px-3">Sender</th>
-                              <th className="py-2.5 px-3">Severity</th>
-                              <th className="py-2.5 px-3">Score</th>
-                              <th className="py-2.5 px-3">Created (IST)</th>
-                              <th className="py-2.5 px-3 text-right">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-[var(--border-subtle)]">
-                            {cluster.cases.map((c: CaseRecord) => (
-                              <tr
-                                key={c.id}
-                                onClick={() => onSelectCase(c)}
-                                className="hover:bg-[var(--surface-hover)] cursor-pointer transition-colors"
-                              >
-                                <td className="py-2.5 px-3 font-bold text-[var(--identifier)]">{c.id}</td>
-                                <td className="py-2.5 px-3 text-[var(--text)] font-sans max-w-xs truncate">{c.subject}</td>
-                                <td className="py-2.5 px-3 text-[var(--text-muted)] max-w-xs truncate">{c.sender}</td>
-                                <td className="py-2.5 px-3">
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase ${getSeverityBadge(c.severity)}`}>
-                                    {c.severity}
-                                  </span>
-                                </td>
-                                <td className="py-2.5 px-3 font-bold text-[var(--severity-critical)]">{c.riskScore}/100</td>
-                                <td className="py-2.5 px-3 text-[var(--text-dim)] text-[11px]">{formatISTTimestamp(c.createdAt)}</td>
-                                <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onSelectCase(c);
-                                    }}
-                                    className="px-2.5 py-1 rounded bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text)] text-[10px] font-bold border border-[var(--border-subtle)] transition-colors inline-flex items-center gap-1 cursor-pointer"
-                                  >
-                                    VIEW CASE
-                                    <ArrowUpRight className="w-3 h-3 text-[var(--identifier)]" />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                      <div className="divide-y divide-[var(--border-subtle)]">
+                        {cluster.cases.map((c: CaseRecord) => (
+                          <div
+                            key={c.id}
+                            onClick={() => onSelectCase(c)}
+                            className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[var(--surface-hover)] p-2 rounded-xl transition-colors cursor-pointer"
+                          >
+                            <div className="space-y-1 min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-[var(--identifier)] font-mono text-xs">{c.id}</span>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase border ${getSeverityBadgeClass(c.severity)}`}>
+                                  {c.severity}
+                                </span>
+                                <span className="text-xs font-mono text-[var(--text-muted)]">Risk Score: <strong className="text-[var(--text)]">{c.riskScore}/100</strong></span>
+                              </div>
+                              <div className="text-xs font-medium text-[var(--text)] truncate">{c.subject || '(No Subject)'}</div>
+                              <div className="text-[11px] text-[var(--text-dim)] truncate">From: {c.sender}</div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSelectCase(c);
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text)] text-xs font-medium inline-flex items-center gap-1 transition-colors cursor-pointer self-start sm:self-auto"
+                            >
+                              <span>View Details</span>
+                              <ArrowUpRight className="w-3.5 h-3.5 text-[var(--identifier)]" />
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -508,40 +534,33 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
               );
             })
           ) : (
-            /* Empty State when no campaigns exist */
-            <div className="surface-card p-12 border border-[var(--border-subtle)] rounded-md text-center font-mono space-y-3">
+            <div className="surface-card p-12 border border-[var(--border-subtle)] rounded-2xl text-center space-y-3">
               <div className="w-12 h-12 rounded-full bg-[var(--surface)] border border-[var(--border-subtle)] mx-auto flex items-center justify-center text-[var(--text-dim)]">
                 <Layers className="w-6 h-6 text-[var(--text-dim)]" />
               </div>
-              <div className="space-y-1">
-                <h3 className="text-sm font-bold text-[var(--text)] uppercase tracking-wide font-sans">
-                  No linked campaigns detected
-                </h3>
-                <p className="text-xs text-[var(--text-muted)] font-sans max-w-md mx-auto">
-                  Campaign clustering requires multiple cases sharing meaningful forensic indicators (such as verified source IP, sender domain, or suspicious URL domain).
-                </p>
-              </div>
+              <h3 className="text-sm font-bold text-[var(--text)]">No Linked Campaigns</h3>
+              <p className="text-xs text-[var(--text-muted)] max-w-md mx-auto">
+                Campaign grouping appears automatically when multiple cases share the same sending IP or domain.
+              </p>
             </div>
           )}
         </div>
       ) : (
         /* INDIVIDUAL CASES VIEW */
-        <div className="surface-card border border-[var(--border-subtle)] overflow-hidden rounded-md">
+        <div className="surface-card border border-[var(--border-subtle)] rounded-2xl overflow-hidden">
           {filteredCases.length > 0 ? (
             <>
-              {/* Table View */}
+              {/* Desktop Table View */}
               <div className="overflow-x-auto hidden md:block">
-                <table className="w-full text-left text-xs font-mono">
-                  <thead className="bg-[var(--surface-subtle)] border-b border-[var(--border-subtle)] text-[var(--text-dim)] text-[10px] uppercase">
+                <table className="w-full text-left text-xs font-sans">
+                  <thead className="bg-[var(--surface-subtle)] border-b border-[var(--border-subtle)] text-[var(--text-dim)] text-[11px] font-mono uppercase">
                     <tr>
                       <th className="py-3 px-4">Case ID</th>
-                      <th className="py-3 px-4">Subject / Incident</th>
-                      <th className="py-3 px-4">Severity</th>
-                      <th className="py-3 px-4">Classification</th>
+                      <th className="py-3 px-4">Subject / Sender</th>
+                      <th className="py-3 px-4">Risk Level</th>
+                      <th className="py-3 px-4">Email Type</th>
                       <th className="py-3 px-4">Risk Score</th>
-                      <th className="py-3 px-4">Confidence</th>
-                      <th className="py-3 px-4">Origin IP</th>
-                      <th className="py-3 px-4">Last Activity (IST)</th>
+                      <th className="py-3 px-4">Date</th>
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -550,13 +569,13 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
                       <tr
                         key={c.id}
                         onClick={() => onSelectCase(c)}
-                        className="hover:bg-[var(--surface-hover)] cursor-pointer transition-colors group"
+                        className="hover:bg-[var(--surface-hover)] cursor-pointer transition-colors"
                       >
-                        <td className="py-3.5 px-4 whitespace-nowrap font-mono">
-                          <span className="font-bold text-[var(--identifier)]">{c.id}</span>
+                        <td className="py-3.5 px-4 whitespace-nowrap font-mono font-bold text-[var(--identifier)]">
+                          {c.id}
                         </td>
                         <td className="py-3.5 px-4 max-w-xs">
-                          <div className="font-semibold text-[var(--text)] font-sans truncate" title={c.subject}>
+                          <div className="font-semibold text-[var(--text)] truncate" title={c.subject}>
                             {c.subject || '(No Subject Provided)'}
                           </div>
                           <div className="text-[11px] text-[var(--text-dim)] font-mono truncate" title={c.sender}>
@@ -564,28 +583,22 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
                           </div>
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase border ${getSeverityBadge(c.severity)}`}>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase border ${getSeverityBadgeClass(c.severity)}`}>
                             {c.severity}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap font-sans text-[var(--text-muted)] text-[11px]">
+                        <td className="py-3.5 px-4 whitespace-nowrap text-[var(--text-muted)] text-xs">
                           {c.classification}
                         </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="font-bold text-[var(--severity-critical)]">{c.riskScore}</span>
-                          <span className="text-[var(--text-dim)] text-[10px]"> / 100</span>
+                        <td className="py-3.5 px-4 whitespace-nowrap font-mono">
+                          <span className="font-bold text-[var(--text)]">{c.riskScore}</span>
+                          <span className="text-[var(--text-dim)] text-[11px]"> / 100</span>
                         </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <span className="text-[var(--text-muted)] uppercase text-[11px]">{c.confidence}</span>
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap font-mono text-[var(--identifier)] text-[11px]">
-                          {c.sourceIp || 'Unavailable'}
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap text-[var(--text-dim)] text-[11px]">
+                        <td className="py-3.5 px-4 whitespace-nowrap text-[var(--text-dim)] text-[11px] font-mono">
                           {formatISTTimestamp(c.updatedAt)}
                         </td>
                         <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end space-x-1.5">
+                          <div className="flex items-center justify-end space-x-2">
                             <button
                               type="button"
                               onClick={(e) => {
@@ -593,7 +606,7 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
                                 handleDownloadCaseReport(c);
                               }}
                               disabled={downloadingId === c.id}
-                              className="px-2 py-1 rounded bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-muted)] hover:text-[var(--text)] text-[10px] font-mono border border-[var(--border-subtle)] transition-colors inline-flex items-center gap-1 cursor-pointer"
+                              className="px-2.5 py-1 rounded-lg bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text-muted)] hover:text-[var(--text)] text-[11px] font-mono border border-[var(--border-subtle)] transition-colors inline-flex items-center gap-1 cursor-pointer"
                               title="Download PDF report"
                             >
                               {downloadingId === c.id ? (
@@ -609,10 +622,10 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
                                 e.stopPropagation();
                                 onSelectCase(c);
                               }}
-                              className="px-2.5 py-1 rounded bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text)] text-[10px] font-bold border border-[var(--border-subtle)] transition-colors inline-flex items-center gap-1 cursor-pointer"
+                              className="px-3 py-1 rounded-lg bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text)] text-xs font-semibold border border-[var(--border-subtle)] transition-colors inline-flex items-center gap-1 cursor-pointer"
                             >
-                              <span>INVESTIGATE</span>
-                              <ArrowUpRight className="w-3 h-3 text-[var(--identifier)]" />
+                              <span>View Details</span>
+                              <ArrowUpRight className="w-3.5 h-3.5 text-[var(--identifier)]" />
                             </button>
                           </div>
                         </td>
@@ -623,7 +636,7 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
               </div>
 
               {/* Mobile Card List */}
-              <div className="block md:hidden divide-y divide-[var(--border-subtle)] font-mono">
+              <div className="block md:hidden divide-y divide-[var(--border-subtle)]">
                 {filteredCases.map((c) => (
                   <div
                     key={c.id}
@@ -631,32 +644,30 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
                     className="p-4 space-y-3 hover:bg-[var(--surface-hover)] cursor-pointer"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-bold text-[var(--identifier)]">{c.id}</span>
-                      </div>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase ${getSeverityBadge(c.severity)}`}>
+                      <span className="font-bold text-[var(--identifier)] font-mono text-xs">{c.id}</span>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold border uppercase ${getSeverityBadgeClass(c.severity)}`}>
                         {c.severity}
                       </span>
                     </div>
 
                     <div className="space-y-1">
-                      <h4 className="text-sm font-semibold text-[var(--text)] font-sans leading-snug">
+                      <h4 className="text-sm font-semibold text-[var(--text)] leading-snug">
                         {c.subject || '(No Subject)'}
                       </h4>
                       <p className="text-xs text-[var(--text-dim)] truncate">From: {c.sender}</p>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs pt-1 border-t border-[var(--border-subtle)]">
-                      <span className="text-[var(--text-muted)]">Score: <strong className="text-[var(--severity-critical)]">{c.riskScore}/100</strong></span>
+                    <div className="flex items-center justify-between text-xs pt-2 border-t border-[var(--border-subtle)]">
+                      <span className="text-[var(--text-muted)]">Risk Score: <strong className="text-[var(--text)]">{c.riskScore}/100</strong></span>
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           onSelectCase(c);
                         }}
-                        className="px-2.5 py-1 rounded bg-[var(--surface-elevated)] text-[var(--text)] text-[10px] font-bold border border-[var(--border-subtle)]"
+                        className="px-3 py-1 rounded-lg bg-[var(--surface-elevated)] text-[var(--text)] text-xs font-semibold border border-[var(--border-subtle)]"
                       >
-                        INVESTIGATE →
+                        View Details →
                       </button>
                     </div>
                   </div>
@@ -664,28 +675,28 @@ export const Cases: React.FC<CasesProps> = ({ onSelectCase }) => {
               </div>
             </>
           ) : (
-            /* Filter / Search Returned No Cases */
-            <div className="p-12 text-center font-mono space-y-4">
+            /* Empty State */
+            <div className="p-12 text-center font-sans space-y-4">
               <div className="max-w-md mx-auto space-y-3">
-                <div className="w-12 h-12 rounded bg-[var(--surface)] border border-[var(--border-subtle)] mx-auto flex items-center justify-center text-[var(--text-muted)]">
+                <div className="w-12 h-12 rounded-full bg-[var(--surface)] border border-[var(--border-subtle)] mx-auto flex items-center justify-center text-[var(--text-muted)]">
                   <ShieldAlert className="w-6 h-6 text-[var(--identifier)]" />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-sm font-bold font-sans text-[var(--text)] uppercase">
-                    NO MATCHING CASES
+                  <h3 className="text-sm font-bold text-[var(--text)]">
+                    No Matching Cases Found
                   </h3>
-                  <p className="text-xs text-[var(--text-muted)] font-sans">
-                    No investigation records matched your query or filter parameters.
+                  <p className="text-xs text-[var(--text-muted)]">
+                    No investigation records matched your search query or active filter settings.
                   </p>
                 </div>
                 <div className="pt-2">
                   <button
                     type="button"
                     onClick={resetFilters}
-                    className="px-3.5 py-1.5 rounded bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text)] border border-[var(--border-subtle)] text-xs font-mono inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--text)] border border-[var(--border-subtle)] text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5 text-[var(--identifier)]" />
-                    RESET ALL FILTERS
+                    Reset All Filters
                   </button>
                 </div>
               </div>
