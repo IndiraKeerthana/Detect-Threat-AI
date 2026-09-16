@@ -25,12 +25,10 @@ export const Investigation: React.FC<InvestigationProps> = ({
   onViewReport,
   onStatusChange,
 }) => {
-  const recommendedActions = data.ai_investigation?.recommended_actions || [
-    'Isolate recipient mailbox and revoke active session tokens if needed.',
-    'Do not click any links or download attachments in this email.',
-    'Verify the sender identity directly through a separate, trusted channel before responding.',
-    'Report this email to your organization\'s IT or Security team.',
-  ];
+  const recommendedActions =
+    data.ai_investigation?.recommended_actions ||
+    data.recommended_actions?.map((a) => a.action) ||
+    [];
 
   return (
     <InvestigationVisualProvider>
@@ -78,6 +76,7 @@ export const Investigation: React.FC<InvestigationProps> = ({
 
         {/* SECTION 6: Recommendations */}
         <RecommendationsCard
+          data={data}
           recommendedActions={recommendedActions}
           riskScore={data.risk_assessment?.score ?? 0}
         />
