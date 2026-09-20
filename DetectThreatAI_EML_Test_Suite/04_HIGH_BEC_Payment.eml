@@ -1,0 +1,52 @@
+From: Finance Director <finance-director@company-payments.click>
+To: accounts@example.net
+Subject: Immediate payment required - confidential
+Date: Wed, 09 Sep 2026 18:00:00 +0530
+Message-ID: <high-bec-004@company-payments.click>
+Return-Path: <noreply@billing-queue.click>
+Reply-To: director.personal@freemail.example
+Authentication-Results: mx.example.net; spf=fail
+ smtp.mailfrom=billing-queue.click; dkim=none; dmarc=fail
+ header.from=company-payments.click
+Received-SPF: fail
+Received: from billing-gateway (billing-gateway [45.33.32.156]) by
+ mx.example.net with ESMTP id HIGH006
+Received: from cloud-relay (cloud-relay [208.67.222.222]) by billing-gateway
+ with ESMTP id HIGH007
+X-Originating-IP: [45.33.32.156]
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============0869251195798544187=="
+
+--===============0869251195798544187==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+CONFIDENTIAL - PAYMENT REQUEST
+
+I am in a meeting and need the outstanding supplier invoice handled immediate=
+ly.
+
+Please review the invoice details and arrange the transfer today. Do not dela=
+y this request.
+
+Payment portal:
+http://45.33.32.156/invoice/48291
+
+Reply directly to this message when the transfer is complete.
+
+Finance Director
+
+--===============0869251195798544187==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p><b>CONFIDENTIAL - PAYMENT REQUEST</b></p><p>I am in a meeting =
+and need the outstanding supplier invoice handled immediately.</p><p>Please r=
+eview the invoice details and arrange the transfer today. Do not delay this r=
+equest.</p><p>Payment portal: <a href=3D"http://45.33.32.156/invoice/48291">R=
+eview invoice</a></p><p>Reply directly to this message when the transfer is c=
+omplete.</p><p>Finance Director</p></body></html>
+
+--===============0869251195798544187==--

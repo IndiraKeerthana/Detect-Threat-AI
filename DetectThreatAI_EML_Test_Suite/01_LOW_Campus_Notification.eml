@@ -1,0 +1,45 @@
+From: Campus Services <notifications@example.org>
+To: student@example.net
+Subject: Your weekly campus notification
+Date: Wed, 09 Sep 2026 18:00:00 +0530
+Message-ID: <low-campus-001@example.org>
+Return-Path: <notifications@example.org>
+Reply-To: notifications@example.org
+Authentication-Results: mx.example.net; spf=pass smtp.mailfrom=example.org;
+ dkim=pass header.d=example.org; dmarc=pass header.from=example.org
+Received-SPF: pass
+DKIM-Signature: v=1; a=rsa-sha256; d=example.org; s=mail; bh=TEST; b=TEST
+Received: from relay.example.org (relay.example.org [1.1.1.1]) by
+ mx.example.net with ESMTPS id LOW001
+Received: from mail.example.org (mail.example.org [8.8.8.8]) by
+ relay.example.org with ESMTPS id LOW002
+X-Originating-IP: [8.8.8.8]
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============1155189355128325699=="
+
+--===============1155189355128325699==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Hello,
+
+This is your weekly campus services notification.
+
+No action is required. You can review your regular notices from the usual por=
+tal when convenient.
+
+Regards,
+Campus Services
+
+--===============1155189355128325699==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>Hello,</p><p>This is your weekly campus services notification.=
+</p><p>No action is required. You can review your regular notices from the us=
+ual portal when convenient.</p><p>Regards,<br>Campus Services</p></body></htm=
+l>
+
+--===============1155189355128325699==--

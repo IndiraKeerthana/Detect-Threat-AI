@@ -1,0 +1,46 @@
+From: Account Services <account-notice@example.org>
+To: student@example.net
+Subject: Review your recent account activity
+Date: Wed, 09 Sep 2026 18:00:00 +0530
+Message-ID: <medium-account-002@example.org>
+Return-Path: <account-notice@example.org>
+Reply-To: account-help@example.org
+Authentication-Results: mx.example.net; spf=pass smtp.mailfrom=example.org;
+ dkim=pass header.d=example.org; dmarc=pass header.from=example.org
+Received-SPF: pass
+DKIM-Signature: v=1; a=rsa-sha256; d=example.org; s=mail; bh=TEST; b=TEST
+Received: from relay.example.org (relay.example.org [1.1.1.1]) by
+ mx.example.net with ESMTPS id MED001
+Received: from outbound.example.org (outbound.example.org [208.67.222.222]) by
+ relay.example.org with ESMTPS id MED002
+X-Originating-IP: [208.67.222.222]
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============8072233000302817445=="
+
+--===============8072233000302817445==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Hello,
+
+We noticed a recent sign-in to your account.
+
+If you recognize this activity, no action is required. If you do not recogniz=
+e it, please review your account activity using your normal bookmarked accoun=
+t portal.
+
+Regards,
+Account Services
+
+--===============8072233000302817445==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>Hello,</p><p>We noticed a recent sign-in to your account.</p><=
+p>If you recognize this activity, no action is required. If you do not recogn=
+ize it, please review your account activity using your normal bookmarked acco=
+unt portal.</p><p>Regards,<br>Account Services</p></body></html>
+
+--===============8072233000302817445==--
